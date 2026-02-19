@@ -19,3 +19,13 @@ body {
   background: #2C2C2E; 
   border-radius: 4px;
 }
+/* Cache la barre de défilement pour Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Cache la barre de défilement pour IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

@@ -4,6 +4,7 @@ import WorkoutSession from './pages/WorkoutSession'
 import Profile from './pages/Profile'
 import Program from './pages/Program' // <--- Vérifie que ce fichier existe bien dans src/pages/
 import BottomNav from './components/BottomNav'
+import Settings from './pages/Settings' // <--- Ajoute ça en haut
 
 // Le Layout gère l'affichage du menu du bas
 function Layout({ children }) {
@@ -37,6 +38,8 @@ export default function App() {
           
           {/* 4. Page de Séance (ID dynamique) */}
           <Route path="/workout/:id" element={<WorkoutSession />} />
+
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </Layout>
     </BrowserRouter>

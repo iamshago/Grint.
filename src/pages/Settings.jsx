@@ -2,6 +2,19 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, User, Target, Quote, Trash2 } from 'lucide-react'
 
+// --- LE CORRECTIF EST ICI : On sort le composant Section à l'extérieur ---
+const Section = ({ icon: Icon, title, children }) => (
+  <div className="bg-[#1C1C1E] p-5 rounded-3xl border border-white/5 mb-4">
+    <div className="flex items-center gap-3 mb-4">
+      <div className="w-8 h-8 rounded-full bg-neon/10 flex items-center justify-center text-neon">
+          <Icon size={16} />
+      </div>
+      <h3 className="font-bold text-white text-sm">{title}</h3>
+    </div>
+    {children}
+  </div>
+)
+
 export default function Settings() {
   const navigate = useNavigate()
   const [name, setName] = useState('Sarah')
@@ -28,22 +41,9 @@ export default function Settings() {
     setShowSave(true)
     setTimeout(() => {
         setShowSave(false)
-        navigate('/') // Retour accueil pour voir le changement
+        navigate('/') 
     }, 1000)
   }
-
-  // Petit composant pour les sections
-  const Section = ({ icon: Icon, title, children }) => (
-    <div className="bg-[#1C1C1E] p-5 rounded-3xl border border-white/5 mb-4">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-8 h-8 rounded-full bg-neon/10 flex items-center justify-center text-neon">
-            <Icon size={16} />
-        </div>
-        <h3 className="font-bold text-white text-sm">{title}</h3>
-      </div>
-      {children}
-    </div>
-  )
 
   return (
     <div className="min-h-screen bg-black text-white font-sans pb-24 relative">
@@ -54,12 +54,12 @@ export default function Settings() {
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-xl font-bold tracking-wide">Réglages</h1>
-        <div className="w-10"></div> {/* Spacer pour centrer le titre */}
+        <div className="w-10"></div>
       </div>
 
       <div className="px-6">
         
-        {/* AVATAR (Visuel uniquement pour l'instant) */}
+        {/* AVATAR */}
         <div className="flex flex-col items-center mb-8">
             <div className="w-24 h-24 rounded-full border-4 border-[#1C1C1E] overflow-hidden shadow-2xl relative">
                 <img 
@@ -106,9 +106,17 @@ export default function Settings() {
             </div>
         </Section>
 
-        {/* ZONE DE DANGER (Déco pour l'instant) */}
+        {/* ZONE DE DANGER */}
         <div className="mt-8 pt-8 border-t border-white/5">
-            <button className="flex items-center gap-2 text-red-500 text-xs font-bold px-4 py-3 rounded-xl hover:bg-red-500/10 transition-colors w-full justify-center">
+            <button 
+                onClick={() => {
+                  if(window.confirm("Tout effacer ?")) {
+                    localStorage.clear();
+                    window.location.reload();
+                  }
+                }}
+                className="flex items-center gap-2 text-red-500 text-xs font-bold px-4 py-3 rounded-xl hover:bg-red-500/10 transition-colors w-full justify-center"
+            >
                 <Trash2 size={16} />
                 Réinitialiser toutes les données
             </button>
@@ -116,7 +124,7 @@ export default function Settings() {
 
       </div>
 
-      {/* BOUTON SAUVEGARDER FLOTTANT */}
+      {/* BOUTON SAUVEGARDER */}
       <div className="fixed bottom-8 left-0 right-0 px-6 z-30">
         <button 
             onClick={handleSave}
@@ -124,11 +132,7 @@ export default function Settings() {
                 showSave ? 'bg-green-500 scale-95' : 'bg-neon hover:bg-neon-hover'
             }`}
         >
-            {showSave ? (
-                <>C'EST ENREGISTRÉ ! 🎉</>
-            ) : (
-                <><Save size={20} /> SAUVEGARDER</>
-            )}
+            {showSave ? "C'EST ENREGISTRÉ ! 🎉" : <><Save size={20} /> SAUVEGARDER</>}
         </button>
       </div>
 

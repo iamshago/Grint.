@@ -6,23 +6,16 @@ import { useNavigate } from 'react-router-dom'
 export default function Home() {
   const navigate = useNavigate()
   
-  // --- NOUVEAU : ÉTATS POUR LE PROFIL ---
   const [userName, setUserName] = useState('Sarah')
-  const [userMotto, setUserMotto] = useState('Prête à tout casser ?')
-
   const [todaysWorkout, setTodaysWorkout] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isCompleted, setIsCompleted] = useState(false)
 
-  // --- 1. CHARGEMENT DES PRÉFÉRENCES (Nom & Motto) ---
   useEffect(() => {
     const storedName = localStorage.getItem('userName')
-    const storedMotto = localStorage.getItem('userMotto') // On peut l'utiliser plus tard si tu veux l'afficher
     if (storedName) setUserName(storedName)
-    if (storedMotto) setUserMotto(storedMotto)
   }, [])
 
-  // --- 2. GESTION DU CALENDRIER ---
   const [selectedDate, setSelectedDate] = useState(new Date())
   const selectedDayIndex = selectedDate.getDay() 
   
@@ -50,7 +43,6 @@ export default function Home() {
     month: 'long' 
   })
 
-  // --- 3. RÉCUPÉRATION SÉANCE & STATUS ---
   useEffect(() => {
     getWorkoutAndStatus()
   }, [selectedDate])
@@ -72,7 +64,6 @@ export default function Home() {
       if (planData && planData.workouts) {
         setTodaysWorkout(planData.workouts)
 
-        // Vérification si terminé
         const dateStr = selectedDate.toISOString().split('T')[0]
         const exerciseIds = planData.workouts.workout_exercises.map(we => we.exercise_id)
         
@@ -95,20 +86,27 @@ export default function Home() {
     }
   }
 
+  // --- THÈME DYNAMIQUE (LE SECRET DU BBL DAY EN ROSE !) ---
+  const isBBL = todaysWorkout?.title?.toUpperCase().includes('BBL')
+  const cText = isBBL ? 'text-pink-500' : 'text-neon'
+  const cBg = isBBL ? 'bg-pink-500' : 'bg-neon'
+  const cBorder = isBBL ? 'border-pink-500' : 'border-neon'
+  const cBadgeBg = isBBL ? 'bg-pink-500/20' : 'bg-neon/20'
+  const cBadgeBorder = isBBL ? 'border-pink-500/20' : 'border-neon/20'
+  const cShadowBtn = isBBL ? 'shadow-pink-500/20' : 'shadow-neon/20'
+
   return (
     <div className="min-h-screen bg-dark-900 text-white font-sans pb-24">
       
-      {/* HEADER DYNAMIQUE */}
+      {/* HEADER */}
       <div className="p-6 pt-12 flex justify-between items-center">
         <div>
-          {/* Ici on utilise la variable userName */}
           <h1 className="text-3xl font-bold text-white">Hello {userName} !</h1>
           <p className="text-gray-400 text-sm uppercase tracking-wider font-bold mt-1 capitalize">
             {headerDate}
           </p>
         </div>
         <div className="w-12 h-12 bg-dark-800 rounded-2xl border border-dark-700 flex items-center justify-center overflow-hidden">
-           {/* L'avatar change aussi selon le nom */}
            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`} alt="Avatar" className="w-full h-full" />
         </div>
       </div>
@@ -123,26 +121,24 @@ export default function Home() {
               onClick={() => setSelectedDate(d.dateObj)}
               className={`flex flex-col items-center justify-center w-11 h-20 rounded-2xl border transition-all cursor-pointer ${
                 d.isSelected 
-                  ? 'bg-neon text-dark-900 border-neon shadow-lg shadow-neon/20 transform scale-105' 
+                  ? `${cBg} text-dark-900 ${cBorder} shadow-lg transform scale-105` // <-- LA MAGIE EST ICI
                   : 'bg-dark-800 border-dark-700 text-gray-500 hover:border-gray-500'
               }`}
             >
               <span className="text-[10px] font-bold uppercase mb-1 opacity-80">{d.dayName}</span>
               <span className="text-xl font-black">{d.dayNumber}</span>
-              {d.isToday && !d.isSelected && <div className="w-1 h-1 bg-neon rounded-full mt-1"></div>}
+              {/* Le petit point d'aujourd'hui prend aussi la bonne couleur ! */}
+              {d.isToday && !d.isSelected && <div className={`w-1 h-1 ${cBg} rounded-full mt-1`}></div>}
             </div>
           ))}
         </div>
       </div>
 
-      {/* BOUTON GÉRER */}
+      {/* BOUTON GÉRER MON PLANNING */}
       <div className="px-6 mb-6">
-          <div 
-            onClick={() => navigate('/program')} 
-            className="bg-dark-800 p-4 rounded-3xl border border-dashed border-dark-600 flex items-center justify-between group cursor-pointer hover:border-neon transition-colors"
-          >
+          <div onClick={() => navigate('/program')} className="bg-dark-800 p-4 rounded-3xl border border-dashed border-dark-600 flex items-center justify-between group cursor-pointer hover:border-white/50 transition-colors">
               <div className="flex items-center gap-4">
-                <div className="bg-neon/10 p-3 rounded-2xl text-neon">
+                <div className="bg-white/10 p-3 rounded-2xl text-white">
                     <Calendar size={20} />
                 </div>
                 <div>
@@ -150,7 +146,7 @@ export default function Home() {
                     <p className="text-[10px] text-gray-500 font-bold uppercase">Modifier la semaine</p>
                 </div>
               </div>
-              <ChevronRight size={18} className="text-gray-600 group-hover:text-neon" />
+              <ChevronRight size={18} className="text-gray-600 group-hover:text-white" />
           </div>
       </div>
 
@@ -163,15 +159,10 @@ export default function Home() {
         {loading ? (
           <div className="h-64 bg-dark-800 rounded-3xl animate-pulse flex items-center justify-center text-gray-500">Chargement...</div>
         ) : todaysWorkout ? (
-          <div className={`bg-dark-800 rounded-3xl p-6 relative overflow-hidden border border-dark-700 transition-all ${
-              isCompleted 
-                ? 'shadow-[0_0_40px_rgba(204,255,0,0.05)]' 
-                : 'shadow-2xl'
-          }`}>
+          <div className={`bg-dark-800 rounded-3xl p-6 relative overflow-hidden border border-dark-700 transition-all shadow-2xl`}>
             
-            {/* BADGE CHECK */}
             {isCompleted && (
-                <div className="absolute top-4 right-4 w-8 h-8 bg-neon text-dark-900 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-300">
+                <div className={`absolute top-4 right-4 w-8 h-8 ${cBg} text-dark-900 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-300`}>
                     <Check size={18} strokeWidth={4} />
                 </div>
             )}
@@ -179,8 +170,8 @@ export default function Home() {
             <div className="relative z-10">
               <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase border tracking-widest ${
                   isCompleted 
-                    ? 'bg-neon text-dark-900 border-neon' 
-                    : 'bg-neon/20 text-neon border-neon/20'
+                    ? `${cBg} text-dark-900 ${cBorder}` 
+                    : `${cBadgeBg} ${cText} ${cBadgeBorder}`
               }`}>
                 {isCompleted ? 'TERMINÉ' : (todaysWorkout.difficulty || 'INTENSE')}
               </span>
@@ -188,21 +179,20 @@ export default function Home() {
               <h2 className="text-3xl font-black mt-4 mb-2 text-white italic uppercase tracking-tighter">{todaysWorkout.title}</h2>
               
               <div className="flex items-center gap-6 text-gray-400 text-xs font-bold mb-8">
-                <span className="flex items-center gap-2"><Clock size={16} className="text-neon" /> {todaysWorkout.duration_min} MIN</span>
-                <span className="flex items-center gap-2"><Dumbbell size={16} className="text-neon" /> MUSCULATION</span>
+                <span className="flex items-center gap-2"><Clock size={16} className={cText} /> {todaysWorkout.duration_min} MIN</span>
+                <span className="flex items-center gap-2"><Dumbbell size={16} className={cText} /> MUSCULATION</span>
               </div>
 
-              {/* BOUTON DYNAMIQUE */}
               <button 
                 onClick={() => navigate(`/workout/${todaysWorkout.id}`)}
                 className={`w-full font-black py-4 rounded-2xl flex items-center justify-between px-6 active:scale-95 transition-transform shadow-lg ${
                     isCompleted
-                        ? 'bg-transparent border-2 border-neon text-neon hover:bg-neon hover:text-dark-900' 
-                        : 'bg-neon text-dark-900 hover:bg-neon-hover shadow-neon/20' 
+                        ? `bg-transparent border-2 ${cBorder} ${cText}` 
+                        : `${cBg} text-dark-900 ${cShadowBtn}` 
                 }`}
               >
                 <span>{isCompleted ? 'REVOIR LA SÉANCE' : 'COMMENCER'}</span>
-                <div className={`${isCompleted ? 'bg-neon/10' : 'bg-dark-900/10'} p-2 rounded-full`}>
+                <div className="bg-dark-900/10 p-2 rounded-full">
                   {isCompleted ? <RotateCcw size={20} /> : <Play size={20} fill="currentColor" />}
                 </div>
               </button>
@@ -212,10 +202,7 @@ export default function Home() {
           <div className="bg-dark-800/50 rounded-3xl p-10 text-center border border-dark-700">
             <p className="text-gray-400 font-medium text-sm mb-2">Rien de prévu pour ce jour.</p>
             <p className="text-xs text-gray-600 mb-6">Repos ou ajoute une séance manuellement.</p>
-            <button 
-                onClick={() => navigate('/program')}
-                className="text-neon text-xs font-bold uppercase tracking-widest underline hover:text-white transition-colors"
-            >
+            <button onClick={() => navigate('/program')} className="text-white text-xs font-bold uppercase tracking-widest underline transition-colors">
                 Choisir une séance
             </button>
           </div>

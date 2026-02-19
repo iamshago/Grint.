@@ -199,6 +199,9 @@ export default function Profile() {
 
   async function fetchData() {
     try {
+      setLoading(true)
+
+      // 1. On récupère les logs de progression (Pour les Graphiques, PRs et Fréquence)
       const { data: logs, error } = await supabase
         .from('user_progress')
         .select(`*, exercise:exercises(*)`)
@@ -206,14 +209,23 @@ export default function Profile() {
 
       if (error) throw error
 
+      // 2. NOUVEAU : On récupère la table des VRAIES séances terminées
+      const { data: completedSessions, error: compError } = await supabase
+        .from('completed_workouts')
+        .select('*, workouts(title)')
+        .order('completed_at', { ascending: false })
+        .limit(10)
+
+      if (compError) throw compError
+
       if (logs) {
         setFullHistory(logs)
 
-        // Dates
+        // --- Dates de fréquence ---
         const dates = [...new Set(logs.map(log => new Date(log.created_at).toLocaleDateString('en-CA')))]
         setWorkoutDates(dates)
 
-        // Exercices
+        // --- Liste d'Exercices ---
         const priority = ['Squat', 'Bench Press', 'Deadlift', 'Hip Thrust']
         const uniqueExIds = [...new Set(logs.map(p => p.exercise?.id).filter(Boolean))]
         const uniqueExs = uniqueExIds.map(id => {
@@ -228,7 +240,7 @@ export default function Profile() {
         })
         setExercisesList(uniqueExs)
 
-        // Calories
+        // --- Calories (Graphique à barres) ---
         const last7Days = []
         let weeklySum = 0
         const now = new Date()
@@ -250,34 +262,28 @@ export default function Profile() {
         setChartData(last7Days)
         setTotalKcal(Math.round(weeklySum))
 
-        // Recents
-        const grouped = {}
-        logs.forEach(log => {
-           const dateStr = new Date(log.created_at).toLocaleDateString('en-CA')
-           if (!grouped[dateStr]) grouped[dateStr] = { date: log.created_at, logs: [], totalCals: 0, prs: 0 }
-           
-           const factor = log.exercise?.calorie_factor || 0.015
-           const cals = log.weight_used * log.reps_done * factor
-           grouped[dateStr].logs.push(log)
-           grouped[dateStr].totalCals += cals
-           if (log.notes && log.notes.includes("PR")) grouped[dateStr].prs += 1
-        })
-        const recentList = Object.values(grouped)
-          .sort((a, b) => new Date(b.date) - new Date(a.date))
-          .slice(0, 5)
-          .map(session => {
-            const firstExName = session.logs[0]?.exercise?.name || "Workout"
-            const count = new Set(session.logs.map(l => l.exercise_id)).size
-            const title = count > 1 ? `${firstExName} + ${count - 1}` : firstExName
-            return {
-              title,
-              date: new Date(session.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-              calories: Math.round(session.totalCals),
-              duration: Math.round(session.logs.length * 3.5),
-              prs: session.prs
-            }
-          })
-        setRecentWorkouts(recentList)
+        // --- RECENT WORKOUTS (Mis à jour avec la nouvelle table) ---
+        if (completedSessions) {
+            const formattedRecents = completedSessions.map(session => {
+                // On cherche s'il y a eu des PRs enregistrés ce jour là
+                const sessionDateStr = new Date(session.completed_at).toLocaleDateString('en-CA')
+                const prCount = logs.filter(l => 
+                    new Date(l.created_at).toLocaleDateString('en-CA') === sessionDateStr && 
+                    l.notes && l.notes.includes("PR")
+                ).length
+
+                return {
+                    id: session.id,
+                    title: session.workouts?.title || 'Séance Supprimée',
+                    date: new Date(session.completed_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }).toUpperCase(),
+                    calories: session.calories || 0,
+                    duration: session.duration_min || 0,
+                    prs: prCount,
+                    isBBL: (session.workouts?.title || '').toUpperCase().includes('BBL')
+                }
+            })
+            setRecentWorkouts(formattedRecents)
+        }
       }
     } catch (err) {
       console.error(err)
@@ -290,29 +296,23 @@ export default function Profile() {
     <div className="min-h-screen bg-black text-white pb-24 font-sans selection:bg-[#CCFF00] selection:text-black">
       
      {/* HEADER */}
-<div className="px-6 pt-12 pb-6 flex justify-between items-center sticky top-0 z-20 bg-black/80 backdrop-blur-md">
-  {/* Bouton Retour (Gauche) */}
-  <button onClick={() => navigate('/')} className="w-10 h-10 bg-[#1C1C1E] rounded-full flex items-center justify-center border border-white/10 active:scale-95 transition-transform">
-    <ArrowLeft size={20} />
-  </button>
-  
-  <h1 className="text-xl font-bold tracking-wide">My Statistic</h1>
-  
-  {/* Bouton "..." (Droite) -> C'EST CELUI-LÀ */}
-  <button 
-    onClick={() => navigate('/settings')} 
-    className="w-10 h-10 bg-[#1C1C1E] rounded-full flex items-center justify-center border border-white/10 active:scale-95 transition-transform"
-  >
-    <MoreHorizontal size={20} />
-  </button>
-</div>
+      <div className="px-6 pt-12 pb-6 flex justify-between items-center sticky top-0 z-20 bg-black/80 backdrop-blur-md">
+        <button onClick={() => navigate('/')} className="w-10 h-10 bg-[#1C1C1E] rounded-full flex items-center justify-center border border-white/10 active:scale-95 transition-transform">
+          <ArrowLeft size={20} />
+        </button>
+        
+        <h1 className="text-xl font-bold tracking-wide">My Statistic</h1>
+        
+        <button onClick={() => navigate('/settings')} className="w-10 h-10 bg-[#1C1C1E] rounded-full flex items-center justify-center border border-white/10 active:scale-95 transition-transform">
+          <MoreHorizontal size={20} />
+        </button>
+      </div>
 
       <div className="px-6 space-y-6">
 
         {/* --- CARTE PRINCIPALE --- */}
         <div className="bg-[#1C1C1E] p-6 rounded-[32px] border border-white/5 shadow-2xl relative overflow-hidden h-[400px] flex flex-col">
           
-          {/* TABS (Avec ton ombre personnalisée) */}
           <div className="flex items-center gap-3 mb-2 overflow-x-auto no-scrollbar shrink-0 -mx-6 px-6 py-4">
             {['Calories', 'PRs', 'Frequency'].map(tab => {
                 const isActive = activeTab === tab
@@ -336,7 +336,6 @@ export default function Profile() {
              <div className="w-1 shrink-0"></div>
           </div>
 
-          {/* CONTENU */}
           <div className="flex-1 overflow-hidden">
              {activeTab === 'Calories' && <CaloriesView data={chartData} totalKcal={totalKcal} />}
              {activeTab === 'PRs' && <PRsView exercises={exercisesList} history={fullHistory} />}
@@ -353,56 +352,63 @@ export default function Profile() {
 
           <div className="space-y-4">
             {recentWorkouts.length === 0 && !loading && (
-              <div className="text-center text-gray-500 py-6 text-sm">Pas encore d'historique.</div>
+              <div className="text-center text-gray-500 py-6 text-sm">Pas encore d'historique de séance terminée.</div>
             )}
 
-            {recentWorkouts.map((workout, i) => (
-              <div key={i} className="bg-[#1C1C1E] p-5 rounded-[24px] border border-white/5 flex flex-col gap-3">
-                <div className="flex justify-between items-start">
-                   <h3 className="font-bold text-white text-base">{workout.title}</h3>
-                   <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">{workout.date}</span>
-                </div>
+            {recentWorkouts.map((workout, i) => {
+              // THÈME BBL DYNAMIQUE
+              const cText = workout.isBBL ? 'text-pink-500' : 'text-[#CCFF00]'
+              const cBgLight = workout.isBBL ? 'bg-pink-500/10 text-pink-500' : 'bg-[#CCFF00]/10 text-[#CCFF00]'
+              const cBgSolid = workout.isBBL ? 'bg-pink-500 text-black' : 'bg-[#CCFF00] text-black'
 
-                <div className="flex items-center gap-4">
-                   <div className="flex items-center gap-1.5 text-gray-400 text-xs">
-                      <Timer size={14} className="text-[#CCFF00]" />
-                      <span>{workout.duration} min</span>
-                   </div>
-                   <div className="flex items-center gap-1.5 text-gray-400 text-xs">
-                      <TrendingUp size={14} className="text-[#CCFF00]" />
-                      <span>Vol. Élevé</span>
-                   </div>
-                </div>
+              return (
+                <div key={workout.id || i} className="bg-[#1C1C1E] p-5 rounded-[24px] border border-white/5 flex flex-col gap-3">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-bold text-white text-base">{workout.title}</h3>
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">{workout.date}</span>
+                  </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-1">
-                   <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#CCFF00]/10 flex items-center justify-center text-[#CCFF00]">
-                         <Flame size={12} fill="currentColor" />
-                      </div>
-                      <div>
-                         <span className="text-[10px] text-gray-500 block leading-none mb-0.5">Calories</span>
-                         <span className="text-sm font-bold text-white leading-none">{workout.calories} Kcal</span>
-                      </div>
-                   </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 text-gray-400 text-xs">
+                        <Timer size={14} className={cText} />
+                        <span>{workout.duration} min</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-400 text-xs">
+                        <TrendingUp size={14} className={cText} />
+                        <span>Vol. Élevé</span>
+                    </div>
+                  </div>
 
-                   {workout.prs > 0 ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-[#CCFF00] flex items-center justify-center text-black">
-                            <Trophy size={12} fill="currentColor" />
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-1">
+                    <div className="flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${cBgLight}`}>
+                          <Flame size={12} fill="currentColor" />
                         </div>
                         <div>
-                            <span className="text-[10px] text-gray-500 block leading-none mb-0.5">Records</span>
-                            <span className="text-sm font-bold text-[#CCFF00] leading-none">+{workout.prs} PR</span>
+                          <span className="text-[10px] text-gray-500 block leading-none mb-0.5">Calories</span>
+                          <span className="text-sm font-bold text-white leading-none">{workout.calories} Kcal</span>
                         </div>
-                      </div>
-                   ) : (
-                      <div className="px-3 py-1 rounded-full bg-white/5 text-[10px] text-gray-500 font-bold">
-                        Maintain
-                      </div>
-                   )}
+                    </div>
+
+                    {workout.prs > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${cBgSolid}`}>
+                              <Trophy size={12} fill="currentColor" />
+                          </div>
+                          <div>
+                              <span className="text-[10px] text-gray-500 block leading-none mb-0.5">Records</span>
+                              <span className={`text-sm font-bold leading-none ${cText}`}>+{workout.prs} PR</span>
+                          </div>
+                        </div>
+                    ) : (
+                        <div className="px-3 py-1 rounded-full bg-white/5 text-[10px] text-gray-500 font-bold">
+                          Maintain
+                        </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
         

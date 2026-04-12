@@ -456,8 +456,7 @@ export default function Home() {
             {/* Bouton retour */}
             <button
               onClick={() => setShowPreview(false)}
-              className="fixed left-4 z-[110] bg-tx-1 rounded-[24px] p-3 shadow-[0px_0px_40px_0px_rgba(31,32,33,0.4)] cursor-pointer active:scale-95 transition-transform"
-              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
+              className="fixed left-4 z-[110] bg-tx-1 rounded-[24px] p-3 shadow-[0px_0px_40px_0px_rgba(31,32,33,0.4)] cursor-pointer active:scale-95 transition-transform fixed-top-button"
               aria-label="Retour"
             >
               <ChevronLeft size={16} className="text-bg-1" />

@@ -1108,7 +1108,7 @@ function PRPickerModal({
   return (
     <div className="fixed inset-0 z-[9999] bg-[#0c0c0c] flex flex-col">
       {/* Header */}
-      <div className="px-4 pb-4 flex items-center shrink-0" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}>
+      <div className="px-4 pb-4 pt-2 flex items-center shrink-0 safe-area-top">
         <button
           onClick={onClose}
           className="w-10 h-10 bg-tx-1 rounded-[24px] flex items-center justify-center shadow-[0px_0px_40px_0px_rgba(31,32,33,0.4)] active:scale-95 transition-transform"

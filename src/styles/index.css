@@ -15,25 +15,19 @@ html, body, #root {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
-/* Position stable de la TabBar — env() en inline style est instable sur iOS PWA */
+/* Position stable de la TabBar */
 .tab-bar-position {
-  bottom: 12px;
-  transition: bottom 0.3s ease;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
 }
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .tab-bar-position {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
-  }
+
+/* Position top pour les boutons fixed (back, close) — sous la Dynamic Island */
+.fixed-top-button {
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
 }
 
 /* Padding bottom pour les pages avec TabBar — s'adapte au safe-area iOS */
 .pb-tabbar {
-  padding-bottom: 100px;
-}
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .pb-tabbar {
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
-  }
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
 }
 
 /* Safe-area bottom pour les CTA sur pages fullscreen (sans TabBar) */

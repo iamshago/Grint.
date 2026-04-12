@@ -227,8 +227,7 @@ export default function Program() {
       <button
         onClick={() => navigate('/home')}
         aria-label="Retour"
-        className="fixed left-4 z-40 bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform shadow-[0px_2px_8px_rgba(0,0,0,0.08)]"
-        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
+        className="fixed left-4 z-40 bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform shadow-[0px_2px_8px_rgba(0,0,0,0.08)] fixed-top-button"
       >
         <ArrowLeft size={16} className="text-tx-1" />
       </button>
@@ -459,8 +458,7 @@ export default function Program() {
           {/* Bouton retour fixe */}
           <button
             onClick={() => setPreviewWorkout(null)}
-            className="fixed left-4 z-[110] bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform"
-            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
+            className="fixed left-4 z-[110] bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform fixed-top-button"
             aria-label="Retour"
           >
             <ArrowLeft size={16} className="text-tx-1" />

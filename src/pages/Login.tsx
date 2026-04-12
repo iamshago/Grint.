@@ -10,14 +10,14 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + '/home',
+        redirectTo: window.location.origin + '/',
       },
     })
     if (error) console.error('Erreur login:', error.message)
   }
 
   return (
-    <div className="h-[100dvh] bg-[#fff8d0] relative overflow-hidden safe-area-top">
+    <div className="h-[100dvh] bg-[#fff8d0] relative overflow-hidden">
       {/* Photo lifestyle avec logo intégré */}
       <div className="absolute inset-0">
         <img

@@ -18,7 +18,7 @@ export default function LightLayout({ children, className, hideTabBar = false, s
         scrollable
           ? 'min-h-[100dvh] overflow-y-auto overscroll-none'
           : 'h-[100dvh] overflow-hidden',
-        !hideTabBar && 'pb-[120px]',
+        !hideTabBar && 'pb-tabbar',
         className,
       )}
       style={scrollable ? { WebkitOverflowScrolling: 'touch' } : undefined}

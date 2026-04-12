@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+/* Padding-top pour la Dynamic Island — env() ne fonctionne pas en inline style dans WebKit PWA */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Position stable de la TabBar — env() en inline style est instable sur iOS PWA */
+.tab-bar-position {
+  bottom: 12px;
+  transition: bottom 0.3s ease;
+}
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .tab-bar-position {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  }
+}
+
+/* Safe-area bottom pour les CTA sur pages fullscreen (sans TabBar) */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.cta-bottom-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+/* Bottom position pour les CTAs fixed/absolute sur pages fullscreen */
+.cta-position-safe {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+}
+
+/* Masquer toutes les barres de scroll dans l'app */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Animation slide-up pour les modales bottom-sheet */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}

@@ -358,29 +358,7 @@ export default function Friends() {
       }
       setCurrentUserId(user.id)
 
-      // --- Auto-résolution des demandes croisées ---
-      // Si A→B pending et B→A pending existent, accepter une et supprimer l'autre
-      const { data: allMyPending } = await supabase
-        .from('friendships')
-        .select('id, requester_id, addressee_id')
-        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
-        .eq('status', 'pending')
-
-      if (allMyPending) {
-        const sent = allMyPending.filter((f) => f.requester_id === user.id)
-        const received = allMyPending.filter((f) => f.addressee_id === user.id)
-        for (const recv of received) {
-          const cross = sent.find((s) => s.addressee_id === recv.requester_id)
-          if (cross) {
-            await Promise.all([
-              supabase.from('friendships').update({ status: 'accepted' }).eq('id', recv.id),
-              supabase.from('friendships').delete().eq('id', cross.id),
-            ])
-          }
-        }
-      }
-
-      // Fetch amis acceptés + demandes reçues + demandes envoyées (après nettoyage)
+      // Fetch amis acceptés + demandes reçues + demandes envoyées
       const [acceptedRes, pendingRes, sentRes] = await Promise.all([
         supabase
           .from('friendships')
@@ -423,7 +401,11 @@ export default function Friends() {
       }
 
       // --- Demandes envoyées ---
-      const sentFriendships = sentRes.data || []
+      // Exclure les demandes croisées (déjà visibles dans "Demandes reçues")
+      const receivedRequesterIds = new Set(pendingFriendships.map((f) => f.requester_id))
+      const sentFriendships = (sentRes.data || []).filter(
+        (f) => !receivedRequesterIds.has(f.addressee_id)
+      )
       if (sentFriendships.length > 0) {
         const addresseeIds = sentFriendships.map((f) => f.addressee_id)
         const { data: addresseeProfiles } = await supabase
@@ -519,10 +501,25 @@ export default function Friends() {
   /** Accepter une demande d'ami */
   const handleAccept = async (friendshipId: string) => {
     try {
+      // Trouver le requester de cette demande
+      const request = pendingRequests.find((r) => r.friendship_id === friendshipId)
+
+      // Accepter la demande
       await supabase
         .from('friendships')
         .update({ status: 'accepted' })
         .eq('id', friendshipId)
+
+      // Supprimer la demande croisée si on en avait envoyé une de notre côté
+      if (request?.id) {
+        // request.id = le profil user_id du requester de la demande reçue
+        await supabase
+          .from('friendships')
+          .delete()
+          .eq('requester_id', currentUserId)
+          .eq('addressee_id', request.id)
+          .eq('status', 'pending')
+      }
 
       // Rafraîchir les données
       fetchAll()

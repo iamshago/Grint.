@@ -350,12 +350,9 @@ export default function Friends() {
   const [currentUserId, setCurrentUserId] = useState<string>('')
 
   const fetchAll = useCallback(async () => {
-    console.log('[Friends] fetchAll START')
     try {
-      const { data: { user }, error: authErr } = await supabase.auth.getUser()
-      console.log('[Friends] auth result — user:', user?.id, 'error:', authErr)
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        console.log('[Friends] NO USER — aborting')
         setLoading(false)
         return
       }
@@ -379,11 +376,6 @@ export default function Friends() {
           .eq('requester_id', user.id)
           .eq('status', 'pending'),
       ])
-
-      console.log('[Friends] acceptedRes:', acceptedRes.data)
-      console.log('[Friends] pendingRes:', pendingRes.data)
-      console.log('[Friends] sentRes:', sentRes.data)
-      console.log('[Friends] errors:', acceptedRes.error, pendingRes.error, sentRes.error)
 
       // --- Demandes en attente ---
       const pendingFriendships = pendingRes.data || []
@@ -495,10 +487,9 @@ export default function Friends() {
         setFriends([])
       }
     } catch (e) {
-      console.error('[Friends] CRASH in fetchAll:', e)
+      console.error('Erreur fetch friends:', e)
       setFriends([])
     } finally {
-      console.log('[Friends] fetchAll DONE — loading=false')
       setLoading(false)
     }
   }, [])

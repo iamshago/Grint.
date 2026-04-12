@@ -350,15 +350,16 @@ export default function Friends() {
   const [currentUserId, setCurrentUserId] = useState<string>('')
 
   const fetchAll = useCallback(async () => {
+    console.log('[Friends] fetchAll START')
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error: authErr } = await supabase.auth.getUser()
+      console.log('[Friends] auth result — user:', user?.id, 'error:', authErr)
       if (!user) {
+        console.log('[Friends] NO USER — aborting')
         setLoading(false)
         return
       }
       setCurrentUserId(user.id)
-
-      console.log('[Friends] user.id =', user.id)
 
       // Fetch amis acceptés + demandes reçues + demandes envoyées
       const [acceptedRes, pendingRes, sentRes] = await Promise.all([
@@ -494,9 +495,10 @@ export default function Friends() {
         setFriends([])
       }
     } catch (e) {
-      console.error('Erreur fetch friends:', e)
+      console.error('[Friends] CRASH in fetchAll:', e)
       setFriends([])
     } finally {
+      console.log('[Friends] fetchAll DONE — loading=false')
       setLoading(false)
     }
   }, [])

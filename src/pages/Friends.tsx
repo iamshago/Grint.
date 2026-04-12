@@ -358,6 +358,8 @@ export default function Friends() {
       }
       setCurrentUserId(user.id)
 
+      console.log('[Friends] user.id =', user.id)
+
       // Fetch amis acceptés + demandes reçues + demandes envoyées
       const [acceptedRes, pendingRes, sentRes] = await Promise.all([
         supabase
@@ -376,6 +378,11 @@ export default function Friends() {
           .eq('requester_id', user.id)
           .eq('status', 'pending'),
       ])
+
+      console.log('[Friends] acceptedRes:', acceptedRes.data)
+      console.log('[Friends] pendingRes:', pendingRes.data)
+      console.log('[Friends] sentRes:', sentRes.data)
+      console.log('[Friends] errors:', acceptedRes.error, pendingRes.error, sentRes.error)
 
       // --- Demandes en attente ---
       const pendingFriendships = pendingRes.data || []

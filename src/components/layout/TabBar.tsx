@@ -64,12 +64,12 @@ export default function TabBar({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'fixed left-1/2 -translate-x-1/2 z-50',
+        'fixed left-1/2 z-50',
         'bg-tx-1 border border-tx-3 rounded-[24px] shadow-[0px_0px_40px_0px_rgba(31,32,33,0.4)]',
         'flex items-center h-[76px] w-[275px] p-[7px]',
         className,
       )}
-      style={{ bottom: `${bottomOffset}px`, opacity: ready ? 1 : 0, transition: 'opacity 0.2s ease, bottom 0.3s ease' }}
+      style={{ bottom: `${bottomOffset}px`, opacity: ready ? 1 : 0, transition: 'opacity 0.2s ease, bottom 0.3s ease', transform: 'translate(-50%, 0) translateZ(0)', WebkitTransform: 'translate(-50%, 0) translateZ(0)' }}
     >
       <LayoutGroup>
         {tabs.map((tab, index) => {

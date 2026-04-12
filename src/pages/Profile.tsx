@@ -86,21 +86,23 @@ export default function Profile() {
         const formatted = `@${profileData.username}`
         setUsername(formatted)
         localStorage.setItem('username', formatted)
-        if (profileData.display_name) {
-          setUserName(profileData.display_name)
-          localStorage.setItem('userName', profileData.display_name)
-        }
       } else {
         const savedUsername = localStorage.getItem('username')
         if (savedUsername) setUsername(savedUsername)
       }
 
-      // Nom & avatar
-      const savedName = localStorage.getItem('userName')
-      if (savedName) setUserName(savedName)
-      else {
-        const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Athlète'
-        setUserName(fullName.split(' ')[0])
+      // Nom : priorité profiles.display_name > localStorage > Google metadata
+      if (profileData?.display_name) {
+        setUserName(profileData.display_name)
+        localStorage.setItem('userName', profileData.display_name)
+      } else {
+        const savedName = localStorage.getItem('userName')
+        if (savedName) {
+          setUserName(savedName)
+        } else {
+          const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Athlète'
+          setUserName(fullName.split(' ')[0])
+        }
       }
 
       // Streak chargé via useStreak(currentUserId) — on set juste l'ID ici
@@ -254,7 +256,10 @@ export default function Profile() {
       setUserName(tempName)
       localStorage.setItem('userName', tempName)
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) await supabase.auth.updateUser({ data: { full_name: tempName } })
+      if (user) {
+        // Sauvegarder dans profiles.display_name (source de vérité)
+        await supabase.from('profiles').update({ display_name: tempName }).eq('id', user.id)
+      }
     }
     setIsEditingName(false)
   }

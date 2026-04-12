@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabaseClient'
 import ThemeProvider from '@/components/layout/ThemeProvider'
 import { AccentProvider } from '@/lib/AccentContext'
 import TabBar from '@/components/layout/TabBar'
-import { useIOSViewportFix } from '@/hooks/useIOSViewportFix'
 
 /** Routes où le TabBar ne doit PAS s'afficher */
 const HIDE_TABBAR_ROUTES = ['/login', '/splash', '/workout', '/profile/avatar', '/onboarding']
@@ -31,8 +30,6 @@ import SessionHistory from './pages/SessionHistory'
 import OnboardingUsername from './pages/OnboardingUsername'
 
 export default function App() {
-  useIOSViewportFix()
-
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [hasUsername, setHasUsername] = useState<boolean | null>(null)

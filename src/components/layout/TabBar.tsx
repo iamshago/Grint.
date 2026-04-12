@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { Home, Users, User } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { LayoutGroup, motion } from 'framer-motion'
@@ -23,7 +23,36 @@ export default function TabBar({ className }: { className?: string }) {
   const navigate = useNavigate()
   const location = useLocation()
   const prevActiveIndex = useRef<number>(-1)
+  const tabBarRef = useRef<HTMLDivElement>(null)
   const keyboardVisible = useKeyboardVisible()
+
+  // Attendre que le premier paint soit fait pour afficher la TabBar
+  // (évite le flash de mauvaise position au lancement PWA)
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setReady(true)
+      })
+    })
+  }, [])
+
+  // Après fermeture du clavier, forcer un reflow de la TabBar uniquement
+  // (pas de window.scrollTo qui cause des effets secondaires)
+  useEffect(() => {
+    const handleFocusOut = () => {
+      setTimeout(() => {
+        const el = tabBarRef.current
+        if (el) {
+          el.style.display = 'none'
+          void el.offsetHeight // force reflow
+          el.style.display = ''
+        }
+      }, 100)
+    }
+    document.addEventListener('focusout', handleFocusOut)
+    return () => document.removeEventListener('focusout', handleFocusOut)
+  }, [])
 
   const getActiveIndex = () =>
     tabs.findIndex((tab) =>
@@ -31,11 +60,8 @@ export default function TabBar({ className }: { className?: string }) {
     )
 
   const activeIndex = getActiveIndex()
-
-  // Déterminer si le tab actif a changé (pas juste une navigation intra-tab)
   const tabChanged = prevActiveIndex.current !== activeIndex && prevActiveIndex.current !== -1
 
-  // Mettre à jour le ref APRÈS le render (pas pendant) pour éviter le bug StrictMode double-render
   useEffect(() => {
     prevActiveIndex.current = activeIndex
   })
@@ -45,13 +71,18 @@ export default function TabBar({ className }: { className?: string }) {
 
   return (
     <div
+      ref={tabBarRef}
       className={cn(
         'fixed left-1/2 z-50 tab-bar-position',
         'bg-tx-1 border border-tx-3 rounded-[24px] shadow-[0px_0px_40px_0px_rgba(31,32,33,0.4)]',
         'flex items-center h-[76px] w-[275px] p-[7px]',
         className,
       )}
-      style={{ transform: 'translate(-50%, 0) translateZ(0)' }}
+      style={{
+        transform: 'translate(-50%, 0) translateZ(0)',
+        opacity: ready ? 1 : 0,
+        transition: 'opacity 0.15s ease',
+      }}
     >
       <LayoutGroup>
         {tabs.map((tab, index) => {

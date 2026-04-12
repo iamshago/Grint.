@@ -51,6 +51,7 @@ export default function Profile() {
 
   // FRIENDS (vrais amis depuis la base — vide par défaut)
   const [friends, setFriends] = useState<{ id: string; avatarId: string; name: string }[]>([])
+  const [pendingRequestCount, setPendingRequestCount] = useState(0)
 
   /** Avatar sélectionné */
   const currentAvatar = getAvatarById(selectedAvatarId) || getDefaultAvatar()
@@ -187,6 +188,48 @@ export default function Profile() {
           setLastSessionPRCount(prOnDay)
         }
       }
+
+      // --- FRIENDS + PENDING REQUESTS ---
+      const [acceptedRes, pendingRes] = await Promise.all([
+        supabase
+          .from('friendships')
+          .select('requester_id, addressee_id')
+          .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+          .eq('status', 'accepted'),
+        supabase
+          .from('friendships')
+          .select('id')
+          .eq('addressee_id', user.id)
+          .eq('status', 'pending'),
+      ])
+
+      // Nombre de demandes en attente
+      setPendingRequestCount(pendingRes.data?.length || 0)
+
+      // Amis acceptés — récupérer profils pour les avatars
+      const friendships = acceptedRes.data || []
+      if (friendships.length > 0) {
+        const friendIds = friendships.map((f) =>
+          f.requester_id === user.id ? f.addressee_id : f.requester_id
+        )
+        const { data: friendProfiles } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_id')
+          .in('id', friendIds)
+
+        if (friendProfiles) {
+          setFriends(
+            friendProfiles.map((p) => ({
+              id: p.id,
+              avatarId: p.avatar_id || 'superman',
+              name: p.display_name || p.username || 'Ami',
+            }))
+          )
+        }
+      } else {
+        setFriends([])
+      }
+
     } catch (err) {
       console.error(err)
     } finally {
@@ -451,6 +494,12 @@ export default function Profile() {
             className="bg-tx-1 rounded-[16px] w-[123px] h-[122px] overflow-hidden relative shrink-0 text-left"
             aria-label="Voir mes amis"
           >
+            {/* Badge demandes en attente */}
+            {pendingRequestCount > 0 && (
+              <span className="absolute top-[8px] right-[8px] z-10 bg-[#FF3B30] text-white font-sans font-bold text-[11px] rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-[5px]">
+                {pendingRequestCount}
+              </span>
+            )}
             {friends.length > 0 ? (
               <>
                 {/* Avatars empilés */}

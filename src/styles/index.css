@@ -15,9 +15,11 @@ html, body, #root {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
-/* Position stable de la TabBar */
+/* Position stable de la TabBar — GPU compositing layer pour éviter le shift iOS */
 .tab-bar-position {
   bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
 }
 
 /* Position top pour les boutons fixed (back, close) — sous la Dynamic Island */

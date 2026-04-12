@@ -3,6 +3,7 @@ import { Home, Users, User } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { LayoutGroup, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { useKeyboardVisible } from '@/hooks/useKeyboardVisible'
 
 interface Tab {
   label: string
@@ -22,6 +23,7 @@ export default function TabBar({ className }: { className?: string }) {
   const navigate = useNavigate()
   const location = useLocation()
   const prevActiveIndex = useRef<number>(-1)
+  const keyboardVisible = useKeyboardVisible()
 
   const getActiveIndex = () =>
     tabs.findIndex((tab) =>
@@ -37,6 +39,9 @@ export default function TabBar({ className }: { className?: string }) {
   useEffect(() => {
     prevActiveIndex.current = activeIndex
   })
+
+  // Cacher la TabBar quand le clavier iOS est ouvert
+  if (keyboardVisible) return null
 
   return (
     <div

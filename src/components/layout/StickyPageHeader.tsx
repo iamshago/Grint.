@@ -46,10 +46,15 @@ export default function StickyPageHeader({
   return (
     <header
       className={cn(
-        'sticky top-0 z-20 px-4 pt-2 pb-4 flex items-center gap-3 safe-area-top shrink-0',
+        'sticky top-0 z-20 px-4 pb-4 flex items-center gap-3 shrink-0',
         bgClass,
         className,
       )}
+      style={{
+        // Safe-area-top + 12px de respiration sous la Dynamic Island.
+        // Calc explicite pour éviter qu'une utility Tailwind n'écrase le calcul.
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+      }}
     >
       {onBack ? (
         <button

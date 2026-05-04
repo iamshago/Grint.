@@ -42,7 +42,7 @@ export default function ChallengeDetail() {
   }
 
   return (
-    <LightLayout scrollable hideTabBar className="flex flex-col">
+    <LightLayout scrollable hideTabBar noSafeAreaTop className="flex flex-col">
       {/* Header sticky — composant partagé. Le menu ouvre la sheet "Quitter le défi". */}
       <StickyPageHeader
         variant="light"

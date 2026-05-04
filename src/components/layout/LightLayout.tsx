@@ -6,6 +6,13 @@ interface LightLayoutProps {
   className?: string
   hideTabBar?: boolean
   /**
+   * Désactive le padding-top safe-area du layout. À activer sur les pages
+   * dont le premier enfant est un StickyPageHeader (qui gère lui-même son
+   * safe-area). Sans ça, le sticky tarderait à s'activer au scroll de
+   * ~59px = la hauteur du padding du layout.
+   */
+  noSafeAreaTop?: boolean
+  /**
    * @deprecated Conservé pour compatibilité — n'a plus d'effet. Le body est
    * désormais le scroller naturel sur toutes les pages (fix TabBar iOS Safari).
    * Cf. memory/decisions.md 2026-05-04.
@@ -14,11 +21,12 @@ interface LightLayoutProps {
 }
 
 /** Layout light mode — fond #f1f4fb. Toujours min-h-[100dvh] : le body scrolle naturellement. */
-export default function LightLayout({ children, className, hideTabBar = false }: LightLayoutProps) {
+export default function LightLayout({ children, className, hideTabBar = false, noSafeAreaTop = false }: LightLayoutProps) {
   return (
     <div
       className={cn(
-        'bg-bg-1 text-tx-1 safe-area-top min-h-[100dvh]',
+        'bg-bg-1 text-tx-1 min-h-[100dvh]',
+        !noSafeAreaTop && 'safe-area-top',
         !hideTabBar && 'pb-tabbar',
         className,
       )}

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { ChevronLeft, Plus, X, Check } from 'lucide-react'
 import DarkLayout from '@/components/layout/DarkLayout'
 import { supabase } from '@/lib/supabaseClient'
-import { resolveAvatarSrc } from '@/lib/avatars'
+import { getAvatarById } from '@/lib/avatars'
 import { computeStreakForUser } from '@/hooks/useStreak'
 
 /** Badge flamme Figma avec numéro de streak */
@@ -41,14 +41,17 @@ function StreakBadge({ count }: { count: number }) {
 
 /** Carte d'un ami — cliquable pour voir son profil */
 function FriendCard({ friend, onClick }: { friend: any; onClick?: () => void }) {
-  const avatarSrc = resolveAvatarSrc(friend)
-  const altLabel = friend.display_name || friend.username || 'Ami'
+  const avatar = getAvatarById(friend.avatar_id || friend.avatarId)
   const isActive = friend.status === 'active'
 
   return (
     <button onClick={onClick} className="relative w-full h-[80px] bg-[#1b1d1f] rounded-[12px] flex items-center px-[12px] text-left active:scale-[0.98] transition-transform">
       <div className="w-[48px] h-[48px] rounded-full overflow-hidden shrink-0 bg-[#3d4149]">
-        <img src={avatarSrc} alt={altLabel} className="w-full h-full object-cover" />
+        {avatar ? (
+          <img src={avatar.src} alt={avatar.label} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-[#3d4149]" />
+        )}
       </div>
 
       <div className="ml-[12px] flex-1 min-w-0">
@@ -84,14 +87,17 @@ function FriendRequestCard({ request, onAccept, onReject }: {
   onAccept: (id: string) => void
   onReject: (id: string) => void
 }) {
-  const avatarSrc = resolveAvatarSrc(request)
-  const altLabel = request.display_name || request.username || 'Demandeur'
+  const avatar = getAvatarById(request.avatar_id)
   const [acting, setActing] = useState(false)
 
   return (
     <div className="w-full bg-[#1b1d1f] rounded-[12px] flex items-center px-[12px] py-[12px]">
       <div className="w-[48px] h-[48px] rounded-full overflow-hidden shrink-0 bg-[#3d4149]">
-        <img src={avatarSrc} alt={altLabel} className="w-full h-full object-cover" />
+        {avatar ? (
+          <img src={avatar.src} alt={avatar.label} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-[#3d4149]" />
+        )}
       </div>
 
       <div className="ml-[12px] flex-1 min-w-0">
@@ -143,7 +149,7 @@ function AddFriendPopup({ onClose, currentUserId }: { onClose: () => void; curre
     try {
       const { data, error: err } = await supabase
         .from('profiles')
-        .select('id, username, display_name, avatar_id, avatar_url')
+        .select('id, username, display_name, avatar_id')
         .ilike('username', `%${query.trim()}%`)
         .neq('id', currentUserId)
         .limit(5)
@@ -292,12 +298,12 @@ function AddFriendPopup({ onClose, currentUserId }: { onClose: () => void; curre
         {results.length > 0 && (
           <div className="flex flex-col gap-[8px] max-h-[200px] overflow-y-auto">
             {results.map((user) => {
-              const avSrc = resolveAvatarSrc(user)
+              const av = getAvatarById(user.avatar_id)
               const btn = getButtonState(user)
               return (
                 <div key={user.id} className="flex items-center gap-[12px] bg-[#3d4149] rounded-[12px] p-[10px]">
                   <div className="w-[32px] h-[32px] rounded-full overflow-hidden bg-[#1b1d1f] shrink-0">
-                    <img src={avSrc} alt="" className="w-full h-full object-cover" />
+                    {av && <img src={av.src} alt="" className="w-full h-full object-cover" />}
                   </div>
                   <span className="font-sans text-[14px] text-bg-1 flex-1">@{user.username}</span>
                   <button
@@ -377,7 +383,7 @@ export default function Friends() {
         const requesterIds = pendingFriendships.map((f) => f.requester_id)
         const { data: requesterProfiles } = await supabase
           .from('profiles')
-          .select('id, username, display_name, avatar_id, avatar_url')
+          .select('id, username, display_name, avatar_id')
           .in('id', requesterIds)
 
         const enrichedPending = pendingFriendships.map((f) => {
@@ -404,7 +410,7 @@ export default function Friends() {
         const addresseeIds = sentFriendships.map((f) => f.addressee_id)
         const { data: addresseeProfiles } = await supabase
           .from('profiles')
-          .select('id, username, display_name, avatar_id, avatar_url')
+          .select('id, username, display_name, avatar_id')
           .in('id', addresseeIds)
 
         const enrichedSent = sentFriendships.map((f) => {
@@ -435,7 +441,7 @@ export default function Friends() {
 
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, username, display_name, avatar_id, avatar_url')
+        .select('id, username, display_name, avatar_id')
         .in('id', friendIds)
 
       if (profiles) {
@@ -611,11 +617,15 @@ export default function Friends() {
           </div>
           <div className="flex flex-col gap-[8px]">
             {sentRequests.map((req) => {
-              const avatarSrc = resolveAvatarSrc(req)
+              const avatar = getAvatarById(req.avatar_id)
               return (
                 <div key={req.friendship_id} className="w-full bg-[#1b1d1f] rounded-[12px] flex items-center px-[12px] py-[12px]">
                   <div className="w-[40px] h-[40px] rounded-full overflow-hidden shrink-0 bg-[#3d4149]">
-                    <img src={avatarSrc} alt={req.display_name || req.username || 'Ami'} className="w-full h-full object-cover" />
+                    {avatar ? (
+                      <img src={avatar.src} alt={avatar.label} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-[#3d4149]" />
+                    )}
                   </div>
                   <div className="ml-[12px] flex-1 min-w-0">
                     <p className="font-serif text-[16px] leading-[20px] truncate">

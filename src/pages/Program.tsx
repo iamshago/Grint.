@@ -200,19 +200,7 @@ export default function Program() {
 
   return (
     <>
-    <LightLayout scrollable className="pb-tabbar">
-      {/* Gradient haut — assombrit légèrement la zone derrière la status bar pour
-          éviter que le contenu scrollé ne devienne illisible */}
-      <div
-        className="fixed top-0 left-0 right-0 z-30 pointer-events-none"
-        style={{
-          height: 'calc(env(safe-area-inset-top, 0px) + 56px)',
-          backgroundImage:
-            'linear-gradient(to bottom, rgba(241,244,251,1) 0%, rgba(241,244,251,0.92) 60%, rgba(241,244,251,0) 100%)',
-        }}
-        aria-hidden="true"
-      />
-
+    <LightLayout hideTabBar scrollable className="pb-10">
       {/* Toast */}
       {toast && (
         <div className="fixed top-12 left-0 right-0 z-[300] flex justify-center px-4 pointer-events-none">
@@ -235,16 +223,20 @@ export default function Program() {
         </div>
       )}
 
-      {/* Header — back button inline avec le titre, alignement vertical garanti */}
-      <div className="relative z-40 px-4 pt-2 pb-4 flex items-center gap-3">
-        <button
-          onClick={() => navigate('/home')}
-          aria-label="Retour"
-          className="bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform shadow-[0px_2px_8px_rgba(0,0,0,0.08)] shrink-0"
-        >
-          <ArrowLeft size={16} className="text-tx-1" />
-        </button>
-        <h1 className="font-serif font-bold text-xl text-tx-1 tracking-tight text-center flex-1 pr-[40px]">
+      {/* Bouton back — fixed pour rester accessible */}
+      <button
+        onClick={() => navigate('/home')}
+        aria-label="Retour"
+        className="fixed left-4 z-40 bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform shadow-[0px_2px_8px_rgba(0,0,0,0.08)] fixed-top-button"
+      >
+        <ArrowLeft size={16} className="text-tx-1" />
+      </button>
+
+      {/* Header */}
+      <div className="px-4 pt-2 pb-4 flex items-center gap-4">
+        {/* Espace pour le bouton fixed */}
+        <div className="w-10 shrink-0" />
+        <h1 className="font-serif font-bold text-xl text-tx-1 tracking-tight text-center flex-1 pr-10">
           Programmer mes séances
         </h1>
       </div>
@@ -345,12 +337,10 @@ export default function Program() {
         )}
       </div>
 
-    </LightLayout>
-
-      {/* === MODALE PROGRAMME DÉTAIL — en portal pour stacking propre au-dessus du TabBar === */}
-      {previewProgram && createPortal(
-        <div className="fixed inset-0 z-[9999] bg-bg-1 overflow-hidden">
-          {/* Image hero — derrière le contenu */}
+      {/* === MODALE PROGRAMME DÉTAIL === */}
+      {previewProgram && (
+        <div className="fixed inset-0 z-[80] bg-bg-1 overflow-hidden">
+          {/* Image hero — sticky derrière le contenu */}
           <div data-hero-image className="absolute top-0 left-0 right-0 h-[308px] transition-opacity duration-300">
             <img
               src={previewProgram.image}
@@ -359,34 +349,20 @@ export default function Program() {
             />
           </div>
 
-          {/* Bouton retour fixe — sous la status bar */}
+          {/* Bouton retour fixe */}
           <button
             onClick={() => setPreviewProgram(null)}
-            className="fixed left-4 z-[110] bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform fixed-top-button"
+            className="fixed top-[72px] left-4 z-[90] bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform"
             aria-label="Retour"
           >
             <ArrowLeft size={16} className="text-tx-1" />
           </button>
 
-          {/* Gradient haut — éclaircit la zone derrière la status bar pendant le scroll */}
-          <div
-            className="fixed top-0 left-0 right-0 z-[100] pointer-events-none"
-            style={{
-              height: 'calc(env(safe-area-inset-top, 0px) + 56px)',
-              backgroundImage:
-                'linear-gradient(to bottom, rgba(241,244,251,0.95) 0%, rgba(241,244,251,0.7) 50%, rgba(241,244,251,0) 100%)',
-            }}
-            aria-hidden="true"
-          />
-
           {/* Contenu scrollable — CSS snap + fade image */}
           <div ref={snapRef} className="h-full overflow-y-auto no-scrollbar overscroll-none snap-y snap-mandatory scroll-smooth">
             <div className="h-[258px] shrink-0 snap-start snap-always" />
 
-            <div
-              className="relative bg-bg-1 rounded-t-[24px] shadow-[0px_0px_13px_0px_rgba(0,0,0,0.1)] px-4 pt-3 snap-start snap-always"
-              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 140px)' }}
-            >
+            <div className="relative bg-bg-1 rounded-t-[24px] shadow-[0px_0px_13px_0px_rgba(0,0,0,0.1)] px-4 pt-3 pb-10 snap-start snap-always">
               {/* Handle / tiret indicateur de scroll */}
               <div className="flex justify-center mb-4">
                 <div className="w-10 h-1 rounded-full bg-bg-2" />
@@ -456,9 +432,10 @@ export default function Program() {
               </div>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
+
+    </LightLayout>
 
       {/* === Portals — rendus hors du LightLayout pour éviter le stacking context === */}
 
@@ -486,17 +463,6 @@ export default function Program() {
           >
             <ArrowLeft size={16} className="text-tx-1" />
           </button>
-
-          {/* Gradient haut — éclaircit la zone derrière la status bar pendant le scroll */}
-          <div
-            className="fixed top-0 left-0 right-0 z-[100] pointer-events-none"
-            style={{
-              height: 'calc(env(safe-area-inset-top, 0px) + 56px)',
-              backgroundImage:
-                'linear-gradient(to bottom, rgba(241,244,251,0.95) 0%, rgba(241,244,251,0.7) 50%, rgba(241,244,251,0) 100%)',
-            }}
-            aria-hidden="true"
-          />
 
           {/* Contenu scrollable — CSS snap + fade image */}
           <div ref={snapRef} className="h-full overflow-y-auto no-scrollbar overscroll-none snap-y snap-mandatory scroll-smooth">

@@ -77,7 +77,7 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
       if (userIds.length > 0) {
         const { data: profs, error: e3 } = await supabase
           .from('profiles')
-          .select('id, display_name, avatar_id, avatar_url, username')
+          .select('id, display_name, avatar_id, username')
           .in('id', userIds)
         if (e3) throw e3
         profilesById = Object.fromEntries(

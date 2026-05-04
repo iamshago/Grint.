@@ -12,7 +12,6 @@ interface WorkoutCardProps {
   imageUrl?: string | null
   category?: WorkoutCategory
   isCompleted?: boolean
-  /** Click sur la carte ou le bouton play — déclenche l'ouverture de la séance */
   onPlay?: () => void
   variant?: 'light' | 'dark'
   className?: string
@@ -58,24 +57,10 @@ export default function WorkoutCard({
 }: WorkoutCardProps) {
   const styles = CATEGORY_STYLES[category] || CATEGORY_STYLES.upper
 
-  /** Si la carte est interactive, on rend un <button> pour avoir un seul handler
-   *  qui s'applique à TOUT le clic (carte + zone du play). Évite les doubles handlers
-   *  et garantit que tap sur l'image, le titre, la durée, etc. ouvre la séance. */
-  const Wrapper: any = onPlay ? 'button' : 'div'
-  const interactiveProps = onPlay
-    ? {
-        onClick: onPlay,
-        type: 'button' as const,
-        'aria-label': isCompleted ? `Revoir ${title}` : `Lancer ${title}`,
-      }
-    : {}
-
   return (
-    <Wrapper
-      {...interactiveProps}
+    <div
       className={cn(
-        'relative rounded-[16px] overflow-hidden h-[168px] block w-full text-left',
-        onPlay && 'cursor-pointer active:scale-[0.98] transition-transform',
+        'relative rounded-[16px] overflow-hidden h-[168px]',
         className,
       )}
     >
@@ -135,20 +120,21 @@ export default function WorkoutCard({
         )}
       </div>
 
-      {/* Indicateur play / coche — visuel uniquement (le clic est géré par le wrapper) */}
+      {/* Bouton play / coche (si terminée) — toujours cliquable */}
       {onPlay && (
-        <div
-          className="absolute right-4 bottom-4 w-12 h-12 rounded-12 flex items-center justify-center pointer-events-none"
+        <button
+          onClick={onPlay}
+          className="absolute right-4 bottom-4 w-12 h-12 rounded-12 flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
           style={{ backgroundColor: styles.playBg }}
-          aria-hidden="true"
+          aria-label={isCompleted ? `Revoir ${title}` : `Lancer ${title}`}
         >
           {isCompleted ? (
             <Check size={20} strokeWidth={3} style={{ color: styles.playIcon }} />
           ) : (
             <Play size={18} fill={styles.playIcon} style={{ color: styles.playIcon }} />
           )}
-        </div>
+        </button>
       )}
-    </Wrapper>
+    </div>
   )
 }

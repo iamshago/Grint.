@@ -1,5 +1,5 @@
 import type { ChallengeRanking } from '@/types'
-import { resolveAvatarSrc } from '@/lib/avatars'
+import { getAvatarById } from '@/lib/avatars'
 
 interface ParticipantRowProps {
   rank: number
@@ -8,7 +8,7 @@ interface ParticipantRowProps {
 
 /** Une ligne du classement défi : avatar + badge rang + nom + séances/sem + pts. */
 export default function ParticipantRow({ rank, participant }: ParticipantRowProps) {
-  const avatarSrc = resolveAvatarSrc(participant.profile)
+  const avatar = getAvatarById(participant.profile?.avatar_id || 'superman')
   const name = participant.profile?.display_name || participant.profile?.username || '—'
   const sessionsPerWeek = participant.sessionsPerWeek.toLocaleString('fr-FR', {
     minimumFractionDigits: 1,
@@ -19,7 +19,7 @@ export default function ParticipantRow({ rank, participant }: ParticipantRowProp
     <div className="bg-white h-[72px] relative rounded-[12px] w-full">
       {/* Avatar */}
       <div className="absolute left-[12px] top-[12px] size-[48px] rounded-full bg-white overflow-hidden">
-        <img src={avatarSrc} alt="" className="size-full object-cover" />
+        {avatar && <img src={avatar.src} alt="" className="size-full object-cover" />}
       </div>
 
       {/* Badge rang en bas-gauche de l'avatar */}

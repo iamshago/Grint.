@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { Post, ReactionEmoji } from '@/types'
 import { REACTION_EMOJIS } from '@/types'
-import { resolveAvatarSrc } from '@/lib/avatars'
+import { getAvatarById } from '@/lib/avatars'
 import { cn } from '@/lib/utils'
 
 interface FeedPostCardProps {
@@ -16,7 +16,7 @@ interface FeedPostCardProps {
 /** Card de post simplifiée (V2) — épurée, badge valeur droit, réactions sous la card. */
 export default function FeedPostCard({ post, currentUserId, onReact, onShowReactors }: FeedPostCardProps) {
   const author = post.profile
-  const avatarSrc = resolveAvatarSrc(author)
+  const avatar = getAvatarById(author?.avatar_id || 'superman')
   const name = author?.display_name || author?.username || '—'
 
   const reactions = post.reactions ?? []
@@ -31,7 +31,7 @@ export default function FeedPostCard({ post, currentUserId, onReact, onShowReact
 
   const previewReactor = otherReactors[0]?.profile
   const previewName = previewReactor?.display_name || previewReactor?.username || ''
-  const previewAvatarSrc = resolveAvatarSrc(previewReactor)
+  const previewAvatar = getAvatarById(previewReactor?.avatar_id || 'superman')
 
   const weight = post.payload.weight
   const exerciseName = post.payload.exercise_name
@@ -42,7 +42,7 @@ export default function FeedPostCard({ post, currentUserId, onReact, onShowReact
       <div className="bg-white h-[72px] relative rounded-[12px] w-full">
         {/* Avatar */}
         <div className="absolute left-[12px] top-[12px] size-[48px] rounded-full bg-white overflow-hidden">
-          <img src={avatarSrc} alt="" className="size-full object-cover" />
+          {avatar && <img src={avatar.src} alt="" className="size-full object-cover" />}
         </div>
 
         {/* Nom */}
@@ -94,7 +94,7 @@ export default function FeedPostCard({ post, currentUserId, onReact, onShowReact
             aria-label="Voir tous les réacteurs"
           >
             <div className="size-[24px] rounded-full bg-tx-2 overflow-hidden shrink-0">
-              <img src={previewAvatarSrc} alt="" className="size-full object-cover" />
+              {previewAvatar && <img src={previewAvatar.src} alt="" className="size-full object-cover" />}
             </div>
             <p className="font-sans text-[12px] text-tx-2">
               Aimé par <strong className="font-sans font-bold">{previewName}</strong>

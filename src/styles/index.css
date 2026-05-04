@@ -2,12 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
-  height: 100%;
+html, body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
   touch-action: manipulation;
+}
+
+/* Body est le scroller naturel — laisser iOS Safari masquer sa barre d'URL au mount.
+   Cf. memory/decisions.md 2026-05-04 (TabBar haute iOS). */
+#root {
+  min-height: 100dvh;
 }
 
 /* Padding-top pour la Dynamic Island — env() ne fonctionne pas en inline style dans WebKit PWA */

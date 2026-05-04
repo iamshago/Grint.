@@ -121,28 +121,50 @@
 **Décision** : Hauteur réduite à `env+16px` (couvre la status bar + 16px de marge, pas plus) et progression linéaire `1 → 0.85@70% → 0` qui fait disparaître la ligne. Appliqué aux 3 endroits dans `Program.tsx` (liste + 2 modales en portal).
 **Alternative rejetée** : Garder un gradient long avec un blur CSS — coûteux en perf, et le blur sur iOS Safari hors-PWA est instable (rendering bugs en scroll).
 
-### 2026-05-04 — Toute page de l'app utilise un layout scrollable (jamais non-scrollable)
+### 2026-05-04 — Le BODY est le scroller naturel sur toutes les pages (fix TabBar haute iOS Safari)
 **Contexte** : Home utilisait `<LightLayout>` non-scrollable (`h-[100dvh]
 overflow-hidden`) depuis la refonte V2 (commit `f5c679b`, 2026-04-12). Sur
-iOS Safari hors-PWA, ce mode empêche le body de scroller → la barre d'URL
-ne se masque jamais → le viewport visible reste court → la TabBar fixée à
-`bottom: env(safe-area-inset-bottom) + 12px` apparaît visuellement haute
-sur l'écran. Bug perçu comme rédhibitoire par l'utilisateur, reproductible
-à chaque lancement. Une tentative précédente (`useHideMobileUrlBar` dans
-`App.tsx`, qui forçait `body.style.overflowY = 'auto'` à 80ms après mount)
-n'a pas marché : elle luttait contre la cause racine au lieu de la
-corriger, et restaurait l'état à 350ms+50ms.
-**Décision** : RÈGLE PROJET — toute page de l'app doit utiliser
-`<LightLayout scrollable>` ou `<DarkLayout scrollable>`. Plus jamais de page
-non-scrollable, même si le contenu tient pile dans le viewport. Si une page
-a besoin d'un look "100% viewport sans scroll perçu", la rendre scrollable
-mais avec contenu calibré pour ne pas dépasser le viewport — le scroll
-reste théoriquement possible (donc l'URL bar peut se masquer) sans
-déranger l'UX. Compléter avec un scroll-trick local (`window.scrollTo(0, 1)`
-puis `(0, 0)` après 100ms) pour forcer le masquage de l'URL bar dès le mount.
-**Alternative rejetée** : hack global de manipulation `body.style` au mount
-(`useHideMobileUrlBar`) — fragile, dépendant du timing, ne survit pas aux
-refresh, et ne corrige pas le fait que le body racine est `overflow-hidden`.
+iOS Safari hors-PWA, la TabBar fixée à `bottom: env(safe-area-inset-bottom) + 12px`
+se positionne par rapport au **visual viewport** (qui est plus court quand
+l'URL bar est visible) → TabBar visuellement haute sur l'écran au mount.
+
+Première tentative (commit `318ff4c`) : passer Home en `<LightLayout scrollable>`
++ scroll-trick local. **N'a pas marché** car même `scrollable` mettait
+`overflow-y-auto` sur le wrapper LightLayout — c'était lui qui scrollait,
+pas le body. iOS Safari ne masque sa barre d'URL QUE quand le body/document
+scrolle, pas quand un élément interne scrolle. `window.scrollTo` était
+inopérant car le body avait `height: 100%` figé dans `index.css`.
+
+**Décision (vraie fix racine)** :
+1. **`index.css`** : retirer `height: 100%` de `html/body/#root`. Garder
+   uniquement `#root { min-height: 100dvh }`. Le body devient scrollable
+   naturellement.
+2. **`LightLayout` / `DarkLayout`** : simplifiés à `min-h-[100dvh]` SANS
+   `overflow-y-auto` ni `h-[100dvh] overflow-hidden`. La prop `scrollable`
+   est conservée mais marquée `@deprecated` (sans effet).
+3. **`useHideMobileUrlBarOnce`** dans `App.tsx` : un seul `setTimeout`
+   à 150ms qui fait `window.scrollTo(0, 1)` UNE fois si scrollY=0 et que
+   le contenu déborde. **Pas de retour à scrollY=0** — iOS Safari
+   réafficherait l'URL bar au scroll-up au-delà du sommet. 1px invisible.
+   iOS-only, désactivé en PWA standalone.
+
+**Conséquences** :
+- Toutes les pages héritent du body-scroll → l'URL bar peut se masquer
+  partout, comportement uniforme.
+- Les fixed elements (TabBar, modales, CTA) continuent à se positionner
+  correctement (fixed se réfère au visual viewport iOS Safari).
+- La prop `scrollable` reste présente sur LightLayout/DarkLayout pour ne
+  pas casser les call-sites, mais n'a plus d'effet.
+
+**Alternatives rejetées** :
+- Garder LightLayout `overflow-y-auto` + scroll-trick → ne marche pas
+  (le scroll-trick agit sur `window`, pas sur le wrapper interne).
+- Hack `useHideMobileUrlBar` qui modifie `body.style` au mount puis
+  restaure → fragile, ne survit pas au reload, restauration annule le
+  masquage URL bar.
+- Bascule `100dvh` → `100svh` → fixe la position TabBar au viewport
+  "small" (URL bar visible) → grand espace vide en bas quand URL bar
+  masquée. Pas idéal visuellement.
 
 ### 2026-05-04 — Scrim haut : easing gradient 15 stops obligatoire
 **Contexte** : un gradient `color → transparent` à 2-3 stops produit toujours

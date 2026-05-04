@@ -74,19 +74,6 @@ export default function Home() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  // iOS Safari : déclencher un micro-scroll au mount pour masquer la barre d'URL.
-  // Sans ça, le viewport reste court (URL bar visible) et la TabBar fixed apparaît
-  // en position visuellement haute. Inopérant si l'utilisateur a déjà scrollé.
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (window.scrollY === 0) {
-        window.scrollTo(0, 1)
-        requestAnimationFrame(() => window.scrollTo(0, 0))
-      }
-    }, 100)
-    return () => clearTimeout(t)
-  }, [])
-
   // Récupérer le nom de l'utilisateur
   useEffect(() => {
     async function getUserData() {

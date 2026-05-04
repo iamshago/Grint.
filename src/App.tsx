@@ -8,6 +8,33 @@ import TabBar from '@/components/layout/TabBar'
 /** Routes où le TabBar ne doit PAS s'afficher */
 const HIDE_TABBAR_ROUTES = ['/login', '/splash', '/workout', '/profile/avatar', '/onboarding', '/community/challenges']
 
+/**
+ * iOS Safari (hors-PWA) : au mount de l'app, déclencher un micro-scroll pour
+ * forcer la barre d'URL à se masquer. Sans ça, le visual viewport reste court
+ * et la TabBar fixed apparaît visuellement haute sur l'écran.
+ *
+ * Le body doit être scrollable (cf. index.css : html/body sans height fixe,
+ * #root en min-height: 100dvh). On NE remet PAS scrollY à 0 — iOS Safari
+ * réafficherait l'URL bar au scroll-up au-delà du sommet. 1px de scroll est
+ * invisible et inoffensif.
+ */
+function useHideMobileUrlBarOnce() {
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const ua = navigator.userAgent
+    const isIOS = /iPad|iPhone|iPod/.test(ua)
+    const isStandalone = (navigator as any).standalone === true
+    if (!isIOS || isStandalone) return
+
+    const t = setTimeout(() => {
+      if (window.scrollY === 0 && document.documentElement.scrollHeight > window.innerHeight) {
+        window.scrollTo(0, 1)
+      }
+    }, 150)
+    return () => clearTimeout(t)
+  }, [])
+}
+
 /** TabBar persistant — unique instance pour conserver le layoutId Framer Motion */
 function PersistentTabBar() {
   const location = useLocation()
@@ -36,6 +63,8 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [hasUsername, setHasUsername] = useState<boolean | null>(null)
+
+  useHideMobileUrlBarOnce()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

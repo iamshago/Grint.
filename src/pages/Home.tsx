@@ -74,6 +74,19 @@ export default function Home() {
     setTimeout(() => setToast(null), 3500)
   }
 
+  // iOS Safari : déclencher un micro-scroll au mount pour masquer la barre d'URL.
+  // Sans ça, le viewport reste court (URL bar visible) et la TabBar fixed apparaît
+  // en position visuellement haute. Inopérant si l'utilisateur a déjà scrollé.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (window.scrollY === 0) {
+        window.scrollTo(0, 1)
+        requestAnimationFrame(() => window.scrollTo(0, 0))
+      }
+    }, 100)
+    return () => clearTimeout(t)
+  }, [])
+
   // Récupérer le nom de l'utilisateur
   useEffect(() => {
     async function getUserData() {
@@ -240,7 +253,7 @@ export default function Home() {
 
   return (
     <>
-    <LightLayout className="flex flex-col">
+    <LightLayout scrollable className="flex flex-col">
       {/* Toast */}
       {toast && (
         <div className="fixed top-12 left-0 right-0 z-[300] flex justify-center px-4 pointer-events-none">
@@ -389,7 +402,7 @@ export default function Home() {
       </div>
 
       {/* Séance du jour */}
-      <div className="px-4 mt-3 flex-1 min-h-0 overflow-hidden flex flex-col">
+      <div className="px-4 mt-3 flex flex-col">
         <h2 className="font-serif font-bold text-2xl text-tx-1 tracking-tight mb-3">
           {selectedDay === todayDayOfWeek ? 'Séance du jour' : 'Séance prévue'}
         </h2>
@@ -410,10 +423,10 @@ export default function Home() {
             />
           </div>
         ) : (
-          <div className="flex flex-col gap-3 flex-1 min-h-0">
+          <div className="flex flex-col gap-3">
             {/* État vide — pas de séance */}
             <div
-              className="bg-bg-2 rounded-[24px] flex-1 min-h-[100px] flex flex-col items-center justify-center gap-2 text-center cursor-pointer"
+              className="bg-bg-2 rounded-[24px] min-h-[140px] flex flex-col items-center justify-center gap-2 text-center cursor-pointer"
               onClick={() => navigate('/programs')}
             >
               <p className="font-sans font-semibold text-base text-tx-2">
@@ -424,7 +437,7 @@ export default function Home() {
 
             {/* Carte bien-être */}
             <div
-              className="bg-bg-2 rounded-[24px] flex-1 min-h-[100px] flex flex-col items-center justify-center gap-2 text-center border border-dashed border-tx-3 cursor-pointer"
+              className="bg-bg-2 rounded-[24px] min-h-[140px] flex flex-col items-center justify-center gap-2 text-center border border-dashed border-tx-3 cursor-pointer"
               onClick={() => showToast('Étirements bientôt disponibles !', 'info')}
             >
               <p className="font-sans font-semibold text-base text-tx-2">

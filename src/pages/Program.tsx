@@ -361,16 +361,11 @@ export default function Program() {
               className="px-4 flex flex-col gap-8"
               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 140px)' }}
             >
-              {/* Header texte : titre + description + stats (sans badge difficulté programme) */}
+              {/* Description + stats — le titre vit uniquement dans le header sticky */}
               <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-2">
-                  <h2 className="font-serif font-bold text-[32px] text-tx-1 tracking-[-0.96px]">
-                    {previewProgram.title}
-                  </h2>
-                  <p className="font-sans text-base text-tx-1 leading-6">
-                    {previewProgram.description}
-                  </p>
-                </div>
+                <p className="font-sans text-base text-tx-1 leading-6">
+                  {previewProgram.description}
+                </p>
 
                 {/* Infos fréquence & focus */}
                 <div className="flex items-center gap-4">

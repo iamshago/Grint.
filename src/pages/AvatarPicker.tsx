@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { X, Check, Lock } from 'lucide-react'
-import DarkLayout from '@/components/layout/DarkLayout'
 import { AVATARS, isAvatarLocked } from '@/lib/avatars'
 import { useCurrentUserProfile, persistCurrentAvatar } from '@/hooks/useCurrentUserProfile'
 import { useStreak } from '@/hooks/useStreak'
@@ -56,11 +55,13 @@ export default function AvatarPicker() {
   }
 
   return (
-    <DarkLayout scrollable hideTabBar className="px-[20px]">
-      {/* Header sticky — calqué sur le pattern PRPickerModal (cf. Profile.tsx) */}
-      <div
-        className="sticky top-0 z-20 -mx-[20px] px-4 pt-2 pb-4 bg-[#0c0c0c] flex items-center"
-      >
+    // Pattern PRPickerModal : conteneur fixed plein écran + flex column. Le
+    // header est shrink-0 (toujours visible), seule la grille scrolle dans son
+    // overflow-y-auto interne. Évite le piège de DarkLayout(scrollable) où
+    // min-h-[100dvh] laisse le body scroller et casse position:sticky.
+    <div className="fixed inset-0 z-[40] bg-[#0c0c0c] text-bg-1 font-sans flex flex-col">
+      {/* Header non-scrollable — fond opaque, padding safe-area pour le notch */}
+      <div className="shrink-0 px-4 pt-2 pb-4 flex items-center safe-area-top bg-[#0c0c0c]">
         <button
           onClick={handleClose}
           aria-label="Fermer sans sauvegarder"
@@ -74,11 +75,12 @@ export default function AvatarPicker() {
         <div className="w-10 shrink-0" />
       </div>
 
-      {/* Grille d'avatars — paddingBottom large pour ne pas être cachée par le CTA fixed */}
-      <div
-        className="grid grid-cols-4 gap-[12px] mt-[24px]"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 120px)' }}
-      >
+      {/* Zone scrollable : seuls les avatars défilent, le header reste fixé au-dessus */}
+      <div className="flex-1 overflow-y-auto px-[20px]">
+        <div
+          className="grid grid-cols-4 gap-[12px] mt-[24px]"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 120px)' }}
+        >
         {AVATARS.map((avatar) => {
           const locked = isAvatarLocked(avatar, streakCount)
           const isSelected = tempSelection === avatar.id
@@ -134,11 +136,12 @@ export default function AvatarPicker() {
             </button>
           )
         })}
+        </div>
       </div>
 
       {/* CTA sticky bottom — gradient fade pour masquer le contenu qui scrolle dessous */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none"
+        className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none"
         style={{
           backgroundImage: 'linear-gradient(to bottom, rgba(12,12,12,0) 0%, #0c0c0c 32%)',
         }}
@@ -164,7 +167,7 @@ export default function AvatarPicker() {
         <LockedAvatarPopup onClose={() => setLockedPopupOpen(false)} />,
         document.body
       )}
-    </DarkLayout>
+    </div>
   )
 }
 

@@ -244,7 +244,7 @@ export default function Home() {
     <LightLayout scrollable className="flex flex-col">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-12 left-0 right-0 z-[300] flex justify-center px-4 pointer-events-none">
+        <div className="fixed toast-top-safe left-0 right-0 z-[300] flex justify-center px-4 pointer-events-none">
           <div className={`flex items-center gap-3 px-6 py-3 rounded-full shadow-lg border backdrop-blur-md ${
             toast.type === 'success' ? 'bg-[rgba(208,253,62,0.1)] border-neon' :
             toast.type === 'error' ? 'bg-[rgba(230,45,45,0.1)] border-[#e62d2d]' :

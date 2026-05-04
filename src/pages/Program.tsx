@@ -174,7 +174,7 @@ export default function Program() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed top-12 left-0 right-0 z-[300] flex justify-center px-4 pointer-events-none">
+        <div className="fixed toast-top-safe left-0 right-0 z-[300] flex justify-center px-4 pointer-events-none">
           <div
             className={`flex items-center gap-3 px-6 py-3 rounded-full shadow-lg border backdrop-blur-md ${
               toast.type === 'success'

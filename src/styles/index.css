@@ -32,6 +32,12 @@ html, body {
   top: calc(env(safe-area-inset-top, 0px) + 8px);
 }
 
+/* Position top pour les toasts/snackbars — laisse 16px de respiration sous la
+   Dynamic Island (fallback 44px ≈ status bar iOS classique). */
+.toast-top-safe {
+  top: calc(env(safe-area-inset-top, 44px) + 16px);
+}
+
 /* Padding bottom pour les pages avec TabBar — s'adapte au safe-area iOS */
 .pb-tabbar {
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);

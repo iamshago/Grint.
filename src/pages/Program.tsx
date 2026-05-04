@@ -253,7 +253,6 @@ export default function Program() {
               <ProgramCard
                 key={prog.id}
                 title={prog.title}
-                difficulty={prog.difficulty}
                 frequency={prog.frequency}
                 imageUrl={prog.image_url || undefined}
                 onClick={() => setPreviewProgram(prog)}
@@ -426,10 +425,9 @@ export default function Program() {
             <ArrowLeft size={16} className="text-tx-1" />
           </button>
 
-          {/* Easing gradient haut — 15 stops sigmoïde, zéro liseré (cf. Round 3). */}
-          <TopFadeOverlay zIndex={100} />
-
-          {/* Contenu scrollable — CSS snap + fade image */}
+          {/* Contenu scrollable — CSS snap + fade image. Pas de TopFadeOverlay
+           *  ici : il créait un liseré clair par-dessus le haut de l'image hero
+           *  (le fade light bg-1 → transparent voilait le sujet de la photo). */}
           <div ref={snapRef} className="h-full overflow-y-auto no-scrollbar overscroll-none snap-y snap-mandatory scroll-smooth">
             <div className="h-[258px] shrink-0 snap-start snap-always" />
 

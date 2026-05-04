@@ -44,6 +44,53 @@ html, body, #root {
   bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
 }
 
+/* Easing gradient haut (light mode) — 15 stops sigmoïde, zéro liseré visible.
+   Cf. docs/ux-cleanup-2026-05-04/FIXES-ROUND-3.md pour la justification. */
+.scrim-top-light {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(241, 244, 251, 1) 0%,
+    rgba(241, 244, 251, 0.987) 8.1%,
+    rgba(241, 244, 251, 0.951) 15.5%,
+    rgba(241, 244, 251, 0.896) 22.5%,
+    rgba(241, 244, 251, 0.825) 29%,
+    rgba(241, 244, 251, 0.741) 35.3%,
+    rgba(241, 244, 251, 0.648) 41.2%,
+    rgba(241, 244, 251, 0.55) 47.1%,
+    rgba(241, 244, 251, 0.45) 52.9%,
+    rgba(241, 244, 251, 0.352) 58.8%,
+    rgba(241, 244, 251, 0.259) 64.7%,
+    rgba(241, 244, 251, 0.175) 71%,
+    rgba(241, 244, 251, 0.104) 77.5%,
+    rgba(241, 244, 251, 0.049) 84.5%,
+    rgba(241, 244, 251, 0.013) 91.9%,
+    rgba(241, 244, 251, 0) 100%
+  );
+}
+
+/* Variante dark mode — fond #0c0c0c. Même courbe d'easing. */
+.scrim-top-dark {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(12, 12, 12, 1) 0%,
+    rgba(12, 12, 12, 0.987) 8.1%,
+    rgba(12, 12, 12, 0.951) 15.5%,
+    rgba(12, 12, 12, 0.896) 22.5%,
+    rgba(12, 12, 12, 0.825) 29%,
+    rgba(12, 12, 12, 0.741) 35.3%,
+    rgba(12, 12, 12, 0.648) 41.2%,
+    rgba(12, 12, 12, 0.55) 47.1%,
+    rgba(12, 12, 12, 0.45) 52.9%,
+    rgba(12, 12, 12, 0.352) 58.8%,
+    rgba(12, 12, 12, 0.259) 64.7%,
+    rgba(12, 12, 12, 0.175) 71%,
+    rgba(12, 12, 12, 0.104) 77.5%,
+    rgba(12, 12, 12, 0.049) 84.5%,
+    rgba(12, 12, 12, 0.013) 91.9%,
+    rgba(12, 12, 12, 0) 100%
+  );
+}
+
 /* Masquer toutes les barres de scroll dans l'app */
 * {
   scrollbar-width: none;

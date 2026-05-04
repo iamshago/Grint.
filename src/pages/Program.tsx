@@ -12,6 +12,7 @@ import ExerciseRow from '@/components/features/ExerciseRow'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import IconButton from '@/components/ui/IconButton'
+import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 
 /** Couleur d'accent par catégorie de séance */
 const CATEGORY_ACCENT: Record<string, string> = {
@@ -201,17 +202,8 @@ export default function Program() {
   return (
     <>
     <LightLayout scrollable className="pb-tabbar">
-      {/* Gradient haut — couvre la status bar uniquement (env+16px) avec une
-          progression linéaire 1 → 0.85 → 0 pour éviter une ligne visible */}
-      <div
-        className="fixed top-0 left-0 right-0 z-30 pointer-events-none"
-        style={{
-          height: 'calc(env(safe-area-inset-top, 0px) + 16px)',
-          backgroundImage:
-            'linear-gradient(to bottom, rgba(241,244,251,1) 0%, rgba(241,244,251,0.85) 70%, rgba(241,244,251,0) 100%)',
-        }}
-        aria-hidden="true"
-      />
+      {/* Easing gradient haut — 15 stops sigmoïde, zéro liseré (cf. Round 3). */}
+      <TopFadeOverlay />
 
       {/* Toast */}
       {toast && (
@@ -368,17 +360,8 @@ export default function Program() {
             <ArrowLeft size={16} className="text-tx-1" />
           </button>
 
-          {/* Gradient haut — couvre la status bar uniquement (env+16px) avec
-              progression douce 1 → 0.85 → 0 pour éviter une ligne visible */}
-          <div
-            className="fixed top-0 left-0 right-0 z-[100] pointer-events-none"
-            style={{
-              height: 'calc(env(safe-area-inset-top, 0px) + 16px)',
-              backgroundImage:
-                'linear-gradient(to bottom, rgba(241,244,251,1) 0%, rgba(241,244,251,0.85) 70%, rgba(241,244,251,0) 100%)',
-            }}
-            aria-hidden="true"
-          />
+          {/* Easing gradient haut — 15 stops sigmoïde, zéro liseré (cf. Round 3). */}
+          <TopFadeOverlay zIndex={100} />
 
           {/* Contenu scrollable — CSS snap + fade image */}
           <div ref={snapRef} className="h-full overflow-y-auto no-scrollbar overscroll-none snap-y snap-mandatory scroll-smooth">
@@ -488,17 +471,8 @@ export default function Program() {
             <ArrowLeft size={16} className="text-tx-1" />
           </button>
 
-          {/* Gradient haut — couvre la status bar uniquement (env+16px) avec
-              progression douce 1 → 0.85 → 0 pour éviter une ligne visible */}
-          <div
-            className="fixed top-0 left-0 right-0 z-[100] pointer-events-none"
-            style={{
-              height: 'calc(env(safe-area-inset-top, 0px) + 16px)',
-              backgroundImage:
-                'linear-gradient(to bottom, rgba(241,244,251,1) 0%, rgba(241,244,251,0.85) 70%, rgba(241,244,251,0) 100%)',
-            }}
-            aria-hidden="true"
-          />
+          {/* Easing gradient haut — 15 stops sigmoïde, zéro liseré (cf. Round 3). */}
+          <TopFadeOverlay zIndex={100} />
 
           {/* Contenu scrollable — CSS snap + fade image */}
           <div ref={snapRef} className="h-full overflow-y-auto no-scrollbar overscroll-none snap-y snap-mandatory scroll-smooth">

@@ -120,3 +120,16 @@
 **Contexte** : Le gradient ajouté en round 1 (`env+56px`, stops `1/0.92@60%/0`) créait une ligne horizontale visible sur iPhone — la chute brutale 0.92 → 0 sur les 34% du bas dessinait une frontière. La hauteur 56px débordait largement sous la Dynamic Island.
 **Décision** : Hauteur réduite à `env+16px` (couvre la status bar + 16px de marge, pas plus) et progression linéaire `1 → 0.85@70% → 0` qui fait disparaître la ligne. Appliqué aux 3 endroits dans `Program.tsx` (liste + 2 modales en portal).
 **Alternative rejetée** : Garder un gradient long avec un blur CSS — coûteux en perf, et le blur sur iOS Safari hors-PWA est instable (rendering bugs en scroll).
+
+### 2026-05-04 — Scrim haut : easing gradient 15 stops obligatoire
+**Contexte** : un gradient `color → transparent` à 2-3 stops produit toujours
+une ligne visible où l'alpha change le plus vite, à cause de la perception
+non-linéaire de la luminance par l'œil (gamma 2.2). Round 1 et Round 2 du
+UX cleanup ont essayé d'adoucir avec des stops manuels — toujours visible.
+**Décision** : utiliser un easing gradient à 15 stops sigmoïde (cf. la classe
+`scrim-top-light` dans `src/styles/index.css`). Encapsulé dans un composant
+réutilisable `<TopFadeOverlay>` pour ne pas dupliquer.
+**Règle** : tout futur masque "fade vers transparent" sur l'app (haut, bas,
+côtés des sections scrollables) doit utiliser les classes utilitaires
+`.scrim-top-light` / `.scrim-top-dark` ou créer une variante avec la même
+courbe d'easing — JAMAIS un gradient simple à 2-3 stops.

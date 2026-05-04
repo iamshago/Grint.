@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { Pencil, Check, X, LogOut, Trash2, ChevronRight, ChevronLeft, Clock, Dumbbell, Flame as FlameIcon } from 'lucide-react'
 import SessionCard from '@/components/features/SessionCard'
 import DarkLayout from '@/components/layout/DarkLayout'
+import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 import { useNavigate } from 'react-router-dom'
 import { useAccent, CATEGORY_COLORS } from '@/lib/AccentContext'
 import { AVATARS, resolveAvatarSrc } from '@/lib/avatars'
@@ -366,6 +367,8 @@ export default function Profile() {
   return (
     <>
     <DarkLayout scrollable className="overflow-x-hidden">
+      {/* Fade dark subtil — masque le contenu qui passe sous la status bar / Dynamic Island */}
+      <TopFadeOverlay variant="dark" />
       {/* ==================== AVATAR + NOM ==================== */}
       <div className="flex flex-col items-center pt-[16px] pb-[24px]">
         {/* Avatar 124px — cliquable pour changer */}

@@ -28,8 +28,13 @@ export default function Login() {
         />
       </div>
 
-      {/* Contenu UI flottant directement sur l'image */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 safe-area-bottom px-6 pb-8">
+      {/* Contenu UI flottant directement sur l'image — paddingBottom inline pour
+       *  combiner safe-area-bottom + 56px (la classe .safe-area-bottom écrase
+       *  sinon le pb-14 de Tailwind via la cascade). */}
+      <div
+        className="absolute bottom-0 left-0 right-0 z-10 px-6"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}
+      >
         <p className="font-sans font-medium text-base text-tx-1 text-center leading-6 mb-5">
           Connecte-toi pour suivre tes records
           <br />

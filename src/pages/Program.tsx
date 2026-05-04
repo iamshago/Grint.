@@ -226,40 +226,52 @@ export default function Program() {
         </div>
       )}
 
-      {/* Header — back button inline avec le titre, alignement vertical garanti */}
-      <div className="relative z-40 px-4 pt-2 pb-4 flex items-center gap-3">
-        <button
-          onClick={() => navigate('/home')}
-          aria-label="Retour"
-          className="bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform shadow-[0px_2px_8px_rgba(0,0,0,0.08)] shrink-0"
-        >
-          <ArrowLeft size={16} className="text-tx-1" />
-        </button>
-        <h1 className="font-serif font-bold text-xl text-tx-1 tracking-tight text-center flex-1 pr-[40px]">
-          Programmer mes séances
-        </h1>
-      </div>
+      {/* Header sticky — back + titre + recherche restent collés en haut au scroll.
+       *  marginTop/paddingTop neutralisent le safe-area-top du LightLayout pour
+       *  conserver un rendu identique en haut de page tout en couvrant la zone
+       *  status bar quand le sticky s'active. */}
+      <div
+        className="sticky top-0 z-40 bg-bg-1 pb-6"
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          marginTop: 'calc(-1 * env(safe-area-inset-top, 0px))',
+        }}
+      >
+        {/* Header — back button inline avec le titre, alignement vertical garanti */}
+        <div className="px-4 pt-2 pb-4 flex items-center gap-3">
+          <button
+            onClick={() => navigate('/home')}
+            aria-label="Retour"
+            className="bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform shadow-[0px_2px_8px_rgba(0,0,0,0.08)] shrink-0"
+          >
+            <ArrowLeft size={16} className="text-tx-1" />
+          </button>
+          <h1 className="font-serif font-bold text-xl text-tx-1 tracking-tight text-center flex-1 pr-[40px]">
+            Programmer mes séances
+          </h1>
+        </div>
 
-      {/* Barre de recherche */}
-      <div className="px-4 mb-6">
-        <div className="relative flex items-center gap-3 bg-bg-2 rounded-12 px-4 py-5">
-          <Search size={16} className="text-tx-2 shrink-0" />
-          <input
-            type="text"
-            placeholder="Rechercher une séance"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-transparent text-base font-sans text-tx-1 placeholder-tx-2 focus:outline-none"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="text-[#3d4149] cursor-pointer"
-              aria-label="Effacer la recherche"
-            >
-              <X size={16} />
-            </button>
-          )}
+        {/* Barre de recherche */}
+        <div className="px-4">
+          <div className="relative flex items-center gap-3 bg-bg-2 rounded-12 px-4 py-5">
+            <Search size={16} className="text-tx-2 shrink-0" />
+            <input
+              type="text"
+              placeholder="Rechercher une séance"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-transparent text-base font-sans text-tx-1 placeholder-tx-2 focus:outline-none"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="text-[#3d4149] cursor-pointer"
+                aria-label="Effacer la recherche"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

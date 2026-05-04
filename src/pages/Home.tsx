@@ -74,22 +74,24 @@ export default function Home() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  // Récupérer le nom de l'utilisateur
+  // Récupérer le nom + l'id utilisateur. L'id doit toujours être hydraté pour
+  // que useStreak puisse fetch — auparavant il restait null si userName était
+  // déjà en cache, désynchronisant la card streak Home vs Profile.
   useEffect(() => {
     async function getUserData() {
       const savedName = localStorage.getItem('userName')
-      if (savedName) {
-        setUserName(savedName)
-      } else {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Athlète'
-          const firstName = fullName.split(' ')[0]
-          setUserName(firstName)
-          localStorage.setItem('userName', firstName)
-          setCurrentUserId(user.id)
-        }
+      if (savedName) setUserName(savedName)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      if (!savedName) {
+        const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Athlète'
+        const firstName = fullName.split(' ')[0]
+        setUserName(firstName)
+        localStorage.setItem('userName', firstName)
       }
+      setCurrentUserId(user.id)
     }
     getUserData()
   }, [])

@@ -10,7 +10,6 @@ import ProgramCard from '@/components/features/ProgramCard'
 import WorkoutCard from '@/components/features/WorkoutCard'
 import ExerciseRow from '@/components/features/ExerciseRow'
 import Button from '@/components/ui/Button'
-import Badge from '@/components/ui/Badge'
 import IconButton from '@/components/ui/IconButton'
 import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 
@@ -339,103 +338,85 @@ export default function Program() {
 
     </LightLayout>
 
-      {/* === MODALE PROGRAMME DÉTAIL — en portal pour stacking propre au-dessus du TabBar === */}
+      {/* === DÉTAIL PROGRAMME — header sticky + contenu scrollable, sans hero ni bottom sheet === */}
       {previewProgram && createPortal(
-        <div className="fixed inset-0 z-[9999] bg-bg-1 overflow-hidden">
-          {/* Image hero — derrière le contenu */}
-          <div data-hero-image className="absolute top-0 left-0 right-0 h-[308px] transition-opacity duration-300">
-            <img
-              src={previewProgram.image}
-              alt=""
-              className="w-full h-full object-cover"
-            />
+        <div className="fixed inset-0 z-[9999] bg-bg-1 flex flex-col">
+          {/* Header sticky — flèche retour + titre programme centré */}
+          <div className="sticky top-0 z-10 bg-bg-1 px-4 pt-2 pb-4 flex items-center gap-3 fixed-top-button-wrapper">
+            <button
+              onClick={() => setPreviewProgram(null)}
+              aria-label="Retour"
+              className="bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform shadow-[0px_2px_8px_rgba(0,0,0,0.08)] shrink-0"
+            >
+              <ArrowLeft size={16} className="text-tx-1" />
+            </button>
+            <h1 className="font-serif font-bold text-xl text-tx-1 tracking-tight text-center flex-1 pr-[40px]">
+              {previewProgram.title}
+            </h1>
           </div>
 
-          {/* Bouton retour fixe — sous la status bar */}
-          <button
-            onClick={() => setPreviewProgram(null)}
-            className="fixed left-4 z-[110] bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform fixed-top-button"
-            aria-label="Retour"
-          >
-            <ArrowLeft size={16} className="text-tx-1" />
-          </button>
-
-          {/* Easing gradient haut — 15 stops sigmoïde, zéro liseré (cf. Round 3). */}
-          <TopFadeOverlay zIndex={100} />
-
-          {/* Contenu scrollable — CSS snap + fade image */}
-          <div ref={snapRef} className="h-full overflow-y-auto no-scrollbar overscroll-none snap-y snap-mandatory scroll-smooth">
-            <div className="h-[258px] shrink-0 snap-start snap-always" />
-
+          {/* Contenu scrollable — pas de snap, pas de bottom sheet */}
+          <div className="flex-1 overflow-y-auto no-scrollbar overscroll-none">
             <div
-              className="relative bg-bg-1 rounded-t-[24px] shadow-[0px_0px_13px_0px_rgba(0,0,0,0.1)] px-4 pt-3 snap-start snap-always"
+              className="px-4 flex flex-col gap-8"
               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 140px)' }}
             >
-              {/* Handle / tiret indicateur de scroll */}
-              <div className="flex justify-center mb-4">
-                <div className="w-10 h-1 rounded-full bg-bg-2" />
-              </div>
-              <div className="flex flex-col gap-8">
-                {/* Header : badge + titre + description + stats */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-2">
-                    <Badge variant="light" className="self-start">
-                      {previewProgram.difficulty}
-                    </Badge>
-                    <h2 className="font-serif font-bold text-[32px] text-tx-1 tracking-[-0.96px]">
-                      {previewProgram.title}
-                    </h2>
-                    <p className="font-sans text-base text-tx-1 leading-6">
-                      {previewProgram.description}
-                    </p>
-                  </div>
+              {/* Header texte : titre + description + stats (sans badge difficulté programme) */}
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
+                  <h2 className="font-serif font-bold text-[32px] text-tx-1 tracking-[-0.96px]">
+                    {previewProgram.title}
+                  </h2>
+                  <p className="font-sans text-base text-tx-1 leading-6">
+                    {previewProgram.description}
+                  </p>
+                </div>
 
-                  {/* Infos fréquence & focus */}
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-[24px] bg-tx-1 flex items-center justify-center p-2">
-                        <Calendar size={16} className="text-pr-1" />
-                      </div>
-                      <div>
-                        <p className="font-sans font-semibold text-xs text-tx-3">FRÉQUENCE</p>
-                        <p className="font-sans font-semibold text-base text-tx-1">
-                          {previewProgram.frequency.replace('fois / semaine', 'fois /sem')}
-                        </p>
-                      </div>
+                {/* Infos fréquence & focus */}
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-[24px] bg-tx-1 flex items-center justify-center p-2">
+                      <Calendar size={16} className="text-pr-1" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-[24px] bg-tx-1 flex items-center justify-center p-2">
-                        <Target size={16} className="text-pr-1" />
-                      </div>
-                      <div>
-                        <p className="font-sans font-semibold text-xs text-tx-3">FOCUS</p>
-                        <p className="font-sans font-semibold text-base text-tx-1 truncate max-w-[140px]">
-                          {previewProgram.focus.join(' & ')}
-                        </p>
-                      </div>
+                    <div>
+                      <p className="font-sans font-semibold text-xs text-tx-3">FRÉQUENCE</p>
+                      <p className="font-sans font-semibold text-base text-tx-1">
+                        {previewProgram.frequency.replace('fois / semaine', 'fois /sem')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-[24px] bg-tx-1 flex items-center justify-center p-2">
+                      <Target size={16} className="text-pr-1" />
+                    </div>
+                    <div>
+                      <p className="font-sans font-semibold text-xs text-tx-3">FOCUS</p>
+                      <p className="font-sans font-semibold text-base text-tx-1 truncate max-w-[140px]">
+                        {previewProgram.focus.join(' & ')}
+                      </p>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Séances du programme */}
-                <div className="flex flex-col gap-3">
-                  <h3 className="font-serif font-bold text-2xl text-tx-1 tracking-[-0.72px]">
-                    Séances du programme
-                  </h3>
-                  <div className="flex flex-col gap-4">
-                    {getProgramWorkouts(previewProgram).map((workout) => (
-                      <WorkoutCard
-                        key={workout.id}
-                        title={workout.title}
-                        difficulty={workout.difficulty === 'Beginner' ? 'DÉBUTANT' : workout.difficulty === 'Intermediate' ? 'INTERMÉDIAIRE' : workout.difficulty === 'Advanced' ? 'AVANCÉ' : workout.difficulty}
-                        durationMin={workout.duration_min}
-                        exerciseCount={workout.workout_exercises?.length}
-                        imageUrl={workout.image_url}
-                        category={workout.category || 'upper'}
-                        onPlay={() => setPreviewWorkout(workout)}
-                      />
-                    ))}
-                  </div>
+              {/* Séances du programme */}
+              <div className="flex flex-col gap-3">
+                <h3 className="font-serif font-bold text-2xl text-tx-1 tracking-[-0.72px]">
+                  Séances du programme
+                </h3>
+                <div className="flex flex-col gap-4">
+                  {getProgramWorkouts(previewProgram).map((workout) => (
+                    <WorkoutCard
+                      key={workout.id}
+                      title={workout.title}
+                      difficulty={workout.difficulty === 'Beginner' ? 'DÉBUTANT' : workout.difficulty === 'Intermediate' ? 'INTERMÉDIAIRE' : workout.difficulty === 'Advanced' ? 'AVANCÉ' : workout.difficulty}
+                      durationMin={workout.duration_min}
+                      exerciseCount={workout.workout_exercises?.length}
+                      imageUrl={workout.image_url}
+                      category={workout.category || 'upper'}
+                      onPlay={() => setPreviewWorkout(workout)}
+                    />
+                  ))}
                 </div>
               </div>
             </div>

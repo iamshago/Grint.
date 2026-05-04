@@ -45,21 +45,21 @@ export default function AvatarPicker() {
 
   return (
     <DarkLayout scrollable hideTabBar className="px-[20px]">
-      {/* Header sticky — croix + titre alignés, fond opaque pour masquer le scroll dessous */}
+      {/* Header sticky — calqué sur le pattern PRPickerModal (cf. Profile.tsx) */}
       <div
-        className="sticky top-0 z-20 -mx-[20px] px-[20px] pt-2 pb-[12px] bg-[#0c0c0c] flex items-center gap-[12px]"
+        className="sticky top-0 z-20 -mx-[20px] px-4 pt-2 pb-4 bg-[#0c0c0c] flex items-center"
       >
         <button
           onClick={handleClose}
           aria-label="Fermer sans sauvegarder"
-          className="bg-[#1b1d1f] p-[12px] rounded-[24px] flex items-center justify-center shrink-0"
-          style={{ width: 44, height: 44 }}
+          className="w-10 h-10 bg-tx-1 rounded-[24px] flex items-center justify-center shadow-[0px_0px_40px_0px_rgba(31,32,33,0.4)] active:scale-95 transition-transform shrink-0"
         >
-          <X size={20} color="#f1f4fb" strokeWidth={2} />
+          <X size={16} className="text-bg-1" />
         </button>
-        <h1 className="font-serif font-bold text-[24px] text-bg-1 leading-tight">
+        <h1 className="flex-1 text-center font-serif font-bold text-xl text-bg-1 tracking-[-0.6px]">
           Choisis ton avatar
         </h1>
+        <div className="w-10 shrink-0" />
       </div>
 
       {/* Grille d'avatars — paddingBottom large pour ne pas être cachée par le CTA fixed */}

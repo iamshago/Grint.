@@ -139,28 +139,25 @@ export default function AvatarPicker() {
         </div>
       </div>
 
-      {/* CTA sticky bottom — gradient fade pour masquer le contenu qui scrolle dessous */}
+      {/* CTA fixed bottom — pattern aligné sur PRPickerModal (Profile.tsx).
+          Un seul div : gradient + padding + safe-area dans le même conteneur. */}
       <div
-        className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none"
-        style={{
-          backgroundImage: 'linear-gradient(to bottom, rgba(12,12,12,0) 0%, #0c0c0c 32%)',
-        }}
+        className="fixed bottom-0 left-0 right-0 z-[50] px-6 pt-4 cta-bottom-safe"
+        style={{ background: 'linear-gradient(to bottom, rgba(12,12,12,0), #0c0c0c 32%)' }}
       >
-        <div className="px-[20px] pt-8 pointer-events-auto cta-bottom-safe">
-          <button
-            onClick={handleValidate}
-            disabled={!hasChanged || saving}
-            aria-label="Valider la sélection d'avatar"
-            className="w-full rounded-[12px] p-[16px] font-sans font-semibold text-[16px] transition-opacity"
-            style={{
-              backgroundColor: hasChanged ? '#ffee8c' : 'rgba(255,238,140,0.25)',
-              color: hasChanged ? '#1b1d1f' : 'rgba(27,29,31,0.5)',
-              cursor: hasChanged && !saving ? 'pointer' : 'default',
-            }}
-          >
-            {saving ? 'Enregistrement…' : 'Valider'}
-          </button>
-        </div>
+        <button
+          onClick={handleValidate}
+          disabled={!hasChanged || saving}
+          aria-label="Valider la sélection d'avatar"
+          className="w-full rounded-[12px] p-[16px] font-sans font-semibold text-[16px] transition-all active:scale-95"
+          style={{
+            backgroundColor: hasChanged ? '#ffee8c' : '#2c2c2e',
+            color: hasChanged ? '#1b1d1f' : '#6b7280',
+            cursor: hasChanged && !saving ? 'pointer' : 'default',
+          }}
+        >
+          {saving ? 'Enregistrement…' : 'Valider'}
+        </button>
       </div>
 
       {lockedPopupOpen && createPortal(

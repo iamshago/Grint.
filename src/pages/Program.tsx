@@ -119,6 +119,7 @@ export default function Program() {
         const { data, error } = await supabase
           .from('workouts')
           .select(`*, workout_exercises (*, exercise:exercises (*))`)
+          .eq('is_deleted', false)
         if (error) throw error
         setWorkouts(data || [])
       } catch (err) {

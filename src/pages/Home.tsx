@@ -193,6 +193,7 @@ export default function Home() {
           .from('workouts')
           .select(`*, workout_exercises(*, exercise:exercises(*))`)
           .eq('title', 'Push Day')
+          .eq('is_deleted', false)
           .maybeSingle()
 
         if (demoWorkout) setTodaysWorkout(demoWorkout)

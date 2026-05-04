@@ -7,7 +7,9 @@ import ChallengeMenuSheet from '@/components/features/ChallengeMenuSheet'
 import { useChallengeProgress } from '@/hooks/useChallengeProgress'
 import { useChallengeParticipation } from '@/hooks/useChallengeParticipation'
 
-/** Page Détail défi (déjà rejoint) — light mode, podium + classement. */
+const HEADER_HEIGHT = 80
+
+/** Page Détail défi (déjà rejoint) — light mode, header sticky, podium + classement. */
 export default function ChallengeDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -42,14 +44,17 @@ export default function ChallengeDetail() {
 
   return (
     <LightLayout scrollable hideTabBar className="flex flex-col">
-      <div className="relative w-full max-w-[402px] mx-auto pb-[80px]">
-        {/* Header — bouton retour, titre, sous-titre, bouton menu (Figma y=72→144) */}
-        <div className="relative h-[144px]">
+      {/* Header sticky — fond opaque bg-bg-1 pour masquer le scroll dessous */}
+      <header
+        className="sticky top-0 z-20 bg-bg-1 w-full"
+        style={{ height: HEADER_HEIGHT }}
+      >
+        <div className="relative w-full max-w-[402px] mx-auto h-full">
           <button
             type="button"
             aria-label="Retour"
             onClick={() => navigate(-1)}
-            className="absolute left-[16px] top-[72px] size-[40px] rounded-[24px] bg-white flex items-center justify-center"
+            className="absolute left-[16px] top-[16px] size-[40px] rounded-[24px] bg-white flex items-center justify-center"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M10 12L6 8L10 4" stroke="#1b1d1f" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -59,7 +64,7 @@ export default function ChallengeDetail() {
             type="button"
             aria-label="Menu défi"
             onClick={() => setMenuOpen(true)}
-            className="absolute right-[16px] top-[72px] size-[40px] rounded-[24px] bg-white flex items-center justify-center"
+            className="absolute right-[16px] top-[16px] size-[40px] rounded-[24px] bg-white flex items-center justify-center"
           >
             <span className="flex gap-[3px]">
               <span className="size-[2.5px] rounded-full bg-tx-1" />
@@ -67,17 +72,20 @@ export default function ChallengeDetail() {
               <span className="size-[2.5px] rounded-full bg-tx-1" />
             </span>
           </button>
-          <div className="absolute left-1/2 -translate-x-1/2 top-[81px] flex flex-col items-center gap-[1px]">
+          <div className="absolute left-1/2 -translate-x-1/2 top-[24px] flex flex-col items-center gap-[1px]">
             <p className="font-serif font-bold text-[20px] text-tx-1 tracking-[-0.6px] leading-normal whitespace-nowrap">
               Défis
             </p>
-            <p className="font-sans text-[12px] text-tx-3 text-center whitespace-nowrap">
+            <p className="font-sans text-[12px] text-tx-3 text-center whitespace-nowrap leading-none">
               <strong className="font-sans font-bold text-tx-3">{progress.weeklyTarget} séances</strong>
               <span> par semaine</span>
             </p>
           </div>
         </div>
+      </header>
 
+      {/* Body — pas de padding-top (le header est sticky donc déjà au-dessus du flow) */}
+      <div className="relative w-full max-w-[402px] mx-auto pb-[80px]">
         {/* Carte progression noire */}
         <div className="mx-[16px] bg-tx-1 rounded-[24px] px-[24px] py-[16px] flex flex-col gap-[4px]">
           <p className="font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px] leading-normal">
@@ -101,7 +109,9 @@ export default function ChallengeDetail() {
               <circle cx="10" cy="6" r="0.9" fill="#f1f4fb" />
               <rect x="9.1" y="8.5" width="1.8" height="6" rx="0.9" fill="#f1f4fb" />
             </svg>
-            <p className="flex-1 font-sans text-[15px] text-bg-1 leading-normal">
+            {/* Texte de l'avertissement — Figma 553:6290 : 15px Figtree Regular,
+                doit tenir sur 2 lignes maxi à 274px de largeur dispo. */}
+            <p className="flex-1 font-sans font-normal text-[15px] text-bg-1 leading-[1.2]">
               Attention, le nombre à atteindre change selon le nombre de participants au défi !
             </p>
           </div>

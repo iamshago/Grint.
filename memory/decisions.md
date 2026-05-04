@@ -73,6 +73,15 @@
 **Décision** : Utiliser les positions exactes du Figma : left:calc(50%-84px) pour la valeur, left:calc(50%+49px) avec -translate-x-1/2 pour le badge
 **Alternative rejetée** : Garder left/right:16px — ne matche pas le design Figma
 
+### 2026-05-04 — Avatars : Supabase comme source de vérité, localStorage = cache miroir
+**Contexte** : Sur la page Friends et la page Communauté V2, tous les amis ET soi-même affichaient l'avatar par défaut `superman`. Cause : `AvatarPicker` n'écrivait QUE dans `localStorage` (jamais dans `profiles.avatar_id`), donc Supabase restait à la valeur par défaut pour tout le monde. Les requêtes amis/posts/participants ramenaient bien `avatar_id`, mais c'était toujours `superman`.
+**Décision** :
+- Toute requête qui affiche un avatar d'un autre utilisateur fait une jointure sur `profiles(avatar_id, display_name, username)` — déjà OK dans le code.
+- `AvatarPicker.handleValidate()` persiste désormais dans `profiles.avatar_id` via Supabase, puis miroir localStorage (cache).
+- Profile.tsx hydrate `avatar_id` depuis `profiles` au mount (et au focus retour AvatarPicker), Supabase prime sur localStorage.
+- Hook partagé `useCurrentUserProfile()` + `persistCurrentAvatar(id)` dans `src/hooks/useCurrentUserProfile.ts` pour centraliser.
+**Alternative rejetée** : Stocker `avatar_id` uniquement en cache local + invalidation manuelle — fragile cross-device, sans sync entre amis (chacun voit son propre cache, jamais celui des autres).
+
 ### 2026-05-04 — Communauté V2 : feed PR auto + défi unique avec podium
 **Contexte** : Refonte de l'onglet Communauté V1 (mock 3 défis carousel + posts manuels) vers V2 fonctionnelle (un défi actif, feed auto-alimenté par les PR de soi + amis, réactions persistées)
 **Décision** :

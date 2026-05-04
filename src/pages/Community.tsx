@@ -72,8 +72,9 @@ export default function Community() {
 
   return (
     <LightLayout scrollable className="flex flex-col">
-      <div className="relative w-full max-w-[402px] mx-auto pt-[100px]">
-        {/* Titre */}
+      <div className="relative w-full max-w-[402px] mx-auto pt-4">
+        {/* Titre — même position verticale que "Hello" sur la Home (LightLayout
+            applique déjà safe-area-top, pas besoin d'empiler) */}
         <h1 className="px-[16px] font-serif font-bold text-[32px] text-tx-1 tracking-[-0.96px] leading-normal">
           Communauté
         </h1>

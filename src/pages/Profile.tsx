@@ -58,9 +58,9 @@ export default function Profile() {
 
   useEffect(() => {
     fetchProfileData()
-    // Re-lire l'avatar au retour de la page AvatarPicker
+    // Re-fetch après retour AvatarPicker (l'avatar a pu changer en base)
     const handleFocus = () => {
-      setSelectedAvatarId(localStorage.getItem('selectedAvatarId') || 'superman')
+      fetchProfileData()
     }
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
@@ -79,9 +79,15 @@ export default function Profile() {
       // Username — lire depuis la table profiles, fallback localStorage
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('username, display_name')
+        .select('username, display_name, avatar_id')
         .eq('id', user.id)
         .single()
+
+      // Avatar : Supabase = source de vérité, localStorage = cache miroir
+      if (profileData?.avatar_id) {
+        setSelectedAvatarId(profileData.avatar_id)
+        try { localStorage.setItem('selectedAvatarId', profileData.avatar_id) } catch {}
+      }
 
       if (profileData?.username) {
         const formatted = `@${profileData.username}`

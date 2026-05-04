@@ -85,8 +85,12 @@ export default function ChallengeJoin() {
         </svg>
       </button>
 
-      {/* Titre "Défis" centré — Figma utilise text-tx-1 (volontairement subtil sur la photo) */}
-      <p className="absolute left-1/2 -translate-x-1/2 top-[81px] font-serif font-bold text-[20px] text-tx-1 tracking-[-0.6px] z-10">
+      {/* Titre "Défis" centré — fix lisibilité sur photo sombre (Figma le dessine en dark
+          mais c'est invisible en condition réelle, on force light + ombre) */}
+      <p
+        className="absolute left-1/2 -translate-x-1/2 top-[28px] font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px] z-10"
+        style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}
+      >
         Défis
       </p>
 

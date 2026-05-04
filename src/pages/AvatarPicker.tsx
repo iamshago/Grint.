@@ -1,26 +1,42 @@
 // @ts-nocheck
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X, Check } from 'lucide-react'
 import DarkLayout from '@/components/layout/DarkLayout'
 import { AVATARS } from '@/lib/avatars'
+import { useCurrentUserProfile, persistCurrentAvatar } from '@/hooks/useCurrentUserProfile'
 
 /**
  * AvatarPicker — Écran plein écran de sélection d'avatar (dark mode).
- * Lit l'avatar courant depuis localStorage, permet de prévisualiser
- * un avatar avant de confirmer. Sauvegarde sur validation, annule sur X.
+ * Source de vérité : Supabase profiles.avatar_id. Le cache localStorage est
+ * mis à jour en miroir pour les composants pas encore migrés.
  */
 export default function AvatarPicker() {
   const navigate = useNavigate()
+  const { profile } = useCurrentUserProfile()
 
-  const currentAvatarId = localStorage.getItem('selectedAvatarId') || 'superman'
-  const [tempSelection, setTempSelection] = useState<string>(currentAvatarId)
+  const initialAvatarId =
+    profile?.avatar_id || localStorage.getItem('selectedAvatarId') || 'superman'
+  const [tempSelection, setTempSelection] = useState<string>(initialAvatarId)
+  const [saving, setSaving] = useState(false)
 
-  const hasChanged = tempSelection !== currentAvatarId
+  // Quand le profil arrive après mount, recaler la sélection
+  useEffect(() => {
+    if (profile?.avatar_id) setTempSelection(profile.avatar_id)
+  }, [profile?.avatar_id])
 
-  function handleValidate() {
-    localStorage.setItem('selectedAvatarId', tempSelection)
-    navigate('/profile')
+  const hasChanged = tempSelection !== initialAvatarId
+
+  async function handleValidate() {
+    if (saving) return
+    try {
+      setSaving(true)
+      await persistCurrentAvatar(tempSelection)
+      navigate('/profile')
+    } catch {
+      // En cas d'erreur réseau, on garde l'utilisateur sur la page
+      setSaving(false)
+    }
   }
 
   function handleClose() {
@@ -91,16 +107,16 @@ export default function AvatarPicker() {
       <div className="mt-[32px]">
         <button
           onClick={handleValidate}
-          disabled={!hasChanged}
+          disabled={!hasChanged || saving}
           aria-label="Valider la sélection d'avatar"
           className="w-full rounded-[12px] p-[16px] font-sans font-semibold text-[16px] transition-opacity"
           style={{
             backgroundColor: hasChanged ? '#ffee8c' : 'rgba(255,238,140,0.25)',
             color: hasChanged ? '#1b1d1f' : 'rgba(27,29,31,0.5)',
-            cursor: hasChanged ? 'pointer' : 'default',
+            cursor: hasChanged && !saving ? 'pointer' : 'default',
           }}
         >
-          Valider
+          {saving ? 'Enregistrement…' : 'Valider'}
         </button>
       </div>
     </DarkLayout>

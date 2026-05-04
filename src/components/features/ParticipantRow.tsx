@@ -40,7 +40,7 @@ export default function ParticipantRow({ rank, participant }: ParticipantRowProp
 
       {/* Badge pts à droite */}
       <div className="absolute bottom-[15px] right-[15px] bg-pr-1 rounded-[8px] flex items-center justify-center px-[16px] py-[12px]">
-        <span className="font-sans font-semibold text-[16px] text-tx-1 whitespace-nowrap">
+        <span className="font-sans font-semibold text-[16px] text-tx-1 leading-none text-center whitespace-nowrap">
           {participant.pts} pts
         </span>
       </div>

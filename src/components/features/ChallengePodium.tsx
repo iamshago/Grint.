@@ -38,10 +38,10 @@ export default function ChallengePodium({ top }: ChallengePodiumProps) {
             <div className="flex flex-col items-center gap-[4px]">
               <p className="font-serif font-bold text-[20px] text-bg-1 whitespace-nowrap">{name}</p>
               <div
-                className="rounded-[8px] px-[18px] py-[8px]"
+                className="rounded-[8px] px-[18px] py-[8px] flex items-center justify-center"
                 style={{ background: COLUMN_PILL_BG_BY_RANK[rank] }}
               >
-                <span className="font-sans font-bold text-[12px] text-tx-1 whitespace-nowrap">
+                <span className="font-sans font-bold text-[12px] text-tx-1 leading-none whitespace-nowrap">
                   {participant.pts} pts
                 </span>
               </div>

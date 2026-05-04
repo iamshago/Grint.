@@ -7,6 +7,7 @@ Tout ce que Claude Code doit savoir pour implémenter la refonte de l'onglet Com
 | Fichier | Rôle |
 |---------|------|
 | `BRIEF.md` | Spec complète — 3 pages, migrations Supabase, hooks, RLS, règles UX, ordre d'implémentation, décisions verrouillées |
+| `FIXES-ROUND-2.md` | **Corrections post-implémentation** — 6 issues remontées après tests sur device (à appliquer en second) |
 | `01-community.png` | Screenshot Figma — page Communauté (node `551:1854`) |
 | `02-rejoindre.png` | Screenshot Figma — page Rejoindre le défi (node `556:5995`) |
 | `03-detail-defi.png` | Screenshot Figma — page Détail défi avec podium (node `553:2208`) |
@@ -19,6 +20,18 @@ Toutes les décisions sont verrouillées au §9 — n'en repose aucune.
 Ordre d'exécution : §8 (migrations Supabase d'abord, puis pages dans l'ordre).
 Pour chaque page, applique le workflow figma-implement-design (get_design_context → screenshot → assets → adapt → jeu des 7 différences) sur les nodes 551:1854, 556:5995, 553:2208 (file XMTeGCX6yPiARJ0Z5jyeUr).
 Respecte CLAUDE.md. Mets à jour memory/decisions.md et memory/progress.md à la fin.
+```
+
+## Micro-prompt Round 2 (corrections post-implémentation)
+
+À utiliser **après** l'implémentation initiale, quand les 6 issues du device review sont remontées :
+
+```
+Applique les corrections décrites dans docs/community-v2/FIXES-ROUND-2.md.
+6 issues à fixer, ordre suggéré dans la section "Ordre suggéré de correction".
+Issue 4 (avatars) est probablement un bug transversal antérieur à la V2 — fix global, pas juste dans la Communauté.
+Re-joue le jeu des 7 différences pixel-perfect sur les 3 pages (nodes 551:1854, 556:5995, 553:2208) après les fixes.
+Update memory/decisions.md avec l'entry sur les avatars (cf §Update du fichier).
 ```
 
 ## Variante longue (si la session Claude Code est fraîche, sans contexte)

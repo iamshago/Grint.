@@ -23,6 +23,7 @@ export interface Workout {
   duration_min: number
   difficulty: string
   image_url: string | null
+  detail_image_url: string | null
   workout_exercises?: WorkoutExercise[]
 }
 

@@ -451,8 +451,8 @@ export default function Home() {
           <div className="fixed inset-0 z-[9999] bg-dark-900 overflow-hidden">
             {/* Image hero fixe derrière */}
             <div data-hero-image className="absolute top-0 left-0 right-0 h-[308px] transition-opacity duration-300">
-              {todaysWorkout.image_url && (
-                <img src={todaysWorkout.image_url} alt="" className="w-full h-full object-cover" />
+              {(todaysWorkout.detail_image_url || todaysWorkout.image_url) && (
+                <img src={todaysWorkout.detail_image_url || todaysWorkout.image_url} alt="" className="w-full h-full object-cover" />
               )}
             </div>
 

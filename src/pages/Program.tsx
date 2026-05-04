@@ -407,9 +407,9 @@ export default function Program() {
         <div className="fixed inset-0 z-[9999] bg-bg-1 overflow-hidden">
           {/* Image hero — sticky derrière le contenu */}
           <div data-hero-image className="absolute top-0 left-0 right-0 h-[308px] transition-opacity duration-300">
-            {previewWorkout.image_url && (
+            {(previewWorkout.detail_image_url || previewWorkout.image_url) && (
               <img
-                src={previewWorkout.image_url}
+                src={previewWorkout.detail_image_url || previewWorkout.image_url}
                 alt=""
                 className="w-full h-full object-cover"
               />

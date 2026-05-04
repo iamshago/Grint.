@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import LightLayout from '@/components/layout/LightLayout'
+import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import ChallengePodium from '@/components/features/ChallengePodium'
 import ParticipantRow from '@/components/features/ParticipantRow'
 import ChallengeMenuSheet from '@/components/features/ChallengeMenuSheet'
 import { useChallengeProgress } from '@/hooks/useChallengeProgress'
 import { useChallengeParticipation } from '@/hooks/useChallengeParticipation'
-
-const HEADER_HEIGHT = 80
 
 /** Page Détail défi (déjà rejoint) — light mode, header sticky, podium + classement. */
 export default function ChallengeDetail() {
@@ -44,45 +43,19 @@ export default function ChallengeDetail() {
 
   return (
     <LightLayout scrollable hideTabBar className="flex flex-col">
-      {/* Header sticky — fond opaque bg-bg-1 pour masquer le scroll dessous */}
-      <header
-        className="sticky top-0 z-20 bg-bg-1 w-full"
-        style={{ height: HEADER_HEIGHT }}
-      >
-        <div className="relative w-full max-w-[402px] mx-auto h-full">
-          <button
-            type="button"
-            aria-label="Retour"
-            onClick={() => navigate(-1)}
-            className="absolute left-[16px] top-[16px] size-[40px] rounded-[24px] bg-white flex items-center justify-center"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M10 12L6 8L10 4" stroke="#1b1d1f" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            aria-label="Menu défi"
-            onClick={() => setMenuOpen(true)}
-            className="absolute right-[16px] top-[16px] size-[40px] rounded-[24px] bg-white flex items-center justify-center"
-          >
-            <span className="flex gap-[3px]">
-              <span className="size-[2.5px] rounded-full bg-tx-1" />
-              <span className="size-[2.5px] rounded-full bg-tx-1" />
-              <span className="size-[2.5px] rounded-full bg-tx-1" />
-            </span>
-          </button>
-          <div className="absolute left-1/2 -translate-x-1/2 top-[24px] flex flex-col items-center gap-[1px]">
-            <p className="font-serif font-bold text-[20px] text-tx-1 tracking-[-0.6px] leading-normal whitespace-nowrap">
-              Défis
-            </p>
-            <p className="font-sans text-[12px] text-tx-3 text-center whitespace-nowrap leading-none">
-              <strong className="font-sans font-bold text-tx-3">{progress.weeklyTarget} séances</strong>
-              <span> par semaine</span>
-            </p>
-          </div>
-        </div>
-      </header>
+      {/* Header sticky — composant partagé. Le menu ouvre la sheet "Quitter le défi". */}
+      <StickyPageHeader
+        variant="light"
+        title="Défis"
+        subtitle={
+          <>
+            <strong className="font-bold">{progress.weeklyTarget} séances</strong> par semaine
+          </>
+        }
+        onBack={() => navigate(-1)}
+        onMenu={() => setMenuOpen(true)}
+        menuLabel="Menu défi"
+      />
 
       {/* Body — pas de padding-top (le header est sticky donc déjà au-dessus du flow) */}
       <div className="relative w-full max-w-[402px] mx-auto pb-[80px]">

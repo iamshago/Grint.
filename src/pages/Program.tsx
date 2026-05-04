@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search, Clock, Dumbbell, ArrowLeft, X, Play, Check, Calendar, Target } from 'lucide-react'
 
 import LightLayout from '@/components/layout/LightLayout'
+import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import ProgramCard from '@/components/features/ProgramCard'
 import WorkoutCard from '@/components/features/WorkoutCard'
 import ExerciseRow from '@/components/features/ExerciseRow'
@@ -319,30 +320,18 @@ export default function Program() {
       {/* === DÉTAIL PROGRAMME — header sticky + contenu scrollable, sans hero ni bottom sheet === */}
       {previewProgram && createPortal(
         <div className="fixed inset-0 z-[9999] bg-bg-1 flex flex-col">
-          {/* Header sticky — back + bloc titre+sous-titre centré.
-           *  shrink-0 + bg-bg-1 opaque garantissent l'occlusion totale du contenu
-           *  qui scrolle en dessous. Le spacer w-10 droite équilibre visuellement
-           *  le bouton back gauche (40px) pour que le titre soit vraiment centré. */}
-          <div className="sticky top-0 z-10 bg-bg-1 px-4 pt-2 pb-4 flex items-center gap-3 safe-area-top shrink-0">
-            <button
-              onClick={() => setPreviewProgram(null)}
-              aria-label="Retour"
-              className="bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform shadow-[0px_2px_8px_rgba(0,0,0,0.08)] shrink-0"
-            >
-              <ArrowLeft size={16} className="text-tx-1" />
-            </button>
-            <div className="flex-1 flex flex-col items-center min-w-0">
-              <h1 className="font-serif font-bold text-xl text-tx-1 tracking-tight truncate max-w-full">
-                {previewProgram.title}
-              </h1>
-              {previewProgram.frequency && (
-                <p className="font-sans text-xs text-tx-3 truncate max-w-full">
-                  {previewProgram.frequency.replace('fois / semaine', 'fois / sem')}
-                </p>
-              )}
-            </div>
-            <div className="w-10 shrink-0" aria-hidden="true" />
-          </div>
+          {/* Header sticky — composant partagé. Pas de menu sur cette page (le user
+           *  ne s'inscrit pas à un programme, donc pas d'action contextuelle). */}
+          <StickyPageHeader
+            variant="light"
+            title={previewProgram.title}
+            subtitle={
+              previewProgram.frequency
+                ? previewProgram.frequency.replace('fois / semaine', 'fois / sem')
+                : undefined
+            }
+            onBack={() => setPreviewProgram(null)}
+          />
 
           {/* Contenu scrollable — pas de snap, pas de bottom sheet */}
           <div className="flex-1 overflow-y-auto no-scrollbar overscroll-none">

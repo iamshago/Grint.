@@ -44,26 +44,29 @@ export default function AvatarPicker() {
   }
 
   return (
-    <DarkLayout scrollable hideTabBar className="flex flex-col px-[20px] pb-[32px]">
-      {/* Barre top */}
-      <div className="pt-2 pb-[8px]">
+    <DarkLayout scrollable hideTabBar className="px-[20px]">
+      {/* Header sticky — croix + titre alignés, fond opaque pour masquer le scroll dessous */}
+      <div
+        className="sticky top-0 z-20 -mx-[20px] px-[20px] pt-2 pb-[12px] bg-[#0c0c0c] flex items-center gap-[12px]"
+      >
         <button
           onClick={handleClose}
           aria-label="Fermer sans sauvegarder"
-          className="bg-[#1b1d1f] p-[12px] rounded-[24px] flex items-center justify-center"
+          className="bg-[#1b1d1f] p-[12px] rounded-[24px] flex items-center justify-center shrink-0"
           style={{ width: 44, height: 44 }}
         >
           <X size={20} color="#f1f4fb" strokeWidth={2} />
         </button>
+        <h1 className="font-serif font-bold text-[24px] text-bg-1 leading-tight">
+          Choisis ton avatar
+        </h1>
       </div>
 
-      {/* Titre */}
-      <h1 className="font-serif font-bold text-[24px] text-bg-1 mt-[20px] mb-[28px] leading-tight">
-        Choisis ton avatar
-      </h1>
-
-      {/* Grille d'avatars */}
-      <div className="grid grid-cols-4 gap-[12px] flex-1">
+      {/* Grille d'avatars — paddingBottom large pour ne pas être cachée par le CTA fixed */}
+      <div
+        className="grid grid-cols-4 gap-[12px] mt-[24px]"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 120px)' }}
+      >
         {AVATARS.map((avatar) => {
           const isSelected = tempSelection === avatar.id
           return (
@@ -103,21 +106,28 @@ export default function AvatarPicker() {
         })}
       </div>
 
-      {/* Bouton Valider */}
-      <div className="mt-[32px]">
-        <button
-          onClick={handleValidate}
-          disabled={!hasChanged || saving}
-          aria-label="Valider la sélection d'avatar"
-          className="w-full rounded-[12px] p-[16px] font-sans font-semibold text-[16px] transition-opacity"
-          style={{
-            backgroundColor: hasChanged ? '#ffee8c' : 'rgba(255,238,140,0.25)',
-            color: hasChanged ? '#1b1d1f' : 'rgba(27,29,31,0.5)',
-            cursor: hasChanged && !saving ? 'pointer' : 'default',
-          }}
-        >
-          {saving ? 'Enregistrement…' : 'Valider'}
-        </button>
+      {/* CTA sticky bottom — gradient fade pour masquer le contenu qui scrolle dessous */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none"
+        style={{
+          backgroundImage: 'linear-gradient(to bottom, rgba(12,12,12,0) 0%, #0c0c0c 32%)',
+        }}
+      >
+        <div className="px-[20px] pt-8 pointer-events-auto cta-bottom-safe">
+          <button
+            onClick={handleValidate}
+            disabled={!hasChanged || saving}
+            aria-label="Valider la sélection d'avatar"
+            className="w-full rounded-[12px] p-[16px] font-sans font-semibold text-[16px] transition-opacity"
+            style={{
+              backgroundColor: hasChanged ? '#ffee8c' : 'rgba(255,238,140,0.25)',
+              color: hasChanged ? '#1b1d1f' : 'rgba(27,29,31,0.5)',
+              cursor: hasChanged && !saving ? 'pointer' : 'default',
+            }}
+          >
+            {saving ? 'Enregistrement…' : 'Valider'}
+          </button>
+        </div>
       </div>
     </DarkLayout>
   )

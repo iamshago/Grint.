@@ -71,6 +71,8 @@ export interface ProfileSummary {
   id: string
   display_name: string | null
   avatar_id: string | null
+  /** URL de la photo personnalisée (uploadée ou OAuth) — prioritaire sur avatar_id */
+  avatar_url: string | null
   username: string | null
 }
 

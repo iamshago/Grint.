@@ -57,7 +57,7 @@ export function useFeed(): UseFeedResult {
           .in('post_id', postIds),
         supabase
           .from('profiles')
-          .select('id, display_name, avatar_id, username')
+          .select('id, display_name, avatar_id, avatar_url, username')
           .in('id', userIds),
       ])
       if (reactionsRes.error) throw reactionsRes.error
@@ -72,7 +72,7 @@ export function useFeed(): UseFeedResult {
       if (missing.length > 0) {
         const { data: extra } = await supabase
           .from('profiles')
-          .select('id, display_name, avatar_id, username')
+          .select('id, display_name, avatar_id, avatar_url, username')
           .in('id', missing)
         extraProfiles = (extra ?? []) as ProfileSummary[]
       }

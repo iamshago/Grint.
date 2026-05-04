@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import type { Challenge, ChallengeProgress, ProfileSummary } from '@/types'
-import { getAvatarById } from '@/lib/avatars'
+import { resolveAvatarSrc } from '@/lib/avatars'
 import { formatShortDate } from '@/lib/formatRelativeTime'
 import { cn } from '@/lib/utils'
 
@@ -71,13 +71,13 @@ export default function ChallengeCard({ challenge, isParticipant, progress, part
       {/* Avatars participants overlap */}
       <div className="absolute left-[15px] bottom-[16px] flex items-center pr-[20px]">
         {visibleAvatars.map((p) => {
-          const av = getAvatarById(p.avatar_id || 'superman')
+          const avSrc = resolveAvatarSrc(p)
           return (
             <div
               key={p.id}
               className="relative size-[40px] rounded-[23.226px] border-[1.5px] border-[#dde0e7] shadow-[0px_0px_16px_0px_rgba(31,32,33,0.4)] overflow-hidden -mr-[20px]"
             >
-              <img src={av?.src} alt="" className="absolute inset-0 size-full object-cover" />
+              <img src={avSrc} alt="" className="absolute inset-0 size-full object-cover" />
             </div>
           )
         })}

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import type { PostReaction, ReactionEmoji } from '@/types'
 import { REACTION_EMOJIS } from '@/types'
-import { getAvatarById } from '@/lib/avatars'
+import { resolveAvatarSrc } from '@/lib/avatars'
 
 interface ReactionsModalProps {
   reactions: PostReaction[]
@@ -91,7 +91,7 @@ export default function ReactionsModal({ reactions, currentUserId, friendIds, on
               </div>
               <ul className="flex flex-col gap-[8px]">
                 {list.map((r) => {
-                  const av = getAvatarById(r.profile?.avatar_id || 'superman')
+                  const avSrc = resolveAvatarSrc(r.profile)
                   const name = r.profile?.display_name || r.profile?.username || 'Utilisateur'
                   const clickable = r.user_id === currentUserId || friendIds.has(r.user_id)
                   return (
@@ -103,7 +103,7 @@ export default function ReactionsModal({ reactions, currentUserId, friendIds, on
                         className="flex items-center gap-[12px] w-full text-left rounded-[12px] py-[6px] px-[8px] disabled:cursor-default enabled:hover:bg-bg-1 transition-colors"
                       >
                         <div className="size-[40px] rounded-full overflow-hidden bg-tx-2 shrink-0">
-                          {av && <img src={av.src} alt="" className="size-full object-cover" />}
+                          <img src={avSrc} alt="" className="size-full object-cover" />
                         </div>
                         <span className="font-serif font-bold text-[16px] text-tx-1">{name}</span>
                       </button>

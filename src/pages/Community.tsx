@@ -29,7 +29,7 @@ export default function Community() {
     const ids = progress.ranking.slice(0, 3).map((r) => r.user_id)
     supabase
       .from('profiles')
-      .select('id, display_name, avatar_id, username')
+      .select('id, display_name, avatar_id, avatar_url, username')
       .in('id', ids)
       .then(({ data }) => setParticipantProfiles((data ?? []) as ProfileSummary[]))
   }, [progress])

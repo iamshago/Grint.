@@ -31,7 +31,7 @@ export function useCurrentUserProfile(): UseCurrentUserProfileResult {
       }
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_id, username')
+        .select('id, display_name, avatar_id, avatar_url, username')
         .eq('id', user.id)
         .maybeSingle()
       if (error) throw error

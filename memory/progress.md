@@ -128,6 +128,20 @@
 - [ ] Optimisation performance (code splitting)
 - [ ] Deploy Vercel production (token expiré, besoin re-auth)
 
+## Round UX cleanup 2026-05-04 (Home, Programs, Friends) — re-application après revert
+**Contexte** : 1ère application (commit `4711045`) cassait la liste d'amis car la colonne `profiles.avatar_url` n'existait pas en base. Reverté via `601405f`. Brief mis à jour avec un pré-flight strict (vérif colonne + migration + smoke test). 2ème application : pré-flight respecté, migration `20260504_add_avatar_url_to_profiles` appliquée sur Supabase prod, fixes ré-appliqués.
+
+- [x] Tag de backup pré-round : `backup/pre-ux-cleanup-round-1-20260504-044455` (sur `601405f`)
+- [x] Migration SQL `supabase/migrations/20260504_add_avatar_url_to_profiles.sql` appliquée en prod (ALTER TABLE profiles ADD COLUMN avatar_url TEXT)
+- [x] Bug #1 — TabBar stable au lancement iOS Safari (`useHideMobileUrlBar` dans `App.tsx`, scroll-trick au mount)
+- [x] Bug #2 — Bouton retour `/programs` aligné avec le titre dans le même flex row
+- [x] Bug #3 — Cartes séance entièrement cliquables (`WorkoutCard` racine = `<button>` quand `onPlay`, rond play en `<div pointer-events-none>`)
+- [x] Bug #4 — TabBar ne masque plus le bas du contenu : `LightLayout` sans `hideTabBar` sur `/programs`, modale `previewProgram` portée via `createPortal` en `z-[9999]` avec `paddingBottom: env() + 140px`
+- [x] Bug #5 — Gradient overlay haut sur la liste `/programs` + modales `previewProgram` et `previewWorkout` pour lisibilité du texte derrière la status bar
+- [x] Bug #6 — Avatars amis : helper `resolveAvatarSrc({ avatar_url, avatar_id })`, `avatar_url` ajouté aux 8 requêtes Supabase de profils, composants d'affichage migrés
+- [x] `npx tsc --noEmit` → 0 erreur ; `npm run build` → OK
+- [x] Smoke test §7.2 : queries reproduites en SQL direct sur la DB prod → toutes répondent correctement (la colonne `avatar_url` existe et le SELECT enrichi fonctionne)
+
 ## Pages implémentées (routes)
 | Route | Fichier | Mode | État |
 |-------|---------|------|------|

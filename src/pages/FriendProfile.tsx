@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronLeft, Clock, Dumbbell } from 'lucide-react'
 import DarkLayout from '@/components/layout/DarkLayout'
 import { supabase } from '@/lib/supabaseClient'
-import { getAvatarById } from '@/lib/avatars'
+import { resolveAvatarSrc } from '@/lib/avatars'
 import { useStreak, CATEGORY_ACCENT, DAY_LABELS } from '@/hooks/useStreak'
 
 /** Formate une date en "20 FÉV" */
@@ -45,14 +45,14 @@ export default function FriendProfile() {
       // 1. Profil
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('id, username, display_name, avatar_id')
+        .select('id, username, display_name, avatar_id, avatar_url')
         .eq('id', friendId)
         .single()
 
       if (profileData) {
         setProfile(profileData)
       } else {
-        setProfile({ id: friendId, username: 'ami', display_name: 'Ami', avatar_id: 'superman' })
+        setProfile({ id: friendId, username: 'ami', display_name: 'Ami', avatar_id: 'superman', avatar_url: null })
       }
 
       // 2. Streak chargé via useStreak(id) automatiquement
@@ -132,7 +132,7 @@ export default function FriendProfile() {
     )
   }
 
-  const avatar = getAvatarById(profile?.avatar_id)
+  const avatarSrc = resolveAvatarSrc(profile)
   const displayName = profile?.display_name || profile?.username || 'Ami'
   const usernameStr = profile?.username ? `@${profile.username}` : ''
 
@@ -157,11 +157,7 @@ export default function FriendProfile() {
       <div className="flex flex-col items-center pt-[16px] pb-[24px]">
         {/* Avatar circulaire avec fond sombre */}
         <div className="w-[120px] h-[120px] rounded-full overflow-hidden bg-[#1b1d1f] mb-[16px]">
-          {avatar ? (
-            <img src={avatar.src} alt={displayName} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full bg-[#3d4149]" />
-          )}
+          <img src={avatarSrc} alt={displayName} className="w-full h-full object-cover" />
         </div>
         <h1 className="font-serif font-bold text-[32px] text-[#f1f4fb] leading-[1.1] tracking-[-0.96px]">
           {displayName}

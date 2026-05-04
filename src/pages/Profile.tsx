@@ -7,7 +7,7 @@ import SessionCard from '@/components/features/SessionCard'
 import DarkLayout from '@/components/layout/DarkLayout'
 import { useNavigate } from 'react-router-dom'
 import { useAccent, CATEGORY_COLORS } from '@/lib/AccentContext'
-import { AVATARS, getAvatarById, getDefaultAvatar } from '@/lib/avatars'
+import { AVATARS, resolveAvatarSrc } from '@/lib/avatars'
 import { useStreak, CATEGORY_ACCENT, DAY_LABELS } from '@/hooks/useStreak'
 
 export default function Profile() {
@@ -19,6 +19,8 @@ export default function Profile() {
   const [userName, setUserName] = useState(localStorage.getItem('userName') || 'Athlète')
   const [username, setUsername] = useState(localStorage.getItem('username') || '')
   const [selectedAvatarId, setSelectedAvatarId] = useState(localStorage.getItem('selectedAvatarId') || 'superman')
+  // Photo URL personnalisée (Supabase profiles.avatar_url) — prioritaire sur avatar_id
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(null)
   const [isEditingName, setIsEditingName] = useState(false)
   const [tempName, setTempName] = useState('')
   const [showUsernamePopup, setShowUsernamePopup] = useState(false)
@@ -50,11 +52,11 @@ export default function Profile() {
   const [lastSessionPRCount, setLastSessionPRCount] = useState(0)
 
   // FRIENDS (vrais amis depuis la base — vide par défaut)
-  const [friends, setFriends] = useState<{ id: string; avatarId: string; name: string }[]>([])
+  const [friends, setFriends] = useState<{ id: string; avatarId: string; avatarUrl: string | null; name: string }[]>([])
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
 
-  /** Avatar sélectionné */
-  const currentAvatar = getAvatarById(selectedAvatarId) || getDefaultAvatar()
+  /** Source visuelle de l'avatar courant : avatar_url > avatar_id > défaut */
+  const currentAvatarSrc = resolveAvatarSrc({ avatar_url: selectedAvatarUrl, avatar_id: selectedAvatarId })
 
   useEffect(() => {
     fetchProfileData()
@@ -79,7 +81,7 @@ export default function Profile() {
       // Username — lire depuis la table profiles, fallback localStorage
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('username, display_name, avatar_id')
+        .select('username, display_name, avatar_id, avatar_url')
         .eq('id', user.id)
         .single()
 
@@ -88,6 +90,8 @@ export default function Profile() {
         setSelectedAvatarId(profileData.avatar_id)
         try { localStorage.setItem('selectedAvatarId', profileData.avatar_id) } catch {}
       }
+      // Photo URL personnalisée — uploadée ou OAuth — prioritaire sur avatar_id
+      setSelectedAvatarUrl(profileData?.avatar_url ?? null)
 
       if (profileData?.username) {
         const formatted = `@${profileData.username}`
@@ -220,7 +224,7 @@ export default function Profile() {
         )
         const { data: friendProfiles } = await supabase
           .from('profiles')
-          .select('id, username, display_name, avatar_id')
+          .select('id, username, display_name, avatar_id, avatar_url')
           .in('id', friendIds)
 
         if (friendProfiles) {
@@ -228,6 +232,7 @@ export default function Profile() {
             friendProfiles.map((p) => ({
               id: p.id,
               avatarId: p.avatar_id || 'superman',
+              avatarUrl: p.avatar_url || null,
               name: p.display_name || p.username || 'Ami',
             }))
           )
@@ -369,7 +374,7 @@ export default function Profile() {
           className="w-[124px] h-[124px] rounded-full overflow-hidden bg-tx-1 mb-[12px] relative group"
           aria-label="Changer de photo de profil"
         >
-          <img src={currentAvatar.src} alt="Avatar" className="w-full h-full object-cover" />
+          <img src={currentAvatarSrc} alt="Avatar" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
             <Pencil size={24} className="text-bg-1" />
           </div>
@@ -511,7 +516,7 @@ export default function Profile() {
                 {/* Avatars empilés */}
                 <div className="absolute top-[16px] left-1/2 -translate-x-1/2 flex items-center pr-[18px]">
                   {friends.slice(0, 3).map((f, i) => {
-                    const friendAvatar = getAvatarById(f.avatarId)
+                    const friendAvatarSrc = resolveAvatarSrc({ avatar_url: f.avatarUrl, avatar_id: f.avatarId })
                     return (
                       <div
                         key={f.id}
@@ -519,7 +524,7 @@ export default function Profile() {
                         style={{ marginRight: i < Math.min(friends.length, 3) - 1 ? '-18px' : 0, opacity: i === 0 && friends.length > 1 ? 0.4 : 1 }}
                       >
                         <img
-                          src={friendAvatar?.src || '/assets/avatars/superman.png'}
+                          src={friendAvatarSrc}
                           alt={f.name}
                           className="w-full h-full object-cover"
                         />

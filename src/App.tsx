@@ -8,6 +8,50 @@ import TabBar from '@/components/layout/TabBar'
 /** Routes où le TabBar ne doit PAS s'afficher */
 const HIDE_TABBAR_ROUTES = ['/login', '/splash', '/workout', '/profile/avatar', '/onboarding', '/community/challenges']
 
+/**
+ * Hook iOS Safari (non-standalone) : force le masquage de la barre d'URL au lancement
+ * pour stabiliser la position de la TabBar (qui dépend de env(safe-area-inset-bottom)
+ * et de 100dvh — tous deux varient quand la barre du navigateur est visible).
+ *
+ * Stratégie : on rend le body brièvement scrollable (1px de plus que le viewport),
+ * on déclenche window.scrollTo(0, 1) pour faire collapser la barre d'URL, puis on
+ * restaure les styles initiaux. Inopérant en mode PWA standalone (déjà fullscreen).
+ */
+function useHideMobileUrlBar() {
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const ua = navigator.userAgent
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream
+    const isStandalone = (navigator as any).standalone === true
+    if (!isIOS || isStandalone) return
+
+    const html = document.documentElement
+    const body = document.body
+    const prevHtmlH = html.style.height
+    const prevBodyMin = body.style.minHeight
+    const prevBodyOverflow = body.style.overflowY
+
+    const trigger = () => {
+      html.style.height = 'auto'
+      body.style.minHeight = `${window.innerHeight + 50}px`
+      body.style.overflowY = 'auto'
+
+      requestAnimationFrame(() => {
+        window.scrollTo(0, 1)
+        setTimeout(() => {
+          window.scrollTo(0, 0)
+          html.style.height = prevHtmlH
+          body.style.minHeight = prevBodyMin
+          body.style.overflowY = prevBodyOverflow
+        }, 350)
+      })
+    }
+
+    const t = setTimeout(trigger, 80)
+    return () => clearTimeout(t)
+  }, [])
+}
+
 /** TabBar persistant — unique instance pour conserver le layoutId Framer Motion */
 function PersistentTabBar() {
   const location = useLocation()
@@ -36,6 +80,9 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [hasUsername, setHasUsername] = useState<boolean | null>(null)
+
+  // Force la barre d'URL iOS Safari à se masquer au lancement → TabBar stable
+  useHideMobileUrlBar()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

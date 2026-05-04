@@ -52,3 +52,31 @@ export function getAvatarById(id: string): Avatar | undefined {
 export function getDefaultAvatar(): Avatar {
   return AVATARS.find((a) => a.id === 'superman') || AVATARS[0]
 }
+
+/**
+ * Résout la source de l'image à afficher pour un profil.
+ *
+ * Ordre de priorité :
+ * 1. `avatar_url` — photo personnalisée (uploadée ou provenant du provider OAuth)
+ *    stockée dans `profiles.avatar_url` sur Supabase.
+ * 2. `avatar_id` — id d'avatar du catalogue prédéfini (héros, dessins animés…).
+ * 3. Fallback `superman` (défaut Figma).
+ *
+ * Accepte n'importe quel objet ayant les champs (snake_case ou camelCase).
+ */
+export function resolveAvatarSrc(profile: {
+  avatar_url?: string | null
+  avatarUrl?: string | null
+  avatar_id?: string | null
+  avatarId?: string | null
+} | null | undefined): string {
+  if (!profile) return getDefaultAvatar().src
+  const url = profile.avatar_url ?? profile.avatarUrl ?? null
+  if (url && url.trim().length > 0) return url
+  const id = profile.avatar_id ?? profile.avatarId ?? null
+  if (id) {
+    const found = getAvatarById(id)
+    if (found) return found.src
+  }
+  return getDefaultAvatar().src
+}

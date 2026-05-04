@@ -39,50 +39,50 @@ export default function ChallengeCard({ challenge, isParticipant, progress, part
       type="button"
       onClick={goToTarget}
       aria-label={`Défi ${challenge.name}`}
-      className="relative w-full text-left bg-white border border-bg-2 rounded-[12px] shadow-[0px_0px_24px_0px_rgba(31,32,33,0.12)] h-[161px] overflow-hidden active:scale-[0.99] transition-transform"
+      className="relative w-full text-left bg-tx-1 rounded-[12px] shadow-[0px_0px_24px_0px_rgba(31,32,33,0.12)] h-[161px] overflow-hidden active:scale-[0.99] transition-transform"
     >
       {/* Titre */}
-      <p className="absolute left-[15px] top-[15px] font-serif font-bold text-[20px] text-tx-1 tracking-[-0.6px] whitespace-nowrap">
+      <p className="absolute left-[16px] top-[16px] font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px] whitespace-nowrap">
         {challenge.name}
       </p>
 
       {/* Date à droite */}
-      <div className="absolute right-[16px] top-[15px] flex flex-col items-end gap-[2px]">
-        <span className="font-sans text-[12px] text-tx-2 leading-none">Jusqu'au</span>
-        <span className="font-sans font-bold text-[16px] text-tx-1 leading-none">
+      <div className="absolute right-[16px] top-[16px] flex flex-col items-end gap-[2px]">
+        <span className="font-sans text-[12px] text-bg-2 leading-none">Jusqu'au</span>
+        <span className="font-sans font-bold text-[16px] text-bg-1 leading-none">
           {formatShortDate(challenge.ends_at)}
         </span>
       </div>
 
       {/* Sous-titre dynamique : "{S × N} séances par semaine" */}
-      <p className="absolute left-1/2 -translate-x-1/2 top-[43px] font-sans text-[12px] text-tx-2 text-center whitespace-nowrap" style={{ left: 'calc(50% - 104px)' }}>
-        <strong className="font-sans font-bold text-tx-1">{weeklyTarget} séances</strong>
+      <p className="absolute left-[16px] top-[44px] font-sans text-[12px] text-bg-2 whitespace-nowrap">
+        <strong className="font-sans font-bold text-bg-1">{weeklyTarget} séances</strong>
         <span> par semaine</span>
       </p>
 
       {/* Barre de progression */}
-      <div className="absolute left-[15px] top-[73px] w-[338px] h-[12px] rounded-[8px] bg-bg-2 overflow-hidden">
+      <div className="absolute left-[16px] right-[16px] top-[74px] h-[12px] rounded-[8px] bg-tx-2 overflow-hidden">
         <div
-          className="h-full rounded-[8px] bg-tx-1 shadow-[0px_0px_24px_0px_rgba(31,32,33,0.12),0px_0px_15.5px_5px_rgba(255,255,255,0.2)]"
-          style={{ width: `${Math.max(4, ratio * 100)}%` }}
+          className="h-full rounded-[8px] bg-pr-1 shadow-[0px_0px_15.5px_5px_rgba(255,255,255,0.2)]"
+          style={{ width: ratio > 0 ? `max(16px, ${Math.min(100, ratio * 100)}%)` : '0%' }}
         />
       </div>
 
       {/* Avatars participants overlap */}
-      <div className="absolute left-[15px] bottom-[16px] flex items-center pr-[20px]">
+      <div className="absolute left-[16px] bottom-[17px] flex items-center pr-[20px]">
         {visibleAvatars.map((p) => {
           const avSrc = resolveAvatarSrc(p)
           return (
             <div
               key={p.id}
-              className="relative size-[40px] rounded-[23.226px] border-[1.5px] border-[#dde0e7] shadow-[0px_0px_16px_0px_rgba(31,32,33,0.4)] overflow-hidden -mr-[20px]"
+              className="relative size-[40px] rounded-[23.226px] border-[1.5px] border-tx-1 shadow-[0px_0px_16px_0px_rgba(31,32,33,0.4)] overflow-hidden -mr-[20px]"
             >
               <img src={avSrc} alt="" className="absolute inset-0 size-full object-cover" />
             </div>
           )
         })}
         {extra > 0 && (
-          <div className="relative size-[40px] rounded-[23.226px] border-[1.5px] border-[#dde0e7] bg-tx-1 text-bg-1 flex items-center justify-center font-sans font-bold text-[12px] -mr-[20px]">
+          <div className="relative size-[40px] rounded-[23.226px] border-[1.5px] border-tx-1 bg-tx-2 text-bg-1 flex items-center justify-center font-sans font-bold text-[12px] -mr-[20px]">
             +{extra}
           </div>
         )}
@@ -91,10 +91,10 @@ export default function ChallengeCard({ challenge, isParticipant, progress, part
       {/* CTA Rejoindre / Déjà rejoint */}
       <div
         className={cn(
-          'absolute bottom-[15px] right-[15px] rounded-[8px] flex items-center justify-center px-[16px] py-[12px]',
+          'absolute bottom-[16px] right-[16px] rounded-[8px] flex items-center justify-center px-[16px] py-[12px]',
           isParticipant
-            ? 'bg-bg-2 cursor-not-allowed opacity-60'
-            : 'bg-tx-1',
+            ? 'bg-tx-2 cursor-not-allowed opacity-80'
+            : 'bg-pr-1',
         )}
         onClick={(e) => {
           // Si pas participant : on laisse la propagation pour aussi naviguer vers /join
@@ -103,7 +103,7 @@ export default function ChallengeCard({ challenge, isParticipant, progress, part
         }}
         aria-disabled={isParticipant}
       >
-        <span className={cn('font-sans font-semibold text-[16px]', isParticipant ? 'text-tx-2' : 'text-pr-1')}>
+        <span className={cn('font-sans font-semibold text-[16px]', isParticipant ? 'text-tx-3' : 'text-tx-1')}>
           {isParticipant ? 'Déjà rejoint' : 'Rejoindre'}
         </span>
       </div>

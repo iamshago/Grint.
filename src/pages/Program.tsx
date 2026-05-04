@@ -201,14 +201,14 @@ export default function Program() {
   return (
     <>
     <LightLayout scrollable className="pb-tabbar">
-      {/* Gradient haut — assombrit légèrement la zone derrière la status bar pour
-          éviter que le contenu scrollé ne devienne illisible */}
+      {/* Gradient haut — couvre la status bar uniquement (env+16px) avec une
+          progression linéaire 1 → 0.85 → 0 pour éviter une ligne visible */}
       <div
         className="fixed top-0 left-0 right-0 z-30 pointer-events-none"
         style={{
-          height: 'calc(env(safe-area-inset-top, 0px) + 56px)',
+          height: 'calc(env(safe-area-inset-top, 0px) + 16px)',
           backgroundImage:
-            'linear-gradient(to bottom, rgba(241,244,251,1) 0%, rgba(241,244,251,0.92) 60%, rgba(241,244,251,0) 100%)',
+            'linear-gradient(to bottom, rgba(241,244,251,1) 0%, rgba(241,244,251,0.85) 70%, rgba(241,244,251,0) 100%)',
         }}
         aria-hidden="true"
       />
@@ -368,13 +368,14 @@ export default function Program() {
             <ArrowLeft size={16} className="text-tx-1" />
           </button>
 
-          {/* Gradient haut — éclaircit la zone derrière la status bar pendant le scroll */}
+          {/* Gradient haut — couvre la status bar uniquement (env+16px) avec
+              progression douce 1 → 0.85 → 0 pour éviter une ligne visible */}
           <div
             className="fixed top-0 left-0 right-0 z-[100] pointer-events-none"
             style={{
-              height: 'calc(env(safe-area-inset-top, 0px) + 56px)',
+              height: 'calc(env(safe-area-inset-top, 0px) + 16px)',
               backgroundImage:
-                'linear-gradient(to bottom, rgba(241,244,251,0.95) 0%, rgba(241,244,251,0.7) 50%, rgba(241,244,251,0) 100%)',
+                'linear-gradient(to bottom, rgba(241,244,251,1) 0%, rgba(241,244,251,0.85) 70%, rgba(241,244,251,0) 100%)',
             }}
             aria-hidden="true"
           />
@@ -487,13 +488,14 @@ export default function Program() {
             <ArrowLeft size={16} className="text-tx-1" />
           </button>
 
-          {/* Gradient haut — éclaircit la zone derrière la status bar pendant le scroll */}
+          {/* Gradient haut — couvre la status bar uniquement (env+16px) avec
+              progression douce 1 → 0.85 → 0 pour éviter une ligne visible */}
           <div
             className="fixed top-0 left-0 right-0 z-[100] pointer-events-none"
             style={{
-              height: 'calc(env(safe-area-inset-top, 0px) + 56px)',
+              height: 'calc(env(safe-area-inset-top, 0px) + 16px)',
               backgroundImage:
-                'linear-gradient(to bottom, rgba(241,244,251,0.95) 0%, rgba(241,244,251,0.7) 50%, rgba(241,244,251,0) 100%)',
+                'linear-gradient(to bottom, rgba(241,244,251,1) 0%, rgba(241,244,251,0.85) 70%, rgba(241,244,251,0) 100%)',
             }}
             aria-hidden="true"
           />

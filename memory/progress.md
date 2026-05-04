@@ -142,6 +142,16 @@
 - [x] `npx tsc --noEmit` → 0 erreur ; `npm run build` → OK
 - [x] Smoke test §7.2 : queries reproduites en SQL direct sur la DB prod → toutes répondent correctement (la colonne `avatar_url` existe et le SELECT enrichi fonctionne)
 
+## Round UX cleanup 2026-05-04 — Round 2 (corrections post-tests device)
+**Contexte** : Round 1 commité (`30e80f6`) déployé sur Vercel. Pestakle remonte 2 issues après tests sur device : (1) le gradient haut dessine une ligne horizontale au lieu d'être imperceptible, (2) tous les amis affichent encore Superman alors qu'ils sont connectés via Google.
+
+- [x] Issue 1 — Gradient haut adouci dans 3 endroits (`Program.tsx` liste + previewProgram modal + previewWorkout modal) : hauteur `env+56px` → `env+16px`, stops `1/0.92@60%/0` → `1/0.85@70%/0`
+- [x] Issue 2 — 2 migrations Supabase appliquées en prod :
+  - `20260504_backfill_avatar_url_from_oauth.sql` (UPDATE one-shot depuis `auth.users.raw_user_meta_data->>'avatar_url'` ou `'picture'`)
+  - `20260504_sync_avatar_url_trigger.sql` (helper `oauth_avatar_url`, trigger BEFORE INSERT sur `profiles`, trigger AFTER UPDATE sur `auth.users`)
+- [x] Vérification §2.4 : 3/3 profils peuplés avec leur photo `lh3.googleusercontent.com/...` (lu_vtrr, nahui, shago) — 0 NULL
+- [x] `npx tsc --noEmit` → 0 erreur
+
 ## Pages implémentées (routes)
 | Route | Fichier | Mode | État |
 |-------|---------|------|------|

@@ -28,7 +28,9 @@ export default function ProgramCard({
         className,
       )}
     >
-      {/* Image de fond */}
+      {/* Image de fond — les nouvelles images programmes ont une DA "intimate
+       *  dark" (bois walnut + LED warm) volontairement sombre, le contraste
+       *  avec le texte blanc est déjà bon sans gradient overlay. */}
       {imageUrl && (
         <img
           src={imageUrl}
@@ -37,17 +39,12 @@ export default function ProgramCard({
         />
       )}
 
-      {/* Overlay gradient */}
+      {/* Contenu — text-shadow subtil pour préserver la lisibilité quand
+       *  ponctuellement le sujet de l'image se retrouve derrière le texte. */}
       <div
-        className="absolute inset-0 backdrop-blur-[8px]"
-        style={{
-          backgroundImage:
-            'linear-gradient(90deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.3) 100%), linear-gradient(0deg, rgba(0,0,0,0.7) 0%, rgba(31,32,33,0) 60%)',
-        }}
-      />
-
-      {/* Contenu */}
-      <div className="absolute inset-0 flex flex-col justify-end p-4 gap-2">
+        className="absolute inset-0 flex flex-col justify-end p-4 gap-2"
+        style={{ textShadow: '0 1px 3px rgba(0,0,0,0.45)' }}
+      >
         {difficulty && (
           <Badge variant="gold" className="self-start">
             {difficulty}

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import LightLayout from '@/components/layout/LightLayout'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import ChallengePodium from '@/components/features/ChallengePodium'
 import ParticipantRow from '@/components/features/ParticipantRow'
 import ChallengeMenuSheet from '@/components/features/ChallengeMenuSheet'
+import ChallengeInfoPopup from '@/components/features/ChallengeInfoPopup'
 import { useChallengeProgress } from '@/hooks/useChallengeProgress'
 import { useChallengeParticipation } from '@/hooks/useChallengeParticipation'
 
@@ -15,6 +17,7 @@ export default function ChallengeDetail() {
   const { challenge, progress, loading } = useChallengeProgress(id)
   const { leave } = useChallengeParticipation(id)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false)
 
   // Redirection si invalide
   useEffect(() => {
@@ -43,18 +46,19 @@ export default function ChallengeDetail() {
 
   return (
     <LightLayout scrollable hideTabBar noSafeAreaTop className="flex flex-col">
-      {/* Header sticky — composant partagé. Le menu ouvre la sheet "Quitter le défi". */}
+      {/* Header sticky — composant partagé. Le menu ouvre la popup d'explication
+       *  du défi (règle des 2 séances/sem par personne, effort collectif). */}
       <StickyPageHeader
         variant="light"
         title="Défis"
         subtitle={
           <>
-            <strong className="font-bold">{progress.weeklyTarget} séances</strong> par semaine
+            <strong className="font-bold">2 séances/sem</strong> par personne
           </>
         }
         onBack={() => navigate(-1)}
-        onMenu={() => setMenuOpen(true)}
-        menuLabel="Menu défi"
+        onMenu={() => setInfoOpen(true)}
+        menuLabel="À propos du défi"
       />
 
       {/* Body — pas de padding-top (le header est sticky donc déjà au-dessus du flow) */}
@@ -109,6 +113,20 @@ export default function ChallengeDetail() {
       </div>
 
       <ChallengeMenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} onConfirmLeave={handleLeave} />
+
+      {/* Popup d'explication des règles du défi — déclenchée par le menu 3 points
+       *  du sticky header. Le lien "Quitter le défi" délègue à la sheet existante
+       *  (qui gère la confirmation modale). */}
+      {infoOpen && createPortal(
+        <ChallengeInfoPopup
+          onClose={() => setInfoOpen(false)}
+          onLeaveChallenge={() => {
+            setInfoOpen(false)
+            setMenuOpen(true)
+          }}
+        />,
+        document.body,
+      )}
     </LightLayout>
   )
 }

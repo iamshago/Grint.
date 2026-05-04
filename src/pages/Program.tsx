@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, Dumbbell, ArrowLeft, X, Play, Check, Calendar, Target } from 'lucide-react'
+import { Search, Clock, Dumbbell, ArrowLeft, X, Play, Check, Calendar, Target, MoreVertical } from 'lucide-react'
 
 import LightLayout from '@/components/layout/LightLayout'
 import ProgramCard from '@/components/features/ProgramCard'
@@ -50,6 +50,7 @@ export default function Program() {
 
   const [toast, setToast] = useState(null)
   const [videoModal, setVideoModal] = useState({ isOpen: false, url: null, title: '' })
+  const [programMenuOpen, setProgramMenuOpen] = useState(false)
 
   // Fade de l'image au scroll (ref callback)
   const snapRef = useCallback((node: HTMLDivElement | null) => {
@@ -319,7 +320,9 @@ export default function Program() {
       {/* === DÉTAIL PROGRAMME — header sticky + contenu scrollable, sans hero ni bottom sheet === */}
       {previewProgram && createPortal(
         <div className="fixed inset-0 z-[9999] bg-bg-1 flex flex-col">
-          {/* Header sticky — safe-area-top respecte la Dynamic Island / status bar iOS */}
+          {/* Header sticky — back, bloc titre+sous-titre centré, menu 3 points.
+           *  shrink-0 + bg-bg-1 opaque garantissent l'occlusion totale du contenu
+           *  qui scrolle en dessous. */}
           <div className="sticky top-0 z-10 bg-bg-1 px-4 pt-2 pb-4 flex items-center gap-3 safe-area-top shrink-0">
             <button
               onClick={() => setPreviewProgram(null)}
@@ -328,9 +331,52 @@ export default function Program() {
             >
               <ArrowLeft size={16} className="text-tx-1" />
             </button>
-            <h1 className="font-serif font-bold text-xl text-tx-1 tracking-tight text-center flex-1 pr-[40px]">
-              {previewProgram.title}
-            </h1>
+            {/* Stack titre + sous-titre, centré entre les deux boutons latéraux */}
+            <div className="flex-1 flex flex-col items-center min-w-0">
+              <h1 className="font-serif font-bold text-xl text-tx-1 tracking-tight truncate max-w-full">
+                {previewProgram.title}
+              </h1>
+              {previewProgram.frequency && (
+                <p className="font-sans text-xs text-tx-3 truncate max-w-full">
+                  {previewProgram.frequency.replace('fois / semaine', 'fois / sem')}
+                </p>
+              )}
+            </div>
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setProgramMenuOpen((v) => !v)}
+                aria-label="Plus d'actions"
+                aria-expanded={programMenuOpen}
+                className="bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform shadow-[0px_2px_8px_rgba(0,0,0,0.08)]"
+              >
+                <MoreVertical size={16} className="text-tx-1" />
+              </button>
+              {programMenuOpen && (
+                <>
+                  {/* Backdrop transparent — ferme le menu sur tap-outside */}
+                  <div
+                    className="fixed inset-0 z-[20]"
+                    onClick={() => setProgramMenuOpen(false)}
+                    aria-hidden="true"
+                  />
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-[52px] z-[30] bg-white rounded-12 shadow-[0_8px_24px_rgba(0,0,0,0.12)] py-2 min-w-[180px]"
+                  >
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setProgramMenuOpen(false)
+                        setPreviewProgram(null)
+                      }}
+                      className="w-full text-left px-4 py-2 font-sans text-sm text-tx-1 hover:bg-bg-2 active:bg-bg-2 cursor-pointer"
+                    >
+                      Sortir du programme
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Contenu scrollable — pas de snap, pas de bottom sheet */}

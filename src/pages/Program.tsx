@@ -20,50 +20,7 @@ const CATEGORY_ACCENT: Record<string, string> = {
   bbl: '#ff63b3',
 }
 
-const PROGRAMS = [
-  {
-    id: 'ul',
-    title: 'Upper / Lower',
-    difficulty: 'Intermédiaire',
-    frequency: '2 à 4 fois / semaine',
-    image: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=800&q=80',
-    description: "Sépare l'entraînement du haut et du bas du corps. Le compromis parfait pour optimiser la récupération tout en gardant une haute fréquence.",
-    focus: ['Haut du corps', 'Bas du corps'],
-    keywords: ['upper', 'lower'],
-  },
-  {
-    id: 'bbl',
-    title: 'BBL Bootcamp',
-    difficulty: 'Intermédiaire',
-    frequency: '2 à 4 fois / semaine',
-    image: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?auto=format&fit=crop&w=800&q=80',
-    description: 'Un focus intensif sur le développement des fessiers et du bas du corps. Prépare-toi à transpirer.',
-    focus: ['Fessiers', 'Jambes'],
-    keywords: ['bbl', 'leg', 'women', 'woman'],
-  },
-  {
-    id: 'ppl',
-    title: 'Push Pull Legs',
-    difficulty: 'Avancé',
-    frequency: '3 à 6 fois / semaine',
-    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80',
-    description: "Le programme de musculation par excellence. Divise le corps en mouvements de poussée, de tirage et focus jambes.",
-    focus: ['Pecs/Triceps', 'Dos/Biceps', 'Jambes'],
-    keywords: ['push', 'pull', 'leg'],
-  },
-  {
-    id: 'fb',
-    title: 'Full Body',
-    difficulty: 'Débutant',
-    frequency: '2 à 4 fois / semaine',
-    image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=800&q=80',
-    description: "Travaille l'ensemble du corps à chaque séance. Parfait pour commencer ou si tu as un emploi du temps chargé.",
-    focus: ['Corps complet', 'Fondations'],
-    keywords: ['full', 'body', 'circuit'],
-  },
-]
-
-const FILTERS = ['All', 'Haut du corps', 'Bas du corps', 'Abdos', 'Cardio']
+const FILTERS = ['All', 'Haut du corps', 'Bas du corps', 'Abdos']
 
 const WEEKDAYS = [
   { label: 'Lundi', value: 1 },
@@ -78,6 +35,7 @@ const WEEKDAYS = [
 export default function Program() {
   const navigate = useNavigate()
   const [workouts, setWorkouts] = useState([])
+  const [programs, setPrograms] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
@@ -111,24 +69,32 @@ export default function Program() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  // Récupérer les séances depuis Supabase
+  // Récupérer programmes (catalogue) + séances (catalogue) depuis Supabase en parallèle.
   useEffect(() => {
-    async function fetchWorkouts() {
+    async function fetchCatalog() {
       try {
         setLoading(true)
-        const { data, error } = await supabase
-          .from('workouts')
-          .select(`*, workout_exercises (*, exercise:exercises (*))`)
-          .eq('is_deleted', false)
-        if (error) throw error
-        setWorkouts(data || [])
+        const [workoutsRes, programsRes] = await Promise.all([
+          supabase
+            .from('workouts')
+            .select(`*, workout_exercises (*, exercise:exercises (*))`)
+            .eq('is_deleted', false),
+          supabase
+            .from('programs')
+            .select('*')
+            .order('display_order', { ascending: true }),
+        ])
+        if (workoutsRes.error) throw workoutsRes.error
+        if (programsRes.error) throw programsRes.error
+        setWorkouts(workoutsRes.data || [])
+        setPrograms(programsRes.data || [])
       } catch (err) {
         console.error('Erreur:', err)
       } finally {
         setLoading(false)
       }
     }
-    fetchWorkouts()
+    fetchCatalog()
   }, [])
 
   // Filtrage des séances
@@ -276,20 +242,20 @@ export default function Program() {
         </div>
       </div>
 
-      {/* Section Programmes */}
-      {!searchTerm && (
+      {/* Section Programmes — masquée pendant la recherche ou si la BDD ne renvoie aucun programme */}
+      {!searchTerm && programs.length > 0 && (
         <div className="mb-8">
           <h2 className="font-serif font-bold text-2xl text-tx-1 tracking-tight px-4 mb-4">
             Programmes
           </h2>
           <div className="flex gap-4 overflow-x-auto no-scrollbar pl-4 pr-4 pb-2">
-            {PROGRAMS.map((prog) => (
+            {programs.map((prog) => (
               <ProgramCard
                 key={prog.id}
                 title={prog.title}
                 difficulty={prog.difficulty}
                 frequency={prog.frequency}
-                imageUrl={prog.image}
+                imageUrl={prog.image_url || undefined}
                 onClick={() => setPreviewProgram(prog)}
               />
             ))}

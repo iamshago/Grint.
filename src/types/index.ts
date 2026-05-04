@@ -42,6 +42,20 @@ export interface CompletedWorkout {
   completed_at: string
 }
 
+/** Programme du catalogue (`/programs`) — table `public.programs`. */
+export interface Program {
+  id: string
+  title: string
+  difficulty: string
+  frequency: string
+  description: string
+  image_url: string | null
+  focus: string[]
+  keywords: string[]
+  display_order: number
+  created_at: string
+}
+
 export interface UserProgress {
   id: string
   user_id: string

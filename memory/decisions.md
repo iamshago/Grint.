@@ -100,3 +100,13 @@
 **Contexte** : Le SVG glow avec feGaussianBlur rendait n'importe quoi dans le navigateur
 **Décision** : Utiliser une copie floutée de la flamme SVG (opacity:0.25, scale:1.35, blur:7px) comme glow derrière
 **Alternative rejetée** : SVG avec filter feGaussianBlur (rendu cassé), CSS radial-gradient (pas assez naturel)
+
+### 2026-05-04 — Avatar custom : profiles.avatar_url prioritaire sur avatar_id
+**Contexte** : Nouvelle colonne `avatar_url` (text, nullable) sur `profiles` Supabase contenant la photo perso uploadée ou OAuth Google. L'app continuait à n'afficher que `avatar_id` (catalogue prédéfini) → tous les amis apparaissaient en Superman par défaut sur la carte Profil, la liste d'amis et le profil d'un ami.
+**Décision** : Helper central `resolveAvatarSrc(profile)` dans `src/lib/avatars.ts` avec priorité `avatar_url > avatar_id > defaultAvatar`. Toutes les requêtes profil sélectionnent désormais les deux colonnes (`useCurrentUserProfile`, `useFeed`, `useChallengeProgress`, `Profile`, `Friends`, `FriendProfile`, `Community`). Les composants d'affichage (`FeedPostCard`, `ParticipantRow`, `ChallengeCard`, `ReactionsModal`, `Friends`, `FriendProfile`, `Profile`) utilisent `resolveAvatarSrc` au lieu de `getAvatarById`.
+**Alternative rejetée** : Patcher l'AvatarPicker pour gérer aussi l'upload custom — hors-scope de ce round, l'AvatarPicker reste sur le catalogue prédéfini (`avatar_id`).
+
+### 2026-05-04 — TabBar stable au lancement iOS Safari : scroll-trick au mount
+**Contexte** : Sur iPhone Safari (non-PWA), au premier lancement sur la Home, la TabBar paraît "haute" car la barre d'URL Safari est encore visible et réduit le viewport. La Home utilise `LightLayout` non-scrollable (`h-[100dvh] overflow-hidden`) → la barre d'URL ne se masque jamais d'elle-même, et `env(safe-area-inset-bottom)` + `100dvh` varient quand elle se masque ailleurs.
+**Décision** : Hook `useHideMobileUrlBar()` dans `App.tsx` qui rend brièvement le body scrollable au mount, déclenche `window.scrollTo(0, 1)` pour forcer Safari à collapser la barre d'URL, puis restaure les styles. Inopérant en PWA standalone.
+**Alternative rejetée** : Rendre la Home scrollable — change le layout fixe voulu par le design Figma. Forcer `100vh` au lieu de `100dvh` — casserait l'adaptation à la safe-area iOS.

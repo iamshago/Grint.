@@ -128,6 +128,15 @@
 - [ ] Optimisation performance (code splitting)
 - [ ] Deploy Vercel production (token expiré, besoin re-auth)
 
+## Round UX cleanup 2026-05-04 (Home, Programs, Friends)
+- [x] Bug #1 — TabBar stable au lancement iOS Safari (`useHideMobileUrlBar` dans `App.tsx`, scroll-trick au mount)
+- [x] Bug #2 — Bouton retour `/programs` aligné avec le titre dans le même flex row (plus de `position: fixed` désynchronisé)
+- [x] Bug #3 — Cartes séance entièrement cliquables (`WorkoutCard` racine = `<button>` quand `onPlay`, rond play en `<div pointer-events-none>`)
+- [x] Bug #4 — TabBar ne masque plus le bas du contenu : `LightLayout` sans `hideTabBar` sur `/programs` (active `pb-tabbar`), modale `previewProgram` portée via `createPortal` en `z-[9999]` avec `paddingBottom: env() + 140px`
+- [x] Bug #5 — Gradient overlay haut (`fixed top-0`, hauteur `env() + 56px`, dégradé `bg-1` → transparent) sur la liste `/programs` + modales `previewProgram` et `previewWorkout` pour lisibilité du texte derrière la status bar pendant le scroll
+- [x] Bug #6 — Avatars amis : helper `resolveAvatarSrc({ avatar_url, avatar_id })` (priorité `avatar_url > avatar_id > superman`), `avatar_url` ajoutée à toutes les requêtes Supabase de profils (`useCurrentUserProfile`, `useFeed`, `useChallengeProgress`, `Profile`, `Friends`, `FriendProfile`, `Community`), composants d'affichage migrés (`FeedPostCard`, `ParticipantRow`, `ChallengeCard`, `ReactionsModal`, `Friends`, `FriendProfile`, `Profile`)
+- [x] `npx tsc --noEmit -p tsconfig.json` → 0 erreur
+
 ## Pages implémentées (routes)
 | Route | Fichier | Mode | État |
 |-------|---------|------|------|

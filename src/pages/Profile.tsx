@@ -55,7 +55,7 @@ export default function Profile() {
   const [friends, setFriends] = useState<{ id: string; avatarId: string; avatarUrl: string | null; name: string }[]>([])
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
 
-  /** Source visuelle de l'avatar courant : avatar_url > avatar_id > défaut */
+  /** Source visuelle de l'avatar courant : avatar_id > avatar_url > défaut */
   const currentAvatarSrc = resolveAvatarSrc({ avatar_url: selectedAvatarUrl, avatar_id: selectedAvatarId })
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function Profile() {
         setSelectedAvatarId(profileData.avatar_id)
         try { localStorage.setItem('selectedAvatarId', profileData.avatar_id) } catch {}
       }
-      // Photo URL personnalisée — uploadée ou OAuth — prioritaire sur avatar_id
+      // Photo URL personnalisée — uploadée ou OAuth — fallback si avatar_id est null
       setSelectedAvatarUrl(profileData?.avatar_url ?? null)
 
       if (profileData?.username) {

@@ -79,12 +79,21 @@ export default function WorkoutCard({
         className,
       )}
     >
-      {/* Image de fond */}
+      {/* Image de fond — utilise la version `<slug>-card.png` (allégée pour
+       *  thumbnail), avec fallback automatique sur la base si elle n'existe
+       *  pas (cas lower-body, abs-killer). Le dataset.fallback évite la
+       *  boucle infinie si la base 404 elle aussi. */}
       {imageUrl && (
         <img
-          src={imageUrl}
+          src={imageUrl.replace(/\.(png|jpg|jpeg|webp)$/i, '-card.$1')}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => {
+            const img = e.currentTarget
+            if (img.dataset.fallback === '1') return
+            img.dataset.fallback = '1'
+            img.src = imageUrl
+          }}
         />
       )}
 

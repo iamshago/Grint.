@@ -341,8 +341,8 @@ export default function Program() {
       {/* === DÉTAIL PROGRAMME — header sticky + contenu scrollable, sans hero ni bottom sheet === */}
       {previewProgram && createPortal(
         <div className="fixed inset-0 z-[9999] bg-bg-1 flex flex-col">
-          {/* Header sticky — flèche retour + titre programme centré */}
-          <div className="sticky top-0 z-10 bg-bg-1 px-4 pt-2 pb-4 flex items-center gap-3 fixed-top-button-wrapper">
+          {/* Header sticky — safe-area-top respecte la Dynamic Island / status bar iOS */}
+          <div className="sticky top-0 z-10 bg-bg-1 px-4 pt-2 pb-4 flex items-center gap-3 safe-area-top shrink-0">
             <button
               onClick={() => setPreviewProgram(null)}
               aria-label="Retour"

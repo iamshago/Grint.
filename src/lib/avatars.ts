@@ -81,3 +81,17 @@ export function resolveAvatarSrc(profile: {
   if (url && url.trim().length > 0) return url
   return getDefaultAvatar().src
 }
+
+/**
+ * Seuil de streak (en semaines) requis pour débloquer un avatar.
+ * Actuellement : seuls les avatars de la catégorie 'real' nécessitent au moins
+ * 1 semaine validée. Les héros et dessins animés sont accessibles dès le début.
+ */
+export function getRequiredStreakWeeks(avatar: Avatar): number {
+  return avatar.category === 'real' ? 1 : 0
+}
+
+/** L'avatar est-il verrouillé pour un user ayant `streakCount` semaines validées ? */
+export function isAvatarLocked(avatar: Avatar, streakCount: number): boolean {
+  return streakCount < getRequiredStreakWeeks(avatar)
+}

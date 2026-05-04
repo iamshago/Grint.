@@ -73,6 +73,20 @@
 **Décision** : Utiliser les positions exactes du Figma : left:calc(50%-84px) pour la valeur, left:calc(50%+49px) avec -translate-x-1/2 pour le badge
 **Alternative rejetée** : Garder left/right:16px — ne matche pas le design Figma
 
+### 2026-05-04 — Communauté V2 : feed PR auto + défi unique avec podium
+**Contexte** : Refonte de l'onglet Communauté V1 (mock 3 défis carousel + posts manuels) vers V2 fonctionnelle (un défi actif, feed auto-alimenté par les PR de soi + amis, réactions persistées)
+**Décision** :
+- Trigger Postgres `trg_user_progress_pr` sur INSERT user_progress → posts auto de type 'pr' (uniquement quand `weight_used` dépasse le record précédent)
+- Cache `exercise_pr_records` (user_id, exercise_id, best_weight) pour éviter de recalculer ET ne pas poster sur le premier set d'un nouvel exo
+- Backfill du cache au déploiement à partir des max() historiques de user_progress (sinon les premiers sets post-deploy auraient été faussement marqués comme PR)
+- Un seul défi actif à un instant T, mais schéma `challenges`/`challenge_participants` multi-défis pour V3
+- RLS posts/reactions visibles uniquement pour soi + amis acceptés (helper `is_friend_or_self(uuid)`)
+- 4 emojis cumulables par utilisateur, UNIQUE sur (post_id, user_id, emoji)
+- Sortie défi UNIQUEMENT via "..." de la page Détail + modale de confirmation rouge (anti abandon accidentel)
+- TabBar masquée sur `/community/challenges/*` (préfixe ajouté à HIDE_TABBAR_ROUTES)
+- Pixel-perfect strict aligné sur Figma 551:1854 / 553:2208 / 556:5995 (textes copiés au caractère, apostrophes typographiques U+2019 incluses, dates formatées en UTC pour matcher la valeur stockée en base)
+**Alternative rejetée** : Recalcul applicatif des PR à chaque save de set côté client — fragile (court-circuitable si on modifie le client), et pose des problèmes de cohérence si plusieurs devices saisissent en parallèle. Le trigger Postgres est la source de vérité unique.
+
 ### 2026-04-02 — Flamme badge glow : CSS blur plutôt que SVG filter
 **Contexte** : Le SVG glow avec feGaussianBlur rendait n'importe quoi dans le navigateur
 **Décision** : Utiliser une copie floutée de la flamme SVG (opacity:0.25, scale:1.35, blur:7px) comme glow derrière

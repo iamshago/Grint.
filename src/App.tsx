@@ -6,7 +6,7 @@ import { AccentProvider } from '@/lib/AccentContext'
 import TabBar from '@/components/layout/TabBar'
 
 /** Routes où le TabBar ne doit PAS s'afficher */
-const HIDE_TABBAR_ROUTES = ['/login', '/splash', '/workout', '/profile/avatar', '/onboarding']
+const HIDE_TABBAR_ROUTES = ['/login', '/splash', '/workout', '/profile/avatar', '/onboarding', '/community/challenges']
 
 /** TabBar persistant — unique instance pour conserver le layoutId Framer Motion */
 function PersistentTabBar() {
@@ -28,6 +28,9 @@ import Friends from './pages/Friends'
 import FriendProfile from './pages/FriendProfile'
 import SessionHistory from './pages/SessionHistory'
 import OnboardingUsername from './pages/OnboardingUsername'
+import Community from './pages/Community'
+import ChallengeDetail from './pages/ChallengeDetail'
+import ChallengeJoin from './pages/ChallengeJoin'
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -120,14 +123,9 @@ export default function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/programs" element={<Program />} />
           <Route path="/programs/:id" element={<Program />} />
-          <Route path="/community" element={
-            <div className="h-[100dvh] bg-bg-1 flex flex-col items-center justify-center px-8 text-center overflow-hidden">
-              <span className="text-[48px] mb-4">🚧</span>
-              <h1 className="font-serif font-bold text-[24px] text-tx-1 mb-2">Communauté</h1>
-              <p className="font-sans text-[16px] text-tx-3">Cette section arrive bientôt.</p>
-              <p className="font-sans text-[14px] text-tx-3 mt-1">En cours de développement...</p>
-            </div>
-          } />
+          <Route path="/community" element={<Community />} />
+          <Route path="/community/challenges/:id" element={<ChallengeDetail />} />
+          <Route path="/community/challenges/:id/join" element={<ChallengeJoin />} />
 
           {/* Dark mode */}
           <Route path="/profile" element={<Profile />} />

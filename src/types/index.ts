@@ -53,6 +53,84 @@ export interface UserProgress {
   exercise?: Exercise
 }
 
+// --- Communauté V2 ---
+
+export interface Challenge {
+  id: string
+  name: string
+  description: string
+  hero_image_url: string | null
+  cover_image_url: string | null
+  starts_at: string
+  ends_at: string
+  sessions_per_week_per_member: number
+  is_active: boolean
+}
+
+export interface ProfileSummary {
+  id: string
+  display_name: string | null
+  avatar_id: string | null
+  username: string | null
+}
+
+export interface ChallengeParticipant {
+  id: string
+  challenge_id: string
+  user_id: string
+  joined_at: string
+  profile?: ProfileSummary
+}
+
+export type ReactionEmoji = '❤️' | '😂' | '😲' | '🔥'
+
+export const REACTION_EMOJIS: ReactionEmoji[] = ['❤️', '😂', '😲', '🔥']
+
+export interface PostReaction {
+  id: string
+  post_id: string
+  user_id: string
+  emoji: ReactionEmoji
+  created_at: string
+  profile?: ProfileSummary
+}
+
+export interface PRPostPayload {
+  exercise_id: string
+  exercise_name: string
+  weight: number
+  previous_weight: number | null
+}
+
+export interface Post {
+  id: string
+  user_id: string
+  type: 'pr'
+  payload: PRPostPayload
+  created_at: string
+  profile?: ProfileSummary
+  reactions?: PostReaction[]
+}
+
+/** Détail d'un participant avec ses pts (séances complétées dans la fenêtre du défi) */
+export interface ChallengeRanking {
+  user_id: string
+  joined_at: string
+  profile?: ProfileSummary
+  pts: number
+  sessionsPerWeek: number
+}
+
+export interface ChallengeProgress {
+  totalCompleted: number
+  totalGoal: number
+  participantCount: number
+  weeklyTarget: number
+  weeksTotal: number
+  weeksElapsed: number
+  ranking: ChallengeRanking[]
+}
+
 // Types UI
 
 export interface Toast {

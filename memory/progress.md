@@ -1,7 +1,7 @@
 # Progression — Grint.
 
 > État d'avancement du projet, mis à jour à chaque session Claude Code.
-> Dernière MAJ : 2026-04-02
+> Dernière MAJ : 2026-05-04
 
 ## Phase 0 — Setup & Préparation ✅
 - [x] CLAUDE.md créé et complet
@@ -73,6 +73,51 @@
 - [x] Structure technique feed + défis (données mockées, prêt pour Supabase)
 - [x] PlaceholderPage supprimé, route branchée dans App.tsx
 
+## Phase 6 V2 — Communauté V2 (mai 2026) ✅
+**Refonte complète de l'onglet (Figma 551:1854 / 553:2208 / 556:5995).**
+
+### Base de données (Supabase migrations)
+- [x] Table `exercise_pr_records` (cache PR par user × exercice) + RLS self
+- [x] Table `posts` (type 'pr', payload jsonb) + RLS friend-or-self
+- [x] Table `post_reactions` (4 emojis cumulables) + RLS visible-via-post
+- [x] Table `challenges` (un seul actif V2, multi-actif V3) + RLS authenticated read
+- [x] Table `challenge_participants` (jointure user × challenge) + RLS self insert/delete
+- [x] Function `is_friend_or_self(uuid)` (security definer, search_path pinned)
+- [x] Function + trigger `handle_user_progress_pr()` sur INSERT user_progress
+- [x] Backfill historique du cache PR (29 records depuis 52 user_progress)
+- [x] Vérification du trigger : INSERT qui dépasse max → 1 row dans posts ✓
+- [x] Seed initial du défi `KikicacAvengers` (description copiée au caractère depuis Figma 556:5995)
+
+### Code TS
+- [x] Types : `Challenge`, `ChallengeParticipant`, `Post`, `PostReaction`, `PRPostPayload`, `ChallengeRanking`, `ChallengeProgress`
+- [x] `formatRelativeTime` + `formatShortDate`/`formatLongDate` (UTC)
+- [x] Hook `useActiveChallenge` (défi courant + isParticipant)
+- [x] Hook `useChallengeProgress` (totalCompleted/totalGoal/ranking, fenêtre dynamique starts_at→min(now, ends_at))
+- [x] Hook `useChallengeParticipation` (join/leave)
+- [x] Hook `useFeed` + helper `togglePostReaction`
+
+### Composants features
+- [x] `ChallengeCard` — carte unique sur /community (avatars overlap +N badge, CTA Rejoindre/Déjà rejoint)
+- [x] `FeedPostCard` — card simplifiée V2, badge valeur droit, réactions inline
+- [x] `ReactionsModal` — portal, focus trap basique + ESC, groupé par emoji
+- [x] `ChallengePodium` — 3 marches gold dégradées (ordre Figma 2|1|3)
+- [x] `ParticipantRow` — ligne classement avec mini-badge rang
+- [x] `ChallengeMenuSheet` — sheet "..." avec confirmation rouge
+
+### Pages
+- [x] `Community.tsx` — réécriture totale (carousel V1 → carte unique + feed PR)
+- [x] `ChallengeDetail.tsx` (NEW) — header + carte progress + podium + classement
+- [x] `ChallengeJoin.tsx` (NEW) — full-bleed photo hero + carte sticky + CTA
+
+### Routing
+- [x] App.tsx : 3 nouvelles routes branchées (placeholder 🚧 supprimé)
+- [x] `/community/challenges` ajouté à HIDE_TABBAR_ROUTES
+
+### QA pixel-perfect
+- [x] /community @ 402×873 vs Figma 551:1854 — match
+- [x] /community/challenges/:id @ 402×1018 vs Figma 553:2208 — match (correctif spacing header h:120 → h:144 pour libérer le sous-titre)
+- [x] /community/challenges/:id/join @ 402×873 vs Figma 556:5995 — match
+
 ## Phase 7 — Polish & QA (en cours)
 - [x] Review pixel-perfect Home vs Figma — aucune différence critique
 - [x] Review pixel-perfect Profile vs Figma — aucune différence critique
@@ -89,7 +134,9 @@
 | /login | Login.tsx | Light | ✅ |
 | /home | Home.tsx | Light | ✅ |
 | /programs | Programs.tsx | Light | ✅ |
-| /community | Community.tsx | Light | ✅ |
+| /community | Community.tsx | Light | ✅ V2 |
+| /community/challenges/:id | ChallengeDetail.tsx | Light | ✅ V2 |
+| /community/challenges/:id/join | ChallengeJoin.tsx | Light/Photo | ✅ V2 |
 | /profile | Profile.tsx | Dark | ✅ |
 | /profile/friends | Friends.tsx | Dark | ✅ |
 | /profile/friends/:id | FriendProfile.tsx | Dark | ✅ |

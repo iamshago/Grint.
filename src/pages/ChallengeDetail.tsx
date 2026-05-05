@@ -132,17 +132,13 @@ export default function ChallengeDetail() {
 
       <ChallengeMenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} onConfirmLeave={handleLeave} />
 
-      {/* Popup d'explication des règles du défi — déclenchée par le menu 3 points
-       *  du sticky header. Le lien "Quitter le défi" délègue à la sheet existante
-       *  (qui gère la confirmation modale). */}
+      {/* Popup d'explication des règles du défi — déclenchée par le clic sur la
+       *  carte hero. L'action « Quitter le défi » vit dans le menu ⋮ et n'a plus
+       *  besoin d'être dupliquée ici. */}
       {infoOpen && createPortal(
         <ChallengeInfoPopup
           sessionsPerWeek={challenge.sessions_per_week_per_member}
           onClose={() => setInfoOpen(false)}
-          onLeaveChallenge={() => {
-            setInfoOpen(false)
-            setMenuOpen(true)
-          }}
         />,
         document.body,
       )}

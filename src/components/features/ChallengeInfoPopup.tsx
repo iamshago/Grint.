@@ -4,17 +4,15 @@ interface ChallengeInfoPopupProps {
   /** Fréquence par personne (source unique : challenges.sessions_per_week_per_member). */
   sessionsPerWeek: number
   onClose: () => void
-  /** Action optionnelle pour quitter le défi (bouton tertiaire en bas). */
-  onLeaveChallenge?: () => void
 }
 
 /**
  * Popup d'explication du fonctionnement d'un défi.
  * Style aligné avec LockedAvatarPopup (carte sombre centrée, icône ronde
- * jaune en header, CTA "Compris"). Le bouton "Quitter le défi" est
- * optionnel et tertiaire — délègue à un sheet de confirmation externe.
+ * jaune en header, CTA "Compris"). Le déclencheur est un clic sur la
+ * carte hero du défi ; l'action "Quitter le défi" vit ailleurs (menu ⋮).
  */
-export default function ChallengeInfoPopup({ sessionsPerWeek, onClose, onLeaveChallenge }: ChallengeInfoPopupProps) {
+export default function ChallengeInfoPopup({ sessionsPerWeek, onClose }: ChallengeInfoPopupProps) {
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center px-[24px]"
@@ -65,16 +63,6 @@ export default function ChallengeInfoPopup({ sessionsPerWeek, onClose, onLeaveCh
         >
           Compris
         </button>
-
-        {/* Lien tertiaire — quitter le défi (optionnel) */}
-        {onLeaveChallenge && (
-          <button
-            onClick={onLeaveChallenge}
-            className="font-sans text-[14px] text-tx-3 underline-offset-2 hover:underline active:underline cursor-pointer"
-          >
-            Quitter le défi
-          </button>
-        )}
       </div>
     </div>
   )

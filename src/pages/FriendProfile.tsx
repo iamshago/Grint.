@@ -1,8 +1,10 @@
 // @ts-nocheck
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeft, Clock, Dumbbell } from 'lucide-react'
+import { useParams } from 'react-router-dom'
+import { Clock, Dumbbell } from 'lucide-react'
 import DarkLayout from '@/components/layout/DarkLayout'
+import StickyBackButton from '@/components/ui/StickyBackButton'
+import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 import { supabase } from '@/lib/supabaseClient'
 import { resolveAvatarSrc } from '@/lib/avatars'
 import { useStreak, CATEGORY_ACCENT, DAY_LABELS } from '@/hooks/useStreak'
@@ -17,7 +19,6 @@ function formatShortDate(dateStr: string): string {
 
 /** Page profil d'un ami — Figma 390:1107 */
 export default function FriendProfile() {
-  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const [loading, setLoading] = useState(true)
 
@@ -142,19 +143,14 @@ export default function FriendProfile() {
   return (
     <DarkLayout scrollable hideTabBar className="overflow-x-hidden pb-40">
 
-      {/* ==================== BOUTON RETOUR ==================== */}
-      <div className="px-[16px] pt-[8px]">
-        <button
-          onClick={() => navigate('/profile/friends')}
-          aria-label="Retour aux amis"
-          className="w-[44px] h-[44px] rounded-full bg-[#1b1d1f] flex items-center justify-center"
-        >
-          <ChevronLeft size={20} className="text-[#f1f4fb]" />
-        </button>
-      </div>
+      {/* Fade dark subtil — masque le contenu qui passe sous la status bar / Dynamic Island */}
+      <TopFadeOverlay variant="dark" />
+
+      {/* Bouton retour sticky — au-dessus du fade pour rester cliquable */}
+      <StickyBackButton to="/profile/friends" ariaLabel="Retour aux amis" />
 
       {/* ==================== AVATAR + NOM ==================== */}
-      <div className="flex flex-col items-center pt-[16px] pb-[24px]">
+      <div className="flex flex-col items-center pt-[64px] pb-[24px]">
         {/* Avatar circulaire avec fond sombre */}
         <div className="w-[120px] h-[120px] rounded-full overflow-hidden bg-[#1b1d1f] mb-[16px]">
           <img src={avatarSrc} alt={displayName} className="w-full h-full object-cover" />

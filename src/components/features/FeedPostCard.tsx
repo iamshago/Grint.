@@ -50,9 +50,10 @@ export default function FeedPostCard({ post, currentUserId, onReact, onShowReact
           {name}
         </p>
 
-        {/* Contenu (template PR) */}
-        <p className="absolute left-[72px] top-[44px] font-sans text-[12px] text-tx-1 leading-normal whitespace-nowrap pr-[100px]">
-          A passé la barre des <strong className="font-sans font-bold">{weight}kg</strong> au{' '}
+        {/* Contenu (template PR) — left+right pour contraindre la zone et truncate
+            avec ellipsis si l'exercice est trop long (cf. "Développé couché altère"). */}
+        <p className="absolute left-[72px] top-[44px] right-[100px] font-sans text-[12px] text-tx-1 leading-normal truncate">
+          Passe les <strong className="font-sans font-bold">{weight}kg</strong> au{' '}
           <strong className="font-sans font-bold">{exerciseName}</strong>.
         </p>
 

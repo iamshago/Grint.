@@ -71,14 +71,23 @@ export default function Community() {
   }, [openReactorsFor, posts])
 
   return (
-    <LightLayout scrollable className="flex flex-col">
-      <div className="relative w-full max-w-[402px] mx-auto pt-4">
-        {/* Titre — même position verticale que "Hello" sur la Home (LightLayout
-            applique déjà safe-area-top, pas besoin d'empiler) */}
-        <h1 className="px-[16px] font-serif font-bold text-[32px] text-tx-1 tracking-[-0.96px] leading-normal">
-          Communauté
-        </h1>
+    <LightLayout scrollable noSafeAreaTop className="flex flex-col overflow-x-hidden">
+      {/* Header sticky — seul le titre "Communauté" reste collé en haut. Fond
+          bg-1 opaque étendu jusqu'à env(safe-area-inset-top) pour masquer le
+          contenu qui défile derrière la status bar. Le sous-titre "Défis" et
+          les sections suivantes restent dans le flux normal et défilent. */}
+      <div
+        className="sticky top-0 z-30 bg-bg-1 w-full"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
+      >
+        <div className="w-full max-w-[402px] mx-auto px-[16px] pb-2">
+          <h1 className="font-serif font-bold text-[32px] text-tx-1 tracking-[-0.96px] leading-none">
+            Communauté
+          </h1>
+        </div>
+      </div>
 
+      <div className="relative w-full max-w-[402px] mx-auto">
         {/* Section Défis (masquée si aucun défi actif) */}
         {challenge && (
           <>

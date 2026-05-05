@@ -46,8 +46,9 @@ export default function ChallengeDetail() {
 
   return (
     <LightLayout scrollable hideTabBar noSafeAreaTop className="flex flex-col">
-      {/* Header sticky — composant partagé. Le menu ouvre la popup d'explication
-       *  du défi (fréquence par personne lue depuis la BDD, effort collectif). */}
+      {/* Header sticky — composant partagé. Le menu ouvre désormais directement
+       *  le bottom sheet « Quitter le défi / Annuler ». La popup explicative
+       *  est déclenchée par un clic sur la carte hero (cf. plus bas). */}
       <StickyPageHeader
         variant="light"
         title="Défis"
@@ -57,8 +58,8 @@ export default function ChallengeDetail() {
           </>
         }
         onBack={() => navigate(-1)}
-        onMenu={() => setInfoOpen(true)}
-        menuLabel="À propos du défi"
+        onMenu={() => setMenuOpen(true)}
+        menuLabel="Options du défi"
       />
 
       {/* Body — pas de padding-top (le header est sticky donc déjà au-dessus du flow) */}

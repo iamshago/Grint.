@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import { ArrowLeft, MoreVertical } from 'lucide-react'
+import { ArrowLeft, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface StickyPageHeaderProps {
@@ -98,7 +98,7 @@ export default function StickyPageHeader({
             buttonBgClass,
           )}
         >
-          <MoreVertical size={16} className={iconColorClass} />
+          <MoreHorizontal size={16} className={iconColorClass} />
         </button>
       ) : (
         <div className="w-10 shrink-0" aria-hidden="true" />

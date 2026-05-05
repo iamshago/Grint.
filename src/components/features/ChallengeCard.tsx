@@ -21,7 +21,7 @@ interface ChallengeCardProps {
 export default function ChallengeCard({ challenge, isParticipant, progress, participantProfiles = [] }: ChallengeCardProps) {
   const navigate = useNavigate()
   const N = progress?.participantCount ?? 0
-  const weeklyTarget = progress?.weeklyTarget ?? challenge.sessions_per_week_per_member * Math.max(N, 1)
+  const sessionsPerWeek = challenge.sessions_per_week_per_member
   const totalCompleted = progress?.totalCompleted ?? 0
   const totalGoal = progress?.totalGoal ?? 0
   const ratio = totalGoal > 0 ? Math.min(1, totalCompleted / totalGoal) : 0
@@ -54,9 +54,10 @@ export default function ChallengeCard({ challenge, isParticipant, progress, part
         </span>
       </div>
 
-      {/* Sous-titre dynamique : "{S × N} séances par semaine" */}
+      {/* Sous-titre : "{S} séances par semaine" (par personne — source unique
+       *  challenges.sessions_per_week_per_member). */}
       <p className="absolute left-[16px] top-[44px] font-sans text-[12px] text-bg-2 whitespace-nowrap">
-        <strong className="font-sans font-bold text-bg-1">{weeklyTarget} séances</strong>
+        <strong className="font-sans font-bold text-bg-1">{sessionsPerWeek} séances</strong>
         <span> par semaine</span>
       </p>
 

@@ -1,6 +1,8 @@
 import { Info, X } from 'lucide-react'
 
 interface ChallengeInfoPopupProps {
+  /** Fréquence par personne (source unique : challenges.sessions_per_week_per_member). */
+  sessionsPerWeek: number
   onClose: () => void
   /** Action optionnelle pour quitter le défi (bouton tertiaire en bas). */
   onLeaveChallenge?: () => void
@@ -12,7 +14,7 @@ interface ChallengeInfoPopupProps {
  * jaune en header, CTA "Compris"). Le bouton "Quitter le défi" est
  * optionnel et tertiaire — délègue à un sheet de confirmation externe.
  */
-export default function ChallengeInfoPopup({ onClose, onLeaveChallenge }: ChallengeInfoPopupProps) {
+export default function ChallengeInfoPopup({ sessionsPerWeek, onClose, onLeaveChallenge }: ChallengeInfoPopupProps) {
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center px-[24px]"
@@ -47,13 +49,13 @@ export default function ChallengeInfoPopup({ onClose, onLeaveChallenge }: Challe
         {/* Texte explicatif */}
         <p className="font-sans text-[16px] text-bg-1 leading-[22px]">
           Chaque participant doit faire en moyenne{' '}
-          <span className="font-bold text-[#ffee8c]">2 séances par semaine</span>. L'objectif total
-          du défi est calculé sur cette base.
+          <span className="font-bold text-[#ffee8c]">{sessionsPerWeek} séances par semaine</span>.
+          L'objectif total du défi est calculé sur cette base.
         </p>
         <p className="font-sans text-[14px] text-tx-3 leading-[20px]">
           Mais c'est un{' '}
           <span className="font-semibold text-bg-1">effort collectif</span> — si une personne en
-          fait 3 et une autre 1 sur la semaine, ça compte pareil. Vous validez le défi ensemble.
+          fait plus et une autre moins sur la semaine, ça compte pareil. Vous validez le défi ensemble.
         </p>
 
         {/* CTA principal */}

@@ -47,13 +47,13 @@ export default function ChallengeDetail() {
   return (
     <LightLayout scrollable hideTabBar noSafeAreaTop className="flex flex-col">
       {/* Header sticky — composant partagé. Le menu ouvre la popup d'explication
-       *  du défi (règle des 2 séances/sem par personne, effort collectif). */}
+       *  du défi (fréquence par personne lue depuis la BDD, effort collectif). */}
       <StickyPageHeader
         variant="light"
         title="Défis"
         subtitle={
           <>
-            <strong className="font-bold">2 séances/sem</strong> par personne
+            <strong className="font-bold">{challenge.sessions_per_week_per_member} séances/sem</strong> par personne
           </>
         }
         onBack={() => navigate(-1)}
@@ -119,6 +119,7 @@ export default function ChallengeDetail() {
        *  (qui gère la confirmation modale). */}
       {infoOpen && createPortal(
         <ChallengeInfoPopup
+          sessionsPerWeek={challenge.sessions_per_week_per_member}
           onClose={() => setInfoOpen(false)}
           onLeaveChallenge={() => {
             setInfoOpen(false)

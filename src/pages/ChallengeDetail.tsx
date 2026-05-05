@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Info } from 'lucide-react'
 import LightLayout from '@/components/layout/LightLayout'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import ChallengePodium from '@/components/features/ChallengePodium'
@@ -64,11 +65,27 @@ export default function ChallengeDetail() {
 
       {/* Body — pas de padding-top (le header est sticky donc déjà au-dessus du flow) */}
       <div className="relative w-full max-w-[402px] mx-auto pb-[80px]">
-        {/* Carte progression noire */}
-        <div className="mx-[16px] bg-tx-1 rounded-[24px] px-[24px] py-[16px] flex flex-col gap-[4px]">
-          <p className="font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px] leading-normal">
-            {challenge.name}
-          </p>
+        {/* Carte progression noire — cliquable pour ouvrir la popup explicative
+         *  (règles du défi). Wrappée dans un <button> pour avoir clavier + a11y
+         *  natifs. Affordance : icône Info subtile en haut-droite + active:scale. */}
+        <button
+          type="button"
+          onClick={() => setInfoOpen(true)}
+          aria-label="Voir les règles du défi"
+          className="mx-[16px] bg-tx-1 rounded-[24px] px-[24px] py-[16px] flex flex-col gap-[4px] text-left cursor-pointer active:scale-[0.98] transition-transform"
+          style={{ width: 'calc(100% - 32px)' }}
+        >
+          <div className="flex items-start justify-between gap-[12px]">
+            <p className="font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px] leading-normal flex-1">
+              {challenge.name}
+            </p>
+            <div
+              aria-hidden="true"
+              className="shrink-0 mt-[2px] w-[24px] h-[24px] rounded-full bg-[rgba(255,238,140,0.15)] flex items-center justify-center"
+            >
+              <Info size={12} className="text-pr-1" strokeWidth={2.5} />
+            </div>
+          </div>
           <div className="relative h-[46px]">
             <p className="absolute right-0 top-[8px] font-sans font-bold text-[12px] leading-none">
               <span className="text-pr-1">{done}</span>
@@ -93,7 +110,7 @@ export default function ChallengeDetail() {
               Attention, le nombre à atteindre change selon le nombre de participants au défi !
             </p>
           </div>
-        </div>
+        </button>
 
         {/* Podium */}
         <div className="mx-[16px] mt-[24px]">

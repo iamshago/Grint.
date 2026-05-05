@@ -36,7 +36,21 @@ export default function FriendProfile() {
   const [lastSessionPRCount, setLastSessionPRCount] = useState(0)
 
   useEffect(() => {
-    if (id) fetchFriendData(id)
+    if (!id) return
+    fetchFriendData(id)
+
+    // Re-fetch quand l'utilisateur revient sur la page (focus onglet ou retour foreground PWA).
+    // Sinon la « dernière séance » affichée reste l'ancienne quand l'ami en termine une nouvelle.
+    const handleFocus = () => { fetchFriendData(id) }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchFriendData(id)
+    }
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [id])
 
   async function fetchFriendData(friendId: string) {

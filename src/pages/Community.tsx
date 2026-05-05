@@ -71,11 +71,12 @@ export default function Community() {
   }, [openReactorsFor, posts])
 
   return (
-    <LightLayout scrollable noSafeAreaTop className="flex flex-col overflow-x-hidden">
-      {/* Header sticky — seul le titre "Communauté" reste collé en haut. Fond
-          bg-1 opaque étendu jusqu'à env(safe-area-inset-top) pour masquer le
-          contenu qui défile derrière la status bar. Le sous-titre "Défis" et
-          les sections suivantes restent dans le flux normal et défilent. */}
+    <LightLayout noSafeAreaTop className="flex flex-col overflow-x-clip">
+      {/* Header sticky — seul le titre "Communauté" reste collé en haut.
+          IMPORTANT : `overflow-x-clip` (pas `hidden`) sur LightLayout. `hidden`
+          fait passer overflow-y de visible à auto (spec CSS), ce qui crée un
+          scroll container et casse le sticky par rapport à la viewport.
+          `clip` empêche le scroll horizontal sans créer de scroll container. */}
       <div
         className="sticky top-0 z-30 bg-bg-1 w-full"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}

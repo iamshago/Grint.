@@ -1023,33 +1023,27 @@ function PRChartTab({
       </p>
       <p className="font-sans text-[12px] text-tx-3 mb-[12px]">Record de la séance</p>
 
-      {/* Pills exercices — scrollable horizontalement */}
-      <div className="flex gap-[8px] overflow-x-auto no-scrollbar mb-[16px]">
-        {allPRs.length > 0 ? allPRs.map((pr) => (
-          <button
-            key={pr.name}
-            className="px-[12px] py-[6px] rounded-[8px] font-sans font-semibold text-[12px] uppercase whitespace-nowrap shrink-0"
-            style={{
-              backgroundColor: pr.name === highlightedPR?.name ? 'rgba(255,238,140,0.25)' : '#3d4149',
-              border: pr.name === highlightedPR?.name ? '1px solid #ffee8c' : '1px solid transparent',
-              color: pr.name === highlightedPR?.name ? '#ffee8c' : '#989da6',
-            }}
-            onClick={() => onSelectExercise(pr)}
-          >
-            {pr.name}
-          </button>
-        )) : (
-          /* Aucun PR — afficher les exercices par défaut en gris */
-          PR_EXERCISES_LIST.slice(0, 5).map((name) => (
-            <div
-              key={name}
-              className="px-[12px] py-[6px] rounded-[8px] font-sans font-semibold text-[12px] uppercase whitespace-nowrap shrink-0 bg-[#3d4149] text-tx-3"
+      {/* Pills exercices — scrollable horizontalement. Aucun fallback hardcodé :
+       *  si pas de PR, le bloc reste vide et le message d'état vide s'affiche
+       *  sous le graphique. */}
+      {allPRs.length > 0 && (
+        <div className="flex gap-[8px] overflow-x-auto no-scrollbar mb-[16px]">
+          {allPRs.map((pr) => (
+            <button
+              key={pr.name}
+              className="px-[12px] py-[6px] rounded-[8px] font-sans font-semibold text-[12px] uppercase whitespace-nowrap shrink-0"
+              style={{
+                backgroundColor: pr.name === highlightedPR?.name ? 'rgba(255,238,140,0.25)' : '#3d4149',
+                border: pr.name === highlightedPR?.name ? '1px solid #ffee8c' : '1px solid transparent',
+                color: pr.name === highlightedPR?.name ? '#ffee8c' : '#989da6',
+              }}
+              onClick={() => onSelectExercise(pr)}
             >
-              {name}
-            </div>
-          ))
-        )}
-      </div>
+              {pr.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Graphique SVG — courbe d'évolution */}
       {displayData.length > 1 ? (
@@ -1133,16 +1127,6 @@ function PRChartTab({
   )
 }
 
-/** Référence pour les pills par défaut quand aucun PR n'existe */
-const PR_EXERCISES_LIST = ['Bench', 'Squat', 'Soulevé de terre', 'Curl biceps', 'Presse']
-
-/** Liste d'exercices disponibles pour le PR — ordre fixe */
-const PR_EXERCISES = [
-  'Bench', 'Squat', 'Soulevé de terre',
-  'Développé couché altère', 'Tirage vertical', 'Tirage horizontal',
-  'Curl biceps', 'Extension triceps', 'Presse', 'Fente',
-]
-
 /** Modal de sélection du Record Personnel */
 function PRPickerModal({
   allPRs,
@@ -1157,15 +1141,10 @@ function PRPickerModal({
 }) {
   const [selected, setSelected] = useState<string | null>(null)
 
-  // Map pour retrouver le PR data par nom d'exercice
-  const prMap: Record<string, { name: string; weight: number; date: string }> = {}
-  allPRs.forEach((pr) => { prMap[pr.name] = pr })
-
   const handleValidate = () => {
     if (!selected) return
-    // Si l'exercice a un PR en base, l'utiliser ; sinon créer un placeholder à 0
-    const pr = prMap[selected] || { name: selected, weight: 0, date: new Date().toISOString() }
-    onSelect(pr)
+    const pr = allPRs.find((p) => p.name === selected)
+    if (pr) onSelect(pr)
   }
 
   return (
@@ -1185,61 +1164,66 @@ function PRPickerModal({
         <div className="w-10" /> {/* Spacer */}
       </div>
 
-      {/* Liste exercices */}
+      {/* Liste exercices — uniquement ceux avec une entrée dans user_progress */}
       <div className="flex-1 overflow-y-auto px-4 pb-[140px]">
         <p className="font-sans text-[14px] text-tx-3 mb-4">
           Choisis l'exercice à mettre en avant sur ton profil.
         </p>
-        <div className="flex flex-col gap-[8px]">
-          {PR_EXERCISES.map((exoName) => {
-            const prData = prMap[exoName]
-            const isSelected = selected === exoName
-            const isCurrent = currentPR?.name === exoName
+        {allPRs.length === 0 ? (
+          <div className="bg-[#1b1d1f] rounded-[16px] h-[100px] flex items-center justify-center px-4">
+            <p className="font-sans text-[14px] text-tx-3 text-center">
+              Aucun record personnel pour le moment. Termine une séance avec un poids enregistré.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-[8px]">
+            {allPRs.map((pr) => {
+              const isSelected = selected === pr.name
+              const isCurrent = currentPR?.name === pr.name
 
-            return (
-              <button
-                key={exoName}
-                onClick={() => setSelected(isSelected ? null : exoName)}
-                className="w-full flex items-center justify-between px-[16px] py-[14px] rounded-[12px] transition-all active:scale-[0.98]"
-                style={{
-                  backgroundColor: isSelected ? 'rgba(255,238,140,0.15)' : '#1b1d1f',
-                  border: isSelected ? '1.5px solid #ffee8c' : '1.5px solid transparent',
-                }}
-                aria-label={`Sélectionner ${exoName}`}
-              >
-                <div className="flex items-center gap-[14px]">
-                  {/* Poids PR affiché en grand, sans encart */}
-                  <div className="flex items-baseline shrink-0 min-w-[48px]">
-                    <span className="font-serif font-bold text-[32px] leading-none" style={{ color: isSelected ? '#ffee8c' : '#f1f4fb' }}>
-                      {prData ? prData.weight : 0}
-                    </span>
-                    <span className="font-sans font-medium text-[12px] ml-[2px]" style={{ color: isSelected ? '#ffee8c' : '#989da6' }}>
-                      kg
-                    </span>
-                  </div>
-                  <div className="text-left">
-                    <p className="font-sans font-semibold text-[16px] text-bg-1">{exoName}</p>
-                    {prData ? (
-                      <p className="font-sans text-[12px] text-[#ffee8c]">Record personnel</p>
-                    ) : (
-                      <p className="font-sans text-[12px] text-tx-3">Pas encore de record</p>
-                    )}
-                  </div>
-                </div>
-                {/* Indicateur sélection */}
-                <div
-                  className="w-[24px] h-[24px] rounded-full flex items-center justify-center shrink-0"
+              return (
+                <button
+                  key={pr.name}
+                  onClick={() => setSelected(isSelected ? null : pr.name)}
+                  className="w-full flex items-center justify-between px-[16px] py-[14px] rounded-[12px] transition-all active:scale-[0.98]"
                   style={{
-                    backgroundColor: isSelected ? '#ffee8c' : 'transparent',
-                    border: isSelected ? 'none' : '2px solid #3d4149',
+                    backgroundColor: isSelected ? 'rgba(255,238,140,0.15)' : '#1b1d1f',
+                    border: isSelected ? '1.5px solid #ffee8c' : '1.5px solid transparent',
                   }}
+                  aria-label={`Sélectionner ${pr.name}`}
                 >
-                  {isSelected && <Check size={14} strokeWidth={3} className="text-[#1b1d1f]" />}
-                </div>
-              </button>
-            )
-          })}
-        </div>
+                  <div className="flex items-center gap-[14px]">
+                    {/* Poids PR affiché en grand, sans encart */}
+                    <div className="flex items-baseline shrink-0 min-w-[48px]">
+                      <span className="font-serif font-bold text-[32px] leading-none" style={{ color: isSelected ? '#ffee8c' : '#f1f4fb' }}>
+                        {pr.weight}
+                      </span>
+                      <span className="font-sans font-medium text-[12px] ml-[2px]" style={{ color: isSelected ? '#ffee8c' : '#989da6' }}>
+                        kg
+                      </span>
+                    </div>
+                    <div className="text-left">
+                      <p className="font-sans font-semibold text-[16px] text-bg-1">{pr.name}</p>
+                      <p className="font-sans text-[12px] text-[#ffee8c]">
+                        {isCurrent ? 'Affiché sur ton profil' : 'Record personnel'}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Indicateur sélection */}
+                  <div
+                    className="w-[24px] h-[24px] rounded-full flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: isSelected ? '#ffee8c' : 'transparent',
+                      border: isSelected ? 'none' : '2px solid #3d4149',
+                    }}
+                  >
+                    {isSelected && <Check size={14} strokeWidth={3} className="text-[#1b1d1f]" />}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* CTA Valider */}

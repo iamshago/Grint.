@@ -550,9 +550,14 @@ export default function Friends() {
 
   return (
     <>
-    <DarkLayout scrollable hideTabBar className="pb-40">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-[16px] pt-2">
+    <DarkLayout hideTabBar noSafeAreaTop className="pb-40">
+      {/* Top bar sticky — pattern aligné sur StickyPageHeader (variante dark).
+          paddingTop = safe-area-top + 8px pour étendre le fond opaque sous la
+          Dynamic Island et masquer le contenu qui défile derrière. */}
+      <div
+        className="sticky top-0 z-30 bg-[#0c0c0c] flex items-center justify-between px-[16px] pb-[12px]"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
+      >
         <button
           onClick={() => navigate('/profile')}
           aria-label="Retour au profil"

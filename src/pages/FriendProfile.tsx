@@ -28,8 +28,9 @@ export default function FriendProfile() {
   // Streak (via hook partagé)
   const { streakCount, weekDays } = useStreak(id)
 
-  // PR
+  // PR — un record max par exercice + le record en avant (highlightedPR)
   const [highlightedPR, setHighlightedPR] = useState<{ name: string; weight: number; date: string } | null>(null)
+  const [allPRs, setAllPRs] = useState<{ name: string; weight: number; date: string }[]>([])
 
   // Last session
   const [lastSession, setLastSession] = useState<any>(null)
@@ -88,7 +89,11 @@ export default function FriendProfile() {
           }
         })
         const prList = Object.values(maxPerExo).sort((a, b) => b.weight - a.weight)
+        setAllPRs(prList)
         setHighlightedPR(prList[0] || null)
+      } else {
+        setAllPRs([])
+        setHighlightedPR(null)
       }
 
       // 4. Dernière séance (RLS autorise les amis via policy "Friends can view completed workouts")
@@ -295,6 +300,33 @@ export default function FriendProfile() {
             <p className="text-center font-sans font-normal text-[14px] text-[#9ca3b0]">
               Aucun record
             </p>
+          </div>
+        )}
+
+        {/* ---- TOUS LES RECORDS (autres exercices que le highlighted) ---- */}
+        {allPRs.length > 1 && (
+          <div className="flex flex-col gap-[8px] mt-[8px]">
+            <h2 className="font-serif font-bold text-[20px] text-[#f1f4fb] tracking-[-0.6px]">
+              Tous les records
+            </h2>
+            {allPRs
+              .filter((pr) => pr.name !== highlightedPR?.name)
+              .map((pr) => (
+                <div
+                  key={pr.name}
+                  className="flex items-center justify-between bg-[#1b1d1f] rounded-[12px] px-[16px] py-[14px]"
+                >
+                  <div className="flex items-baseline gap-[4px] shrink-0">
+                    <span className="font-serif font-bold text-[24px] text-[#ffee8c] leading-none">
+                      {pr.weight}
+                    </span>
+                    <span className="font-sans font-medium text-[12px] text-[#ffee8c]">kg</span>
+                  </div>
+                  <span className="font-sans font-semibold text-[14px] text-[#f1f4fb] truncate ml-[12px]">
+                    {pr.name}
+                  </span>
+                </div>
+              ))}
           </div>
         )}
 

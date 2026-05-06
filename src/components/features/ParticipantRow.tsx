@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import type { ChallengeRanking } from '@/types'
 import { resolveAvatarSrc } from '@/lib/avatars'
 
@@ -6,8 +7,12 @@ interface ParticipantRowProps {
   participant: ChallengeRanking
 }
 
-/** Une ligne du classement défi : avatar + badge rang + nom + séances/sem + pts. */
+/** Une ligne du classement défi : avatar + badge rang + nom + séances/sem + pts.
+ *  Toute la ligne est cliquable et navigue vers `/profile/friends/:user_id`
+ *  (la route gère désormais les 4 états relationnels — cf. brief
+ *  profile-add-friend-flow). Touch target = 72px de haut, conforme aux 44px min. */
 export default function ParticipantRow({ rank, participant }: ParticipantRowProps) {
+  const navigate = useNavigate()
   const avatarSrc = resolveAvatarSrc(participant.profile)
   const name = participant.profile?.display_name || participant.profile?.username || '—'
   const sessionsPerWeek = participant.sessionsPerWeek.toLocaleString('fr-FR', {
@@ -16,7 +21,12 @@ export default function ParticipantRow({ rank, participant }: ParticipantRowProp
   })
 
   return (
-    <div className="bg-white h-[72px] relative rounded-[12px] w-full">
+    <button
+      type="button"
+      onClick={() => navigate(`/profile/friends/${participant.user_id}`)}
+      aria-label={`Voir le profil de ${name}`}
+      className="bg-white h-[72px] relative rounded-[12px] w-full text-left active:scale-[0.99] transition-transform"
+    >
       {/* Avatar */}
       <div className="absolute left-[12px] top-[12px] size-[48px] rounded-full bg-white overflow-hidden">
         <img src={avatarSrc} alt="" className="size-full object-cover" />
@@ -44,6 +54,6 @@ export default function ParticipantRow({ rank, participant }: ParticipantRowProp
           {participant.pts} pts
         </span>
       </div>
-    </div>
+    </button>
   )
 }

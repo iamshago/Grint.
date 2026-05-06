@@ -5,9 +5,11 @@ import { Clock, Dumbbell } from 'lucide-react'
 import DarkLayout from '@/components/layout/DarkLayout'
 import StickyBackButton from '@/components/ui/StickyBackButton'
 import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
+import FriendStatusButton from '@/components/features/FriendStatusButton'
 import { supabase } from '@/lib/supabaseClient'
 import { resolveAvatarSrc } from '@/lib/avatars'
 import { useStreak, CATEGORY_ACCENT, DAY_LABELS } from '@/hooks/useStreak'
+import { useFriendshipStatus } from '@/hooks/useFriendshipStatus'
 
 /** Formate une date en "20 FÉV" */
 function formatShortDate(dateStr: string): string {
@@ -24,6 +26,10 @@ export default function FriendProfile() {
 
   // Profile
   const [profile, setProfile] = useState<any>(null)
+
+  // Status relationnel + actions (4 états : not_friend / pending_outgoing /
+  // pending_incoming / friends). Cf. brief profile-add-friend-flow.
+  const friendship = useFriendshipStatus(id)
 
   // Streak (via hook partagé)
   const { streakCount, weekDays } = useStreak(id)
@@ -165,8 +171,11 @@ export default function FriendProfile() {
       {/* Fade dark subtil — masque le contenu qui passe sous la status bar / Dynamic Island */}
       <TopFadeOverlay variant="dark" />
 
-      {/* Bouton retour sticky — au-dessus du fade pour rester cliquable */}
-      <StickyBackButton to="/profile/friends" ariaLabel="Retour aux amis" />
+      {/* Bouton retour sticky — au-dessus du fade pour rester cliquable.
+       *  `to={-1}` (history) parce que la page est désormais accessible aussi
+       *  depuis /community (cliquer sur un participant). Cf. brief
+       *  profile-add-friend-flow. */}
+      <StickyBackButton to={-1} ariaLabel="Retour" />
 
       {/* ==================== AVATAR + NOM ==================== */}
       <div className="flex flex-col items-center pt-[64px] pb-[24px]">
@@ -182,6 +191,19 @@ export default function FriendProfile() {
             {usernameStr}
           </p>
         )}
+      </div>
+
+      {/* ==================== BOUTON RELATION ==================== */}
+      {/* Affiché uniquement si on n'est pas déjà amis ni soi-même. La paire
+       *  Accepter/Refuser remplace le bouton unique en cas de demande reçue. */}
+      <div className="px-[16px] mb-[16px]">
+        <FriendStatusButton
+          status={friendship.status}
+          displayName={displayName}
+          onSend={friendship.sendRequest}
+          onAccept={friendship.acceptRequest}
+          onDecline={friendship.declineRequest}
+        />
       </div>
 
       {/* ==================== CONTENU ==================== */}

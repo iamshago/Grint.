@@ -8,6 +8,7 @@ import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 import FriendStatusButton from '@/components/features/FriendStatusButton'
 import { supabase } from '@/lib/supabaseClient'
 import { resolveAvatarSrc } from '@/lib/avatars'
+import { firstNameOnly } from '@/lib/displayName'
 import { useStreak, CATEGORY_ACCENT, DAY_LABELS } from '@/hooks/useStreak'
 import { useFriendshipStatus } from '@/hooks/useFriendshipStatus'
 
@@ -159,7 +160,7 @@ export default function FriendProfile() {
   }
 
   const avatarSrc = resolveAvatarSrc(profile)
-  const displayName = profile?.display_name || profile?.username || 'Ami'
+  const displayName = firstNameOnly(profile?.display_name) || profile?.username || 'Ami'
   const usernameStr = profile?.username ? `@${profile.username}` : ''
 
   const sessionCategory = lastSession?.workouts?.category || 'upper'

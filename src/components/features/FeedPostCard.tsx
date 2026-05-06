@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { Post, ReactionEmoji } from '@/types'
 import { REACTION_EMOJIS } from '@/types'
 import { resolveAvatarSrc } from '@/lib/avatars'
+import { firstNameOnly } from '@/lib/displayName'
 import { cn } from '@/lib/utils'
 
 interface FeedPostCardProps {
@@ -17,7 +18,7 @@ interface FeedPostCardProps {
 export default function FeedPostCard({ post, currentUserId, onReact, onShowReactors }: FeedPostCardProps) {
   const author = post.profile
   const avatarSrc = resolveAvatarSrc(author)
-  const name = author?.display_name || author?.username || '—'
+  const name = firstNameOnly(author?.display_name) || author?.username || '—'
 
   const reactions = post.reactions ?? []
   const myReactions = useMemo(
@@ -30,7 +31,7 @@ export default function FeedPostCard({ post, currentUserId, onReact, onShowReact
   )
 
   const previewReactor = otherReactors[0]?.profile
-  const previewName = previewReactor?.display_name || previewReactor?.username || ''
+  const previewName = firstNameOnly(previewReactor?.display_name) || previewReactor?.username || ''
   const previewAvatarSrc = resolveAvatarSrc(previewReactor)
 
   const weight = post.payload.weight

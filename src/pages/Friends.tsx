@@ -6,6 +6,7 @@ import { ChevronLeft, Plus, X, Check } from 'lucide-react'
 import DarkLayout from '@/components/layout/DarkLayout'
 import { supabase } from '@/lib/supabaseClient'
 import { resolveAvatarSrc } from '@/lib/avatars'
+import { firstNameOnly } from '@/lib/displayName'
 import { computeStreakForUser } from '@/hooks/useStreak'
 
 /** Badge flamme Figma avec numéro de streak */
@@ -53,7 +54,7 @@ function FriendCard({ friend, onClick }: { friend: any; onClick?: () => void }) 
       <div className="ml-[12px] flex-1 min-w-0">
         <p className="font-serif text-[20px] leading-[24px] truncate">
           <span className="text-tx-3">@</span>
-          <span className="text-bg-1">{friend.username || friend.display_name}</span>
+          <span className="text-bg-1">{friend.username || firstNameOnly(friend.display_name)}</span>
         </p>
         <div className="flex items-center gap-[6px] mt-[2px]">
           {isActive ? (
@@ -95,7 +96,7 @@ function FriendRequestCard({ request, onAccept, onReject }: {
       <div className="ml-[12px] flex-1 min-w-0">
         <p className="font-serif text-[18px] leading-[22px] truncate">
           <span className="text-tx-3">@</span>
-          <span className="text-bg-1">{request.username || request.display_name}</span>
+          <span className="text-bg-1">{request.username || firstNameOnly(request.display_name)}</span>
         </p>
         <p className="font-sans text-[12px] text-tx-3 mt-[2px]">Demande d'ami</p>
       </div>
@@ -623,7 +624,7 @@ export default function Friends() {
                   <div className="ml-[12px] flex-1 min-w-0">
                     <p className="font-serif text-[16px] leading-[20px] truncate">
                       <span className="text-tx-3">@</span>
-                      <span className="text-bg-1">{req.username || req.display_name}</span>
+                      <span className="text-bg-1">{req.username || firstNameOnly(req.display_name)}</span>
                     </p>
                     <p className="font-sans text-[11px] text-tx-3 mt-[2px]">En attente de réponse</p>
                   </div>

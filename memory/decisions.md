@@ -178,3 +178,20 @@ réutilisable `<TopFadeOverlay>` pour ne pas dupliquer.
 côtés des sections scrollables) doit utiliser les classes utilitaires
 `.scrim-top-light` / `.scrim-top-dark` ou créer une variante avec la même
 courbe d'easing — JAMAIS un gradient simple à 2-3 stops.
+
+
+---
+
+### 2026-05-04 — Display name = prénom seul partout
+**Contexte** : Google OAuth retourne user_metadata.full_name = "Prénom Nom".
+Stocké tel quel dans profiles.display_name → débordements de layout sur les
+podium, listes amis, feed (titre serif 32px qui sort de la card).
+**Décision** : règle uniforme — partout où on affiche un nom, on n'affiche
+QUE le prénom (split sur premier espace blanc). Garanti à 3 niveaux :
+  1. Backfill SQL (migration 20260504_trim_display_name_to_first_name)
+  2. Trigger BEFORE INSERT/UPDATE sur profiles (migration ..._trigger)
+  3. Helper firstNameOnly(name) en safety net dans tous les composants UI
+**Cas particulier prénoms composés** : "Marie-Anne", "Jean-Pierre" → conservés
+entiers (pas d'espace, donc pas de découpage).
+**Si un user veut son nom complet** : pour l'instant, refusé par règle. À
+revisiter en V3 avec un opt-in explicite si demande exprimée.

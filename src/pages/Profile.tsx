@@ -9,6 +9,7 @@ import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 import { useNavigate } from 'react-router-dom'
 import { useAccent, CATEGORY_COLORS } from '@/lib/AccentContext'
 import { AVATARS, resolveAvatarSrc } from '@/lib/avatars'
+import { firstNameOnly } from '@/lib/displayName'
 import { useStreak, CATEGORY_ACCENT, DAY_LABELS } from '@/hooks/useStreak'
 
 export default function Profile() {
@@ -104,16 +105,20 @@ export default function Profile() {
       }
 
       // Nom : priorité profiles.display_name > localStorage > Google metadata
+      // firstNameOnly en safety net : la DB est censée stocker déjà le prénom
+      // (trigger BEFORE INSERT/UPDATE), mais on rogne aussi côté lecture pour
+      // gérer les anciennes valeurs cachées en localStorage et les re-syncs.
       if (profileData?.display_name) {
-        setUserName(profileData.display_name)
-        localStorage.setItem('userName', profileData.display_name)
+        const cleaned = firstNameOnly(profileData.display_name)
+        setUserName(cleaned)
+        localStorage.setItem('userName', cleaned)
       } else {
         const savedName = localStorage.getItem('userName')
         if (savedName) {
-          setUserName(savedName)
+          setUserName(firstNameOnly(savedName))
         } else {
           const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Athlète'
-          setUserName(fullName.split(' ')[0])
+          setUserName(firstNameOnly(fullName))
         }
       }
 
@@ -234,7 +239,7 @@ export default function Profile() {
               id: p.id,
               avatarId: p.avatar_id || 'superman',
               avatarUrl: p.avatar_url || null,
-              name: p.display_name || p.username || 'Ami',
+              name: firstNameOnly(p.display_name) || p.username || 'Ami',
             }))
           )
         }
@@ -307,13 +312,17 @@ export default function Profile() {
   }
 
   const handleSaveName = async () => {
-    if (tempName.trim()) {
-      setUserName(tempName)
-      localStorage.setItem('userName', tempName)
+    // Règle métier : on ne stocke que le prénom (cf. BRIEF display-name-first-name-only).
+    // firstNameOnly côté client évite le flicker "Marie Dupont" → "Marie" entre
+    // l'écriture et le re-fetch ; le trigger DB est la garantie finale.
+    const cleaned = firstNameOnly(tempName)
+    if (cleaned) {
+      setUserName(cleaned)
+      localStorage.setItem('userName', cleaned)
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         // Sauvegarder dans profiles.display_name (source de vérité)
-        await supabase.from('profiles').update({ display_name: tempName }).eq('id', user.id)
+        await supabase.from('profiles').update({ display_name: cleaned }).eq('id', user.id)
       }
     }
     setIsEditingName(false)

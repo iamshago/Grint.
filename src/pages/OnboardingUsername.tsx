@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { Check, X } from 'lucide-react'
 import LightLayout from '@/components/layout/LightLayout'
+import { firstNameOnly } from '@/lib/displayName'
 
 export default function OnboardingUsername() {
   const navigate = useNavigate()
@@ -66,7 +67,11 @@ export default function OnboardingUsername() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const displayName = user.user_metadata?.full_name || user.user_metadata?.name || 'Athlète'
+      // Règle métier : on ne stocke que le prénom (cf. BRIEF display-name-first-name-only).
+      // Le trigger DB rognerait quand même, mais on aligne le client pour
+      // éviter le flicker et garder localStorage cohérent.
+      const displayNameRaw = user.user_metadata?.full_name || user.user_metadata?.name || 'Athlète'
+      const displayName = firstNameOnly(displayNameRaw) || 'Athlète'
 
       await supabase.from('profiles').upsert({
         id: user.id,

@@ -1,4 +1,5 @@
 import type { ChallengeRanking } from '@/types'
+import { firstNameOnly } from '@/lib/displayName'
 
 interface ChallengePodiumProps {
   /** Top 3 trié par pts desc — peut être de longueur 0..3. */
@@ -28,7 +29,7 @@ export default function ChallengePodium({ top }: ChallengePodiumProps) {
       {ORDER.map((rank) => {
         const participant = top[rank - 1]
         if (!participant) return null
-        const name = participant.profile?.display_name || participant.profile?.username || '—'
+        const name = firstNameOnly(participant.profile?.display_name) || participant.profile?.username || '—'
         return (
           <div
             key={rank}

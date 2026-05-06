@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import type { ChallengeRanking } from '@/types'
 import { resolveAvatarSrc } from '@/lib/avatars'
+import { firstNameOnly } from '@/lib/displayName'
 
 interface ParticipantRowProps {
   rank: number
@@ -14,7 +15,7 @@ interface ParticipantRowProps {
 export default function ParticipantRow({ rank, participant }: ParticipantRowProps) {
   const navigate = useNavigate()
   const avatarSrc = resolveAvatarSrc(participant.profile)
-  const name = participant.profile?.display_name || participant.profile?.username || '—'
+  const name = firstNameOnly(participant.profile?.display_name) || participant.profile?.username || '—'
   const sessionsPerWeek = participant.sessionsPerWeek.toLocaleString('fr-FR', {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,

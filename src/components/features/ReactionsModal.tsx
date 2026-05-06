@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import type { PostReaction, ReactionEmoji } from '@/types'
 import { REACTION_EMOJIS } from '@/types'
 import { resolveAvatarSrc } from '@/lib/avatars'
+import { firstNameOnly } from '@/lib/displayName'
 
 interface ReactionsModalProps {
   reactions: PostReaction[]
@@ -92,7 +93,7 @@ export default function ReactionsModal({ reactions, currentUserId, friendIds, on
               <ul className="flex flex-col gap-[8px]">
                 {list.map((r) => {
                   const avSrc = resolveAvatarSrc(r.profile)
-                  const name = r.profile?.display_name || r.profile?.username || 'Utilisateur'
+                  const name = firstNameOnly(r.profile?.display_name) || r.profile?.username || 'Utilisateur'
                   const clickable = r.user_id === currentUserId || friendIds.has(r.user_id)
                   return (
                     <li key={r.id}>

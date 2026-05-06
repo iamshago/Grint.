@@ -142,7 +142,12 @@ export interface ChallengeProgress {
   totalCompleted: number
   totalGoal: number
   participantCount: number
+  /** Quota hebdo collectif : sessions_per_week_per_member × N (cf. brief community-defi-weekly-bar Option B). */
   weeklyTarget: number
+  /** Nombre de séances complétées par tous les participants depuis lundi 00:00 heure locale. */
+  weeklyCompleted: number
+  /** Vrai si `ends_at` est dans le passé — masque la barre hebdo, fige la totale. */
+  isExpired: boolean
   weeksTotal: number
   weeksElapsed: number
   ranking: ChallengeRanking[]

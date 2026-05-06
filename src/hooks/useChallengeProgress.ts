@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { getCurrentLocalWeekBounds } from '@/lib/weekBounds'
 import type { Challenge, ChallengeProgress, ChallengeRanking, ProfileSummary } from '@/types'
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000
@@ -87,7 +88,12 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
 
       // Séances complétées par tous les participants dans la fenêtre du défi
       let totalCompleted = 0
+      let weeklyCompleted = 0
       const ptsByUser: Record<string, number> = {}
+      // Bornes de la semaine collective courante (lundi 00:00 → dimanche 23:59:59 heure locale).
+      const weekBounds = getCurrentLocalWeekBounds(now)
+      const weekStartMs = new Date(weekBounds.startISO).getTime()
+      const weekEndMs = new Date(weekBounds.endISO).getTime()
       if (userIds.length > 0) {
         const { data: cw, error: e4 } = await supabase
           .from('completed_workouts')
@@ -106,6 +112,9 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
           if (completedAt < new Date(part.joined_at)) continue
           ptsByUser[row.user_id] = (ptsByUser[row.user_id] ?? 0) + 1
           totalCompleted += 1
+          // Compteur hebdo collectif (groupe) — mêmes contraintes (>= joined_at).
+          const ts = completedAt.getTime()
+          if (ts >= weekStartMs && ts <= weekEndMs) weeklyCompleted += 1
         }
       }
 
@@ -141,6 +150,8 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
         totalGoal,
         participantCount: N,
         weeklyTarget,
+        weeklyCompleted,
+        isExpired: endsAt.getTime() < now.getTime(),
         weeksTotal,
         weeksElapsed,
         ranking,

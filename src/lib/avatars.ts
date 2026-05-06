@@ -41,6 +41,8 @@ export const AVATARS: Avatar[] = [
   { id: 'button-shirt-guy', src: '/assets/avatars/button-shirt-guy.png', label: 'Chemise', category: 'real' },
   { id: 'zip-girl', src: '/assets/avatars/zip-girl.png', label: 'Zip', category: 'real' },
   { id: 'muscle-tee-guy', src: '/assets/avatars/muscle-tee-guy.png', label: 'Muscle Tee', category: 'real' },
+  { id: 'real-29', src: '/assets/avatars/real-29.jpg', label: 'Casquette', category: 'real' },
+  { id: 'real-30', src: '/assets/avatars/real-30.jpg', label: 'Buzz Cut', category: 'real' },
 ]
 
 /** Retourne un avatar par son id */

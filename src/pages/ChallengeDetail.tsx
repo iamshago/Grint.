@@ -8,6 +8,7 @@ import ChallengePodium from '@/components/features/ChallengePodium'
 import ParticipantRow from '@/components/features/ParticipantRow'
 import ChallengeMenuSheet from '@/components/features/ChallengeMenuSheet'
 import ChallengeInfoPopup from '@/components/features/ChallengeInfoPopup'
+import ProgressBar from '@/components/ui/ProgressBar'
 import { useChallengeProgress } from '@/hooks/useChallengeProgress'
 import { useChallengeParticipation } from '@/hooks/useChallengeParticipation'
 
@@ -38,7 +39,10 @@ export default function ChallengeDetail() {
   const top3 = progress.ranking.slice(0, 3)
   const total = progress.totalGoal
   const done = progress.totalCompleted
-  const ratio = total > 0 ? Math.min(1, done / total) : 0
+  const weeklyDone = progress.weeklyCompleted
+  const weeklyGoal = progress.weeklyTarget
+  const weeklyReached = weeklyGoal > 0 && weeklyDone >= weeklyGoal
+  const showWeekly = !progress.isExpired
 
   const handleLeave = async () => {
     await leave()
@@ -86,15 +90,47 @@ export default function ChallengeDetail() {
               <Info size={12} className="text-pr-1" strokeWidth={2.5} />
             </div>
           </div>
-          <div className="relative h-[46px]">
-            <p className="absolute right-0 top-[8px] font-sans font-bold text-[12px] leading-none">
-              <span className="text-pr-1">{done}</span>
-              <span className="text-tx-3">/{total}</span>
-            </p>
-            <div className="absolute left-0 right-0 top-[26px] h-[12px] rounded-[8px] bg-tx-2 overflow-hidden">
-              <div
-                className="h-full rounded-[8px] bg-pr-1 shadow-[0px_0px_24px_0px_rgba(31,32,33,0.12),0px_0px_15.5px_5px_rgba(255,255,255,0.2)]"
-                style={{ width: `${Math.max(4, ratio * 100)}%` }}
+          {/* Deux barres collectives clairement distinguées par leur label.
+           *  - Hebdo : reset chaque lundi 00:00 heure locale (cf. brief
+           *    community-defi-weekly-bar). Masquée si défi terminé.
+           *  - Totale : sur toute la durée du défi.
+           *  Le compteur passe en pr-1 saturé quand le quota est atteint. */}
+          <div className="flex flex-col gap-[16px] mt-[8px]">
+            {showWeekly && (
+              <div className="flex flex-col gap-[8px]">
+                <div className="flex items-center justify-between">
+                  <span className="font-sans font-semibold text-[12px] text-bg-2 leading-none">
+                    Cette semaine
+                  </span>
+                  <span
+                    className={`font-sans font-bold text-[12px] leading-none tabular-nums ${
+                      weeklyReached ? 'text-pr-1' : 'text-bg-2'
+                    }`}
+                  >
+                    {weeklyDone} / {weeklyGoal}
+                  </span>
+                </div>
+                <ProgressBar
+                  value={weeklyDone}
+                  max={weeklyGoal}
+                  ariaLabel="Progression hebdomadaire collective du défi"
+                />
+              </div>
+            )}
+            <div className="flex flex-col gap-[8px]">
+              <div className="flex items-center justify-between">
+                <span className="font-sans font-semibold text-[12px] text-bg-2 leading-none">
+                  Au total
+                </span>
+                <span className="font-sans font-bold text-[12px] leading-none tabular-nums">
+                  <span className="text-pr-1">{done}</span>
+                  <span className="text-tx-3"> / {total}</span>
+                </span>
+              </div>
+              <ProgressBar
+                value={done}
+                max={total}
+                ariaLabel="Progression totale du défi"
               />
             </div>
           </div>

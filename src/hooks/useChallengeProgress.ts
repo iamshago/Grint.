@@ -103,6 +103,10 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
           .lte('completed_at', windowEnd.toISOString())
 
         if (e4) throw e4
+        // Défense côté lecture : 1 séance max par utilisateur et par jour LOCAL.
+        // (Filet de sécurité tant que la table tolère encore d'éventuels doublons —
+        // cohérent avec getCurrentLocalWeekBounds qui raisonne aussi en heure locale.)
+        const seenByUserDay = new Set<string>()
         for (const row of cw ?? []) {
           if (!row.user_id) continue
           // pts par utilisateur : on ne compte qu'à partir de son joined_at
@@ -110,6 +114,11 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
           if (!part) continue
           const completedAt = new Date(row.completed_at as string)
           if (completedAt < new Date(part.joined_at)) continue
+          // YYYY-MM-DD en heure locale (toLocaleDateString('fr-CA') → "2026-05-10")
+          const dayKey = completedAt.toLocaleDateString('fr-CA')
+          const dedupKey = `${row.user_id}|${dayKey}`
+          if (seenByUserDay.has(dedupKey)) continue
+          seenByUserDay.add(dedupKey)
           ptsByUser[row.user_id] = (ptsByUser[row.user_id] ?? 0) + 1
           totalCompleted += 1
           // Compteur hebdo collectif (groupe) — mêmes contraintes (>= joined_at).

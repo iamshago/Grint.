@@ -20,6 +20,10 @@ export default function WorkoutSession() {
   const [exercises, setExercises] = useState([])
   const [loading, setLoading] = useState(true)
   const [showQuitConfirm, setShowQuitConfirm] = useState(false)
+  // Anti-double-clic sur "Terminer la séance" : empêche un 2e INSERT en cas de
+  // tap rapide / latence réseau. La contrainte UNIQUE en base est la garantie
+  // ultime, ce flag est juste l'UX.
+  const [isFinishing, setIsFinishing] = useState(false)
 
   const isCircuitMode =
     workout?.title?.toLowerCase().includes('abdos') ||
@@ -55,6 +59,7 @@ export default function WorkoutSession() {
 
   const finishWorkout = async (finalLogs = []) => {
     try {
+      try {
       const {
         data: { session },
       } = await supabase.auth.getSession()
@@ -99,7 +104,14 @@ export default function WorkoutSession() {
 
       if (!navigator.onLine) throw new Error('Offline')
 
-      await supabase.from('completed_workouts').insert(completedPayload)
+      const { error: insertErr } = await supabase
+        .from('completed_workouts')
+        .insert(completedPayload)
+      // 23505 = unique_violation : la séance du jour existe déjà pour cet
+      // utilisateur (UNIQUE INDEX sur user_id + jour Europe/Paris). C'est le
+      // signe que l'INSERT a déjà réussi (ex. double-clic, retry réseau) — on
+      // continue silencieusement.
+      if (insertErr && insertErr.code !== '23505') throw insertErr
       if (progressPayload.length > 0) {
         await supabase.from('user_progress').insert(progressPayload)
       }
@@ -138,6 +150,9 @@ export default function WorkoutSession() {
 
       navigate('/')
     }
+    } finally {
+      setIsFinishing(false)
+    }
   }
 
   if (loading)
@@ -171,7 +186,13 @@ export default function WorkoutSession() {
             </div>
           </div>
           <div className="flex-1 overflow-hidden flex flex-col relative">
-            <CircuitTimerView exercises={exercises} onFinish={finishWorkout} isBBL={isBBL} />
+            <CircuitTimerView
+              exercises={exercises}
+              onFinish={finishWorkout}
+              isBBL={isBBL}
+              isFinishing={isFinishing}
+              setIsFinishing={setIsFinishing}
+            />
           </div>
         </>
       ) : (
@@ -181,6 +202,8 @@ export default function WorkoutSession() {
           accentColor={accentColor}
           onFinish={finishWorkout}
           onClose={() => setShowQuitConfirm(true)}
+          isFinishing={isFinishing}
+          setIsFinishing={setIsFinishing}
         />
       )}
 
@@ -221,7 +244,7 @@ export default function WorkoutSession() {
 // Hub de sélection d'exercice — Figma node 312:752
 // ═══════════════════════════════════════════════════
 
-const ExerciseSelectionHub = ({ workout, exercises, accentColor, onFinish, onClose }) => {
+const ExerciseSelectionHub = ({ workout, exercises, accentColor, onFinish, onClose, isFinishing, setIsFinishing }) => {
   // État de chaque exercice : index dans exercises[] → 'pending' | 'selected' | 'active' | 'completed'
   const [exoStates, setExoStates] = useState<Record<number, string>>({})
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
@@ -394,8 +417,11 @@ const ExerciseSelectionHub = ({ workout, exercises, accentColor, onFinish, onClo
     advanceToNextSet()
   }
 
-  // Terminer la séance
+  // Terminer la séance — anti-double-clic. Le reset est dans `finishWorkout`
+  // (parent) via un finally, mais on garde aussi un guard local.
   const handleFinishWorkout = () => {
+    if (isFinishing) return
+    setIsFinishing(true)
     onFinish(Object.values(sessionLogs))
   }
 
@@ -470,11 +496,12 @@ const ExerciseSelectionHub = ({ workout, exercises, accentColor, onFinish, onClo
             {allCompleted ? (
               <button
                 onClick={handleFinishWorkout}
-                className="w-full flex items-center justify-center gap-3 p-4 rounded-[12px] cursor-pointer active:scale-95 transition-transform font-sans font-semibold text-base"
+                disabled={isFinishing}
+                className="w-full flex items-center justify-center gap-3 p-4 rounded-[12px] cursor-pointer active:scale-95 transition-transform font-sans font-semibold text-base disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
                 style={{ backgroundColor: accentColor, color: '#1b1d1f', boxShadow: `0px 0px 20px 0px ${accentColor}4D` }}
               >
                 <Check size={16} />
-                Terminer la séance
+                {isFinishing ? 'Sauvegarde…' : 'Terminer la séance'}
               </button>
             ) : selectedIndex !== null ? (
               <button
@@ -906,18 +933,23 @@ const ExerciseSelectionHub = ({ workout, exercises, accentColor, onFinish, onClo
         <div className="fixed left-[24px] right-[24px] z-[10] cta-position-safe">
           <button
             onClick={() => {
+              if (isFinishing) return
+              setIsFinishing(true)
               const newStates = { ...exoStates }
               exercises.forEach((_, idx) => {
                 newStates[idx] = 'completed'
               })
               setExoStates(newStates)
-              handleFinishWorkout()
+              // handleFinishWorkout guard est redondant ici (déjà set), mais
+              // on l'appelle quand même pour aller chercher Object.values(sessionLogs).
+              onFinish(Object.values(sessionLogs))
             }}
-            className="w-full flex items-center justify-center gap-3 p-4 rounded-[12px] cursor-pointer active:scale-95 transition-transform font-sans font-semibold text-base"
+            disabled={isFinishing}
+            className="w-full flex items-center justify-center gap-3 p-4 rounded-[12px] cursor-pointer active:scale-95 transition-transform font-sans font-semibold text-base disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
             style={{ backgroundColor: accentColor, color: '#1b1d1f', boxShadow: `0px 0px 20px 0px ${accentColor}4D` }}
           >
             <Check size={16} />
-            Terminer ma séance
+            {isFinishing ? 'Sauvegarde…' : 'Terminer ma séance'}
           </button>
         </div>
       </div>
@@ -1000,7 +1032,7 @@ const HorizontalPicker = ({ value, onChange, min, max, stepKey }) => {
 // Vue Circuit Timer (gardée pour les séances abdos)
 // ═══════════════════════════════════════════════════
 
-const CircuitTimerView = ({ exercises, onFinish, isBBL }) => {
+const CircuitTimerView = ({ exercises, onFinish, isBBL, isFinishing, setIsFinishing }) => {
   const cText = isBBL ? 'text-pink-500' : 'text-neon'
   const cBg = isBBL ? 'bg-pink-500' : 'bg-neon'
   const cShadow = isBBL
@@ -1096,10 +1128,15 @@ const CircuitTimerView = ({ exercises, onFinish, isBBL }) => {
         </div>
         <h2 className="text-3xl font-bold uppercase mb-2">Circuit Terminé !</h2>
         <button
-          onClick={() => onFinish([])}
-          className={`w-full ${cBg} text-dark-900 font-bold py-4 rounded-2xl mt-8`}
+          onClick={() => {
+            if (isFinishing) return
+            setIsFinishing(true)
+            onFinish([])
+          }}
+          disabled={isFinishing}
+          className={`w-full ${cBg} text-dark-900 font-bold py-4 rounded-2xl mt-8 disabled:opacity-60 disabled:cursor-not-allowed`}
         >
-          VALIDER LA SÉANCE
+          {isFinishing ? 'SAUVEGARDE…' : 'VALIDER LA SÉANCE'}
         </button>
       </div>
     )

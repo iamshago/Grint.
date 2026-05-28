@@ -12,16 +12,9 @@ import ExerciseRow from '@/components/features/ExerciseRow'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import IconButton from '@/components/ui/IconButton'
-import { CATEGORY_COLORS } from '@/lib/AccentContext'
+import { CATEGORY_ACCENT, CATEGORY_COLORS } from '@/lib/categoryColors'
 
-import { useStreak, CATEGORY_ACCENT } from '@/hooks/useStreak'
-
-/** Accent couleur dérivé de la catégorie de la séance du jour sélectionné */
-const CATEGORY_TO_ACCENT: Record<string, string> = {
-  upper: '#ffee8c',
-  lower: '#507fff',
-  bbl: '#FF69B4',
-}
+import { useStreak } from '@/hooks/useStreak'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -46,7 +39,7 @@ export default function Home() {
 
   // Accent dérivé de la catégorie de la séance du jour SÉLECTIONNÉ (pas global)
   const selectedCategory = todaysWorkout?.category || null
-  const selectedAccent = CATEGORY_TO_ACCENT[selectedCategory] || '#ffee8c'
+  const selectedAccent = CATEGORY_ACCENT[selectedCategory] || '#ffee8c'
   const isBBL = selectedCategory === 'bbl'
 
   const [showPreview, setShowPreview] = useState(false)
@@ -162,32 +155,61 @@ export default function Home() {
         // Mode connecté
         const { data: planData, error: planError } = await supabase
           .from('workout_plan')
-          .select(`workout_id, workouts (*, workout_exercises(*, exercise:exercises(*)))`)
+          .select(`workout_id, source, user_workout_id,
+            workouts (*, workout_exercises(*, exercise:exercises(*))),
+            user_workouts (*, user_workout_exercises(*, exercise:exercises(*)))`)
           .eq('day_of_week', supabaseDayIndex)
           .eq('user_id', user.id)
           .maybeSingle()
 
         if (planError) throw planError
 
-        if (planData && planData.workouts) {
-          setTodaysWorkout(planData.workouts)
+        const targetDate = new Date(now)
+        const diff = selectedDay - todayDayOfWeek
+        targetDate.setDate(targetDate.getDate() + diff)
+        const startOfDay = new Date(targetDate); startOfDay.setHours(0, 0, 0, 0)
+        const endOfDay = new Date(targetDate); endOfDay.setHours(23, 59, 59, 999)
 
-          const targetDate = new Date(now)
-          const diff = selectedDay - todayDayOfWeek
-          targetDate.setDate(targetDate.getDate() + diff)
-          const startOfDay = new Date(targetDate); startOfDay.setHours(0, 0, 0, 0)
-          const endOfDay = new Date(targetDate); endOfDay.setHours(23, 59, 59, 999)
-
+        const checkCompleted = async (column: string, value: string) => {
           const { data: completed } = await supabase
             .from('completed_workouts')
             .select('id')
-            .eq('workout_id', planData.workout_id)
+            .eq(column, value)
             .eq('user_id', user.id)
             .gte('completed_at', startOfDay.toISOString())
             .lte('completed_at', endOfDay.toISOString())
             .maybeSingle()
-
           if (completed) setIsCompleted(true)
+        }
+
+        if (planData?.source === 'user' && planData.user_workouts) {
+          // Séance perso : mapper vers le shape attendu par la carte / le preview / le Player.
+          const uw = planData.user_workouts
+          const exos = (uw.user_workout_exercises || []).sort(
+            (a, b) => a.order_index - b.order_index,
+          )
+          const durationEstimate = Math.max(
+            15,
+            Math.round(
+              exos.reduce((s, e) => s + (e.sets || 3) * ((e.rest_seconds || 60) + 45), 0) / 60,
+            ),
+          )
+          setTodaysWorkout({
+            id: uw.id,
+            title: uw.name,
+            category: uw.category,
+            duration_min: durationEstimate,
+            difficulty: null,
+            description: null,
+            image_url: null,
+            detail_image_url: null,
+            source: 'user',
+            workout_exercises: exos,
+          })
+          await checkCompleted('user_workout_id', uw.id)
+        } else if (planData && planData.workouts) {
+          setTodaysWorkout({ ...planData.workouts, source: 'catalog' })
+          await checkCompleted('workout_id', planData.workout_id)
         }
       } else {
         // Mode démo (pas de session) — charge Push Day (6 exos, 60 min)
@@ -239,6 +261,13 @@ export default function Home() {
     } else {
       showToast(`Vidéo bientôt disponible pour ${exo.exercise?.name || 'cet exercice'}`, 'info')
     }
+  }
+
+  /** Lance la séance dans le Workout Player. Les séances perso passent ?source=user. */
+  const launchWorkout = () => {
+    if (!todaysWorkout) return
+    const suffix = todaysWorkout.source === 'user' ? '?source=user' : ''
+    navigate(`/workout/${todaysWorkout.id}${suffix}`)
   }
 
   return (
@@ -409,7 +438,7 @@ export default function Home() {
               imageUrl={todaysWorkout.image_url}
               category={todaysWorkout.category || 'upper'}
               isCompleted={isCompleted}
-              onPlay={!isFuture ? () => navigate(`/workout/${todaysWorkout.id}`) : undefined}
+              onPlay={!isFuture ? launchWorkout : undefined}
             />
           </div>
         ) : (
@@ -564,7 +593,7 @@ export default function Home() {
             >
               <div className="px-6 pt-8 pointer-events-auto cta-bottom-safe">
                 <button
-                  onClick={() => navigate(`/workout/${todaysWorkout.id}`)}
+                  onClick={launchWorkout}
                   className="w-full flex items-center justify-center gap-3 p-4 rounded-[12px] cursor-pointer active:scale-95 transition-transform font-sans font-semibold text-base"
                   style={{ backgroundColor: accentColor, color: '#1b1d1f', boxShadow: `0px 0px 20px 0px ${accentColor}4D` }}
                   aria-label="Commencer la séance"

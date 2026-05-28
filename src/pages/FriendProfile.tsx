@@ -9,7 +9,8 @@ import FriendStatusButton from '@/components/features/FriendStatusButton'
 import { supabase } from '@/lib/supabaseClient'
 import { resolveAvatarSrc } from '@/lib/avatars'
 import { firstNameOnly } from '@/lib/displayName'
-import { useStreak, CATEGORY_ACCENT, DAY_LABELS } from '@/hooks/useStreak'
+import { useStreak, DAY_LABELS } from '@/hooks/useStreak'
+import { CATEGORY_ACCENT } from '@/lib/categoryColors'
 import { useFriendshipStatus } from '@/hooks/useFriendshipStatus'
 
 /** Formate une date en "20 FÉV" */

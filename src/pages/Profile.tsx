@@ -7,10 +7,22 @@ import SessionCard from '@/components/features/SessionCard'
 import DarkLayout from '@/components/layout/DarkLayout'
 import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 import { useNavigate } from 'react-router-dom'
-import { useAccent, CATEGORY_COLORS } from '@/lib/AccentContext'
+import { useAccent } from '@/lib/AccentContext'
+import { CATEGORY_ACCENT, CATEGORY_COLORS } from '@/lib/categoryColors'
 import { AVATARS, resolveAvatarSrc } from '@/lib/avatars'
 import { firstNameOnly } from '@/lib/displayName'
-import { useStreak, CATEGORY_ACCENT, DAY_LABELS } from '@/hooks/useStreak'
+import { useStreak, DAY_LABELS } from '@/hooks/useStreak'
+
+/**
+ * Clé de jour 'YYYY-MM-DD' en fuseau LOCAL (pas UTC).
+ * Découper en UTC ferait basculer une séance faite tard le soir au lendemain.
+ */
+function localDayKey(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 export default function Profile() {
   const navigate = useNavigate()
@@ -48,6 +60,9 @@ export default function Profile() {
   // CALORIES par jour (semaine en cours)
   const [weekCalories, setWeekCalories] = useState<number[]>([0, 0, 0, 0, 0, 0, 0])
   const [totalWeekCalories, setTotalWeekCalories] = useState(0)
+
+  // JOURS D'ENTRAÎNEMENT (calendrier Fréquence) — map 'YYYY-MM-DD' local → catégorie
+  const [workoutDays, setWorkoutDays] = useState<Record<string, string>>({})
 
   // LAST SESSION
   const [lastSession, setLastSession] = useState<any>(null)
@@ -149,6 +164,24 @@ export default function Profile() {
       })
       setWeekCalories(calsPerDay)
       setTotalWeekCalories(calsPerDay.reduce((a, b) => a + b, 0))
+
+      // --- Jours d'entraînement (calendrier Fréquence) ---
+      // category est dénormalisée sur completed_workouts (88/88 lignes remplies).
+      // Pas de join : la colonne suffit. Tri desc → la séance la plus récente du
+      // jour gagne si jamais il y en a plusieurs (sécurité, règle 1 séance/jour).
+      const { data: allCompleted } = await supabase
+        .from('completed_workouts')
+        .select('completed_at, category')
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false })
+
+      const dayMap: Record<string, string> = {}
+      allCompleted?.forEach((cw) => {
+        if (!cw.completed_at || !cw.category) return
+        const key = localDayKey(new Date(cw.completed_at))
+        if (!dayMap[key]) dayMap[key] = cw.category
+      })
+      setWorkoutDays(dayMap)
 
       // --- PRs ---
       const { data: logs } = await supabase
@@ -687,7 +720,7 @@ export default function Profile() {
 
             {/* --- TAB: Fréquence (calendrier mensuel) --- */}
             {perfTab === 'frequency' && (
-              <FrequencyCalendar weekDays={weekDays} />
+              <FrequencyCalendar workoutDays={workoutDays} />
             )}
           </div>
         </div>
@@ -1255,8 +1288,13 @@ function PRPickerModal({
   )
 }
 
-/** Calendrier mensuel pour l'onglet Fréquence — avec navigation par mois */
-function FrequencyCalendar({ weekDays }: { weekDays: { category: string | null }[] }) {
+/**
+ * Calendrier mensuel pour l'onglet Fréquence — avec navigation par mois.
+ * Chaque jour où une séance a été faite affiche un rond plein coloré selon la
+ * catégorie (jaune upper / bleu lower / rose bbl). Le jour courant n'a aucun
+ * traitement spécial : il n'a un rond que s'il y a eu une séance ce jour-là.
+ */
+function FrequencyCalendar({ workoutDays }: { workoutDays: Record<string, string> }) {
   const today = new Date()
   const [monthOffset, setMonthOffset] = useState(0)
 
@@ -1285,8 +1323,11 @@ function FrequencyCalendar({ weekDays }: { weekDays: { category: string | null }
   // Remplir les semaines complètes
   while (cells.length % 7 !== 0) cells.push(null)
 
-  const isToday = (day: number) =>
-    isCurrentMonth && day === today.getDate()
+  /** Catégorie de la séance faite ce jour-là (null si aucune) */
+  const categoryForDay = (day: number): string | null => {
+    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    return workoutDays[key] || null
+  }
 
   return (
     <div className="flex flex-col gap-[2px] items-center">
@@ -1325,26 +1366,31 @@ function FrequencyCalendar({ weekDays }: { weekDays: { category: string | null }
       {/* Lignes de dates */}
       {Array.from({ length: cells.length / 7 }, (_, row) => (
         <div key={row} className="flex w-full">
-          {cells.slice(row * 7, row * 7 + 7).map((day, col) => (
-            <div key={col} className="flex-1 h-[40px] flex items-center justify-center">
-              {day !== null ? (
-                <div
-                  className="w-[40px] h-[40px] flex items-center justify-center"
-                  style={{
-                    backgroundColor: isToday(day) ? '#ffee8c' : 'transparent',
-                    borderRadius: isToday(day) ? '50px' : '2px',
-                  }}
-                >
-                  <span
-                    className="font-sans font-medium text-[16px]"
-                    style={{ color: isToday(day) ? '#1b1d1f' : '#989da6' }}
+          {cells.slice(row * 7, row * 7 + 7).map((day, col) => {
+            const cat = day !== null ? categoryForDay(day) : null
+            const colors = cat ? CATEGORY_COLORS[cat as keyof typeof CATEGORY_COLORS] : null
+            return (
+              <div key={col} className="flex-1 h-[40px] flex items-center justify-center">
+                {day !== null ? (
+                  <div
+                    className="w-[40px] h-[40px] flex items-center justify-center"
+                    style={{
+                      backgroundColor: colors ? colors.bg : 'transparent',
+                      borderRadius: colors ? '50px' : '2px',
+                      boxShadow: colors ? `0px 0px 16px 0px ${colors.glow}` : 'none',
+                    }}
                   >
-                    {day}
-                  </span>
-                </div>
-              ) : null}
-            </div>
-          ))}
+                    <span
+                      className="font-sans font-medium text-[16px]"
+                      style={{ color: colors ? '#1b1d1f' : '#989da6' }}
+                    >
+                      {day}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            )
+          })}
         </div>
       ))}
     </div>

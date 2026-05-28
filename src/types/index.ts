@@ -27,20 +27,86 @@ export interface Workout {
   workout_exercises?: WorkoutExercise[]
 }
 
+/** Source d'une séance : catalogue (`workouts`) ou perso (`user_workouts`). */
+export type WorkoutSource = 'catalog' | 'user'
+
 export interface WorkoutPlan {
   user_id: string
   day_of_week: number
-  workout_id: string
+  workout_id: string | null
+  source: WorkoutSource
+  user_workout_id: string | null
   workout?: Workout
 }
 
 export interface CompletedWorkout {
   id: string
   user_id: string
-  workout_id: string
+  workout_id: string | null
   duration_min: number
   calories: number
   completed_at: string
+  source: WorkoutSource
+  user_workout_id: string | null
+  /** Catégorie dénormalisée — alimente le streak indépendamment de la source. */
+  category: WorkoutCategory | null
+}
+
+// --- Mon programme (programmes & séances persos) ---
+
+/** Catégorie d'une séance — pilote le streak et l'accent couleur. */
+export type WorkoutCategory = 'upper' | 'lower' | 'bbl'
+
+/** Type de slot guide d'une séance perso. NULL = exercice libre. */
+export type SlotType = 'contraction' | 'stretch' | 'unilateral' | 'isolation'
+
+/** Ordre des 4 slots guides affichés dans l'éditeur de séance. */
+export const SLOT_ORDER: SlotType[] = ['contraction', 'stretch', 'unilateral', 'isolation']
+
+/** Libellés FR des slots guides (purement indicatifs). */
+export const SLOT_LABELS: Record<SlotType, string> = {
+  contraction: 'Contraction',
+  stretch: 'Étirement',
+  unilateral: 'Unilatéral',
+  isolation: 'Isolation',
+}
+
+export interface UserProgram {
+  id: string
+  user_id: string
+  name: string
+  focus: string | null
+  is_deleted: boolean
+  created_at: string
+  updated_at: string
+  /** Séances rattachées (jointure optionnelle). */
+  user_workouts?: UserWorkout[]
+}
+
+export interface UserWorkout {
+  id: string
+  user_program_id: string
+  user_id: string
+  name: string
+  category: WorkoutCategory
+  order_index: number
+  is_deleted: boolean
+  created_at: string
+  updated_at: string
+  /** Exercices de la séance (jointure optionnelle). */
+  user_workout_exercises?: UserWorkoutExercise[]
+}
+
+export interface UserWorkoutExercise {
+  id: string
+  user_workout_id: string
+  exercise_id: string
+  sets: number
+  reps: string
+  rest_seconds: number
+  slot_type: SlotType | null
+  order_index: number
+  exercise?: Exercise
 }
 
 /** Programme du catalogue (`/programs`) — table `public.programs`. */

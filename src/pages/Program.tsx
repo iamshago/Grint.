@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, Dumbbell, ArrowLeft, X, Play, Check, Calendar, Target } from 'lucide-react'
+import { Search, Clock, Dumbbell, ArrowLeft, X, Play, Check, Calendar, Target, ChevronRight, PencilLine } from 'lucide-react'
 
 import LightLayout from '@/components/layout/LightLayout'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
@@ -13,13 +13,7 @@ import ExerciseRow from '@/components/features/ExerciseRow'
 import Button from '@/components/ui/Button'
 import IconButton from '@/components/ui/IconButton'
 import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
-
-/** Couleur d'accent par catégorie de séance */
-const CATEGORY_ACCENT: Record<string, string> = {
-  upper: '#ffee8c',
-  lower: '#507fff',
-  bbl: '#ff63b3',
-}
+import { CATEGORY_ACCENT } from '@/lib/categoryColors'
 
 const FILTERS = ['All', 'Haut du corps', 'Bas du corps', 'Abdos']
 
@@ -51,6 +45,22 @@ export default function Program() {
 
   const [toast, setToast] = useState(null)
   const [videoModal, setVideoModal] = useState({ isOpen: false, url: null, title: '' })
+  const [myProgramCount, setMyProgramCount] = useState(0)
+
+  // Nombre de programmes persos (pour la carte « Mon programme »).
+  useEffect(() => {
+    async function fetchMyProgramCount() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { count } = await supabase
+        .from('user_programs')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_deleted', false)
+      setMyProgramCount(count ?? 0)
+    }
+    fetchMyProgramCount()
+  }, [])
 
   // Fade de l'image au scroll (ref callback)
   const snapRef = useCallback((node: HTMLDivElement | null) => {
@@ -242,6 +252,33 @@ export default function Program() {
           </div>
         </div>
       </div>
+
+      {/* Carte « Mon programme » — espace perso, tout en haut (masquée en recherche) */}
+      {!searchTerm && (
+        <div className="px-4 mb-8">
+          <button
+            type="button"
+            onClick={() => navigate('/my-programs')}
+            aria-label="Ouvrir mes programmes persos"
+            className="w-full bg-pr-1 rounded-16 p-5 flex items-center gap-4 text-left cursor-pointer active:scale-[0.98] transition-transform shadow-[0px_0px_24px_0px_rgba(255,238,140,0.5)]"
+          >
+            <div className="w-12 h-12 rounded-12 bg-tx-1 flex items-center justify-center shrink-0">
+              <PencilLine size={22} className="text-pr-1" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="font-serif font-bold text-2xl text-tx-1 tracking-tight leading-none">
+                Mon programme
+              </h2>
+              <p className="font-sans text-sm text-tx-1/70 mt-1">
+                {myProgramCount > 0
+                  ? `${myProgramCount} programme${myProgramCount > 1 ? 's' : ''} créé${myProgramCount > 1 ? 's' : ''}`
+                  : 'Crée tes séances sur mesure'}
+              </p>
+            </div>
+            <ChevronRight size={22} className="text-tx-1 shrink-0" />
+          </button>
+        </div>
+      )}
 
       {/* Section Programmes — masquée pendant la recherche ou si la BDD ne renvoie aucun programme */}
       {!searchTerm && programs.length > 0 && (

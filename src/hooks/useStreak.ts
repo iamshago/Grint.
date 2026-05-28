@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 
-/** Couleur d'accent par catégorie de séance */
-export const CATEGORY_ACCENT: Record<string, string> = {
-  upper: '#ffee8c',
-  lower: '#507fff',
-  bbl: '#ff63b3',
-}
-
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] as const
 export { DAY_LABELS }
 
 export interface WeekDay {
   category: string | null
+}
+
+/**
+ * Ligne de completed_workouts pour le streak (category dénormalisée + fallback
+ * sur le join to-one `workouts`). On caste via `as unknown as` car supabase-js
+ * (sans types générés) infère l'embed to-one comme un tableau alors qu'au
+ * runtime PostgREST renvoie un objet.
+ */
+interface CompletedCategoryRow {
+  completed_at: string
+  category: string | null
+  workouts: { category: string | null } | null
 }
 
 export interface StreakData {
@@ -58,10 +63,12 @@ export function useStreak(userId: string | null | undefined): StreakData {
       sunday.setDate(monday.getDate() + 6)
       sunday.setHours(23, 59, 59, 999)
 
-      // Séances de la semaine courante
+      // Séances de la semaine courante. `category` est dénormalisée sur
+      // completed_workouts (séances perso + catalogue récent) ; fallback sur le
+      // join `workouts` pour les anciennes lignes catalogue non backfillées.
       const { data: weekCompleted } = await supabase
         .from('completed_workouts')
-        .select('completed_at, workouts(category)')
+        .select('completed_at, category, workouts(category)')
         .eq('user_id', uid)
         .gte('completed_at', monday.toISOString())
         .lte('completed_at', sunday.toISOString())
@@ -70,10 +77,11 @@ export function useStreak(userId: string | null | undefined): StreakData {
       let upperCount = 0
       let lowerCount = 0
 
-      weekCompleted?.forEach((cw: any) => {
+      const weekRows = (weekCompleted ?? []) as unknown as CompletedCategoryRow[]
+      weekRows.forEach((cw) => {
         const d = new Date(cw.completed_at)
         const dow = (d.getDay() + 6) % 7
-        const cat = cw.workouts?.category || null
+        const cat = cw.category || cw.workouts?.category || null
         if (cat) {
           days[dow] = { category: cat }
           if (cat === 'upper') upperCount++
@@ -95,15 +103,16 @@ export function useStreak(userId: string | null | undefined): StreakData {
 
         const { data: pastWeek } = await supabase
           .from('completed_workouts')
-          .select('workouts(category)')
+          .select('category, workouts(category)')
           .eq('user_id', uid)
           .gte('completed_at', wMon.toISOString())
           .lte('completed_at', wSun.toISOString())
 
         let hasUpper = false
         let hasLower = false
-        pastWeek?.forEach((cw: any) => {
-          const c = cw.workouts?.category
+        const pastRows = (pastWeek ?? []) as unknown as CompletedCategoryRow[]
+        pastRows.forEach((cw) => {
+          const c = cw.category || cw.workouts?.category
           if (c === 'upper') hasUpper = true
           if (c === 'lower' || c === 'bbl') hasLower = true
         })
@@ -143,15 +152,16 @@ export async function computeStreakForUser(userId: string): Promise<number> {
 
     const { data: weekData } = await supabase
       .from('completed_workouts')
-      .select('workouts(category)')
+      .select('category, workouts(category)')
       .eq('user_id', userId)
       .gte('completed_at', wMon.toISOString())
       .lte('completed_at', wSun.toISOString())
 
     let hasUpper = false
     let hasLower = false
-    weekData?.forEach((cw: any) => {
-      const c = cw.workouts?.category
+    const weekRows = (weekData ?? []) as unknown as CompletedCategoryRow[]
+    weekRows.forEach((cw) => {
+      const c = cw.category || cw.workouts?.category
       if (c === 'upper') hasUpper = true
       if (c === 'lower' || c === 'bbl') hasLower = true
     })

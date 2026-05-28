@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { supabase } from './supabaseClient'
+import { CATEGORY_ACCENT, DEFAULT_ACCENT } from './categoryColors'
 
 type AccentMode = 'default' | 'bbl'
 
@@ -14,23 +15,16 @@ interface AccentContextType {
 }
 
 const AccentContext = createContext<AccentContextType>({
-  accent: '#ffee8c',
+  accent: DEFAULT_ACCENT,
   mode: 'default',
   isBBL: false,
 })
 
-/** Couleurs d'accent selon le mode */
+/** Couleurs d'accent selon le mode (dérivées de la source unique categoryColors) */
 const ACCENT_COLORS: Record<AccentMode, string> = {
-  default: '#ffee8c',
-  bbl: '#FF69B4',
+  default: DEFAULT_ACCENT,
+  bbl: CATEGORY_ACCENT.bbl,
 }
-
-/** Couleurs par catégorie pour les checkboxes jours */
-export const CATEGORY_COLORS = {
-  upper: { bg: '#ffee8c', glow: 'rgba(255,238,140,0.4)', text: '#ffee8c' },
-  lower: { bg: '#507fff', glow: 'rgba(34,89,255,0.4)', text: '#507fff' },
-  bbl: { bg: '#FF69B4', glow: 'rgba(255,105,180,0.4)', text: '#FF69B4' },
-} as const
 
 export function AccentProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<AccentMode>('default')
@@ -47,12 +41,13 @@ export function AccentProvider({ children }: { children: ReactNode }) {
       const todayDow = (new Date().getDay() + 6) % 7 // 0=Lun, 6=Dim
       const { data: plan } = await supabase
         .from('workout_plan')
-        .select('workout_id, workouts(category)')
+        .select('workout_id, source, workouts(category), user_workouts(category)')
         .eq('user_id', user.id)
         .eq('day_of_week', todayDow)
-        .single()
+        .maybeSingle()
 
-      if (plan?.workouts?.category === 'bbl') {
+      const cat = plan?.workouts?.category || plan?.user_workouts?.category
+      if (cat === 'bbl') {
         setMode('bbl')
       }
     } catch {

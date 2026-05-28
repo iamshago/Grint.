@@ -58,6 +58,10 @@ import OnboardingUsername from './pages/OnboardingUsername'
 import Community from './pages/Community'
 import ChallengeDetail from './pages/ChallengeDetail'
 import ChallengeJoin from './pages/ChallengeJoin'
+import MyPrograms from './pages/MyPrograms'
+import MyProgramEdit from './pages/MyProgramEdit'
+import MyProgramDetail from './pages/MyProgramDetail'
+import MyWorkoutEdit from './pages/MyWorkoutEdit'
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -152,6 +156,14 @@ export default function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/programs" element={<Program />} />
           <Route path="/programs/:id" element={<Program />} />
+
+          {/* Mon programme (programmes & séances persos) — light */}
+          <Route path="/my-programs" element={<MyPrograms />} />
+          <Route path="/my-programs/new" element={<MyProgramEdit />} />
+          <Route path="/my-programs/:id" element={<MyProgramDetail />} />
+          <Route path="/my-programs/:id/edit" element={<MyProgramEdit />} />
+          <Route path="/my-programs/:id/workouts/new" element={<MyWorkoutEdit />} />
+          <Route path="/my-programs/:id/workouts/:workoutId/edit" element={<MyWorkoutEdit />} />
           <Route path="/community" element={<Community />} />
           <Route path="/community/challenges/:id" element={<ChallengeDetail />} />
           <Route path="/community/challenges/:id/join" element={<ChallengeJoin />} />

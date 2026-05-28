@@ -1,8 +1,7 @@
 // @ts-nocheck
 import { Play, Clock, Dumbbell, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-type WorkoutCategory = 'upper' | 'lower' | 'bbl'
+import { CATEGORY_ACCENT, type WorkoutCategory } from '@/lib/categoryColors'
 
 interface WorkoutCardProps {
   title: string
@@ -18,31 +17,6 @@ interface WorkoutCardProps {
   className?: string
 }
 
-/** Couleurs par catégorie — badge, play button */
-const CATEGORY_STYLES: Record<WorkoutCategory, { badgeBg: string; badgeBorder: string; badgeText: string; playBg: string; playIcon: string }> = {
-  upper: {
-    badgeBg: 'rgba(255,238,140,0.25)',
-    badgeBorder: '#ffee8c',
-    badgeText: '#ffee8c',
-    playBg: '#ffee8c',
-    playIcon: '#1f2021',
-  },
-  lower: {
-    badgeBg: 'rgba(80,127,255,0.25)',
-    badgeBorder: '#507fff',
-    badgeText: '#507fff',
-    playBg: '#507fff',
-    playIcon: '#1f2021',
-  },
-  bbl: {
-    badgeBg: 'rgba(255,99,179,0.25)',
-    badgeBorder: '#ff63b3',
-    badgeText: '#ff63b3',
-    playBg: '#ff63b3',
-    playIcon: '#1f2021',
-  },
-}
-
 /** Carte séance — Figma node 212:1241 */
 export default function WorkoutCard({
   title,
@@ -56,7 +30,15 @@ export default function WorkoutCard({
   variant = 'light',
   className,
 }: WorkoutCardProps) {
-  const styles = CATEGORY_STYLES[category] || CATEGORY_STYLES.upper
+  // Accent dérivé de la source unique ; le badge réutilise l'accent à 25% d'alpha (0x40).
+  const accent = CATEGORY_ACCENT[category] ?? CATEGORY_ACCENT.upper
+  const styles = {
+    badgeBg: `${accent}40`,
+    badgeBorder: accent,
+    badgeText: accent,
+    playBg: accent,
+    playIcon: '#1f2021',
+  }
 
   /** Si la carte est interactive, on rend un <button> pour avoir un seul handler
    *  qui s'applique à TOUT le clic (carte + zone du play). Évite les doubles handlers
@@ -75,6 +57,7 @@ export default function WorkoutCard({
       {...interactiveProps}
       className={cn(
         'relative rounded-[16px] overflow-hidden h-[168px] block w-full text-left',
+        !imageUrl && 'bg-tx-1',
         onPlay && 'cursor-pointer active:scale-[0.98] transition-transform',
         className,
       )}

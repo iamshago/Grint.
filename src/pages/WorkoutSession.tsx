@@ -1,20 +1,17 @@
 // @ts-nocheck
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabaseClient'
+import { fetchUserWorkout } from '@/lib/myPrograms'
 import { Play, Pause, Check, SkipForward, Timer, ChevronLeft, X, List, ArrowRight } from 'lucide-react'
 import ExerciseRow from '@/components/features/ExerciseRow'
-
-/** Couleur d'accent par catégorie */
-const CATEGORY_ACCENT: Record<string, string> = {
-  upper: '#ffee8c',
-  lower: '#507fff',
-  bbl: '#ff63b3',
-}
+import { CATEGORY_ACCENT } from '@/lib/categoryColors'
 
 export default function WorkoutSession() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const isUserWorkout = searchParams.get('source') === 'user'
 
   const [workout, setWorkout] = useState(null)
   const [exercises, setExercises] = useState([])
@@ -35,6 +32,30 @@ export default function WorkoutSession() {
   useEffect(() => {
     async function fetchData() {
       try {
+        if (isUserWorkout) {
+          // Séance perso : mappée vers le même shape que le catalogue.
+          const uw = await fetchUserWorkout(id)
+          if (!uw) throw new Error('Séance perso introuvable')
+          const exos = (uw.user_workout_exercises || []).sort(
+            (a, b) => a.order_index - b.order_index,
+          )
+          const durationEstimate = Math.max(
+            15,
+            Math.round(
+              exos.reduce((s, e) => s + (e.sets || 3) * ((e.rest_seconds || 60) + 45), 0) / 60,
+            ),
+          )
+          setWorkout({
+            id: uw.id,
+            title: uw.name,
+            category: uw.category,
+            duration_min: durationEstimate,
+            source: 'user',
+          })
+          setExercises(exos)
+          return
+        }
+
         const { data: wData, error: wError } = await supabase
           .from('workouts')
           .select(`*, workout_exercises(*, exercise:exercises(*))`)
@@ -42,7 +63,7 @@ export default function WorkoutSession() {
           .single()
 
         if (wError) throw wError
-        setWorkout(wData)
+        setWorkout({ ...wData, source: 'catalog' })
 
         const sortedExos = (wData.workout_exercises || []).sort(
           (a, b) => a.order_index - b.order_index,
@@ -55,7 +76,7 @@ export default function WorkoutSession() {
       }
     }
     fetchData()
-  }, [id])
+  }, [id, isUserWorkout])
 
   const finishWorkout = async (finalLogs = []) => {
     try {
@@ -72,8 +93,12 @@ export default function WorkoutSession() {
       const now = new Date().toISOString()
       const estimatedCalories = workout.duration_min * 7
 
+      const isUser = workout.source === 'user'
       const completedPayload = {
-        workout_id: workout.id,
+        workout_id: isUser ? null : workout.id,
+        user_workout_id: isUser ? workout.id : null,
+        source: isUser ? 'user' : 'catalog',
+        category: workout.category || null,
         duration_min: workout.duration_min,
         calories: estimatedCalories,
         user_id: userId,
@@ -126,8 +151,12 @@ export default function WorkoutSession() {
       if (!fallbackUserId) return navigate('/')
 
       const now = new Date().toISOString()
+      const isUser = workout.source === 'user'
       const compPayload = {
-        workout_id: workout.id,
+        workout_id: isUser ? null : workout.id,
+        user_workout_id: isUser ? workout.id : null,
+        source: isUser ? 'user' : 'catalog',
+        category: workout.category || null,
         duration_min: workout.duration_min,
         calories: workout.duration_min * 7,
         user_id: fallbackUserId,

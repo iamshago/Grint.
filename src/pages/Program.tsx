@@ -10,10 +10,12 @@ import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import ProgramCard from '@/components/features/ProgramCard'
 import WorkoutCard from '@/components/features/WorkoutCard'
 import ExerciseRow from '@/components/features/ExerciseRow'
+import UserProgramPreview from '@/components/features/UserProgramPreview'
 import Button from '@/components/ui/Button'
 import IconButton from '@/components/ui/IconButton'
 import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
+import { fetchUserPrograms } from '@/lib/myPrograms'
 
 const FILTERS = ['All', 'Haut du corps', 'Bas du corps', 'Abdos']
 
@@ -31,6 +33,8 @@ export default function Program() {
   const navigate = useNavigate()
   const [workouts, setWorkouts] = useState([])
   const [programs, setPrograms] = useState([])
+  const [userPrograms, setUserPrograms] = useState([])
+  const [previewUserProgramId, setPreviewUserProgramId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
@@ -90,6 +94,20 @@ export default function Program() {
       }
     }
     fetchCatalog()
+  }, [])
+
+  // Programmes persos de l'utilisateur — affichés dans le carrousel après le catalogue.
+  useEffect(() => {
+    async function loadUserPrograms() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      try {
+        setUserPrograms(await fetchUserPrograms(user.id))
+      } catch (err) {
+        console.error('Erreur programmes persos:', err)
+      }
+    }
+    loadUserPrograms()
   }, [])
 
   // Filtrage des séances
@@ -271,6 +289,21 @@ export default function Program() {
                 onClick={() => setPreviewProgram(prog)}
               />
             ))}
+
+            {/* Programmes perso — après le catalogue, badge « Perso » pour les distinguer */}
+            {userPrograms.map((up) => {
+              const count = up.user_workouts?.length ?? 0
+              return (
+                <ProgramCard
+                  key={up.id}
+                  title={up.name}
+                  difficulty="Perso"
+                  frequency={`${count} séance${count > 1 ? 's' : ''}`}
+                  imageUrl={up.image_url || undefined}
+                  onClick={() => setPreviewUserProgramId(up.id)}
+                />
+              )
+            })}
           </div>
         </div>
       )}
@@ -328,6 +361,15 @@ export default function Program() {
       </div>
 
     </LightLayout>
+
+      {/* === APERÇU PROGRAMME PERSO — composant dédié (carrousel → séances → planifier) === */}
+      {previewUserProgramId && (
+        <UserProgramPreview
+          programId={previewUserProgramId}
+          onClose={() => setPreviewUserProgramId(null)}
+          onToast={showToast}
+        />
+      )}
 
       {/* === DÉTAIL PROGRAMME — header sticky + contenu scrollable, sans hero ni bottom sheet === */}
       {previewProgram && createPortal(

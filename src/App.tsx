@@ -38,8 +38,14 @@ function useHideMobileUrlBarOnce() {
 /** TabBar persistant — unique instance pour conserver le layoutId Framer Motion */
 function PersistentTabBar() {
   const location = useLocation()
-  const hidden = HIDE_TABBAR_ROUTES.some((r) => location.pathname.startsWith(r))
-  if (hidden) return null
+  const path = location.pathname
+  const hiddenByPrefix = HIDE_TABBAR_ROUTES.some((r) => path.startsWith(r))
+  // Éditeurs de programme/séance perso : formulaires plein écran avec leur propre
+  // CTA fixe en bas — la TabBar passerait derrière (le « CTA noir » fantôme).
+  const isMyProgramEditor =
+    path.startsWith('/my-programs') &&
+    (path.endsWith('/new') || path.endsWith('/edit') || path.includes('/workouts/'))
+  if (hiddenByPrefix || isMyProgramEditor) return null
   return <TabBar />
 }
 

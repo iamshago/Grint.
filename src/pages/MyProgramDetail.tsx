@@ -119,13 +119,7 @@ export default function MyProgramDetail() {
               <div key={i} className="h-[72px] bg-surface rounded-16 animate-pulse" />
             ))}
           </div>
-        ) : workouts.length === 0 ? (
-          <div className="bg-surface rounded-16 p-10 text-center">
-            <p className="font-sans text-tx-3 text-sm">
-              Aucune séance pour l'instant. Ajoute ta première séance.
-            </p>
-          </div>
-        ) : (
+        ) : workouts.length === 0 ? null : (
           <Reorder.Group
             axis="y"
             values={workouts}

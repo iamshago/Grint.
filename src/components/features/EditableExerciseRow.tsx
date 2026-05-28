@@ -8,6 +8,8 @@ interface EditableExerciseRowProps {
   accent: string
   /** Libellé de slot guide (ex. « Contraction »). Absent pour un exo libre. */
   label?: string
+  /** Slot recommandé (optionnel) : cadre teinté + tag « Recommandé ». */
+  recommended?: boolean
   onChange: (patch: Partial<DraftExercise>) => void
   onRemove: () => void
   /** Ouvre le picker pour remplacer l'exercice. */
@@ -24,6 +26,7 @@ export default function EditableExerciseRow({
   draft,
   accent,
   label,
+  recommended,
   onChange,
   onRemove,
   onReplace,
@@ -38,6 +41,7 @@ export default function EditableExerciseRow({
         'bg-white rounded-12 p-3 shadow-[0px_0px_24px_0px_rgba(31,32,33,0.08)]',
         className,
       )}
+      style={recommended ? { border: `1.5px solid ${accent}55` } : undefined}
     >
       <div className="flex items-center gap-2">
         {dragHandle}
@@ -48,6 +52,9 @@ export default function EditableExerciseRow({
           >
             {label}
           </span>
+        )}
+        {recommended && (
+          <span className="font-sans text-[11px] text-tx-3 shrink-0">Recommandé</span>
         )}
         <button
           type="button"

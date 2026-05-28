@@ -76,6 +76,8 @@ export interface UserProgram {
   user_id: string
   name: string
   focus: string | null
+  /** Image de couverture (choisie dans la galerie de presets). */
+  image_url: string | null
   is_deleted: boolean
   created_at: string
   updated_at: string

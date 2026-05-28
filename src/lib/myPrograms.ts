@@ -47,26 +47,70 @@ export async function fetchUserProgram(programId: string): Promise<UserProgram |
   return { ...program, user_workouts: sortActiveWorkouts(program.user_workouts) }
 }
 
+/**
+ * Vrai si l'erreur signale que la colonne `image_url` n'existe pas encore en base
+ * (migration 20260529 pas encore appliquée). Permet un repli sans image — à
+ * retirer une fois la migration en prod.
+ */
+function isMissingImageColumn(error: { message?: string; code?: string } | null): boolean {
+  if (!error) return false
+  const msg = (error.message ?? '').toLowerCase()
+  return msg.includes('image_url') && (msg.includes('column') || msg.includes('schema cache'))
+}
+
 export async function createUserProgram(
   userId: string,
   name: string,
   focus: string | null,
+  imageUrl: string | null = null,
 ): Promise<UserProgram> {
-  const { data, error } = await supabase
+  const base = { user_id: userId, name, focus }
+  let res = await supabase
     .from('user_programs')
-    .insert({ user_id: userId, name, focus })
+    .insert({ ...base, image_url: imageUrl })
     .select('*')
     .single()
-  if (error) throw error
-  return data as UserProgram
+  if (res.error && isMissingImageColumn(res.error)) {
+    res = await supabase.from('user_programs').insert(base).select('*').single()
+  }
+  if (res.error) throw res.error
+  return res.data as UserProgram
 }
 
 export async function updateUserProgram(
   id: string,
-  fields: { name?: string; focus?: string | null },
+  fields: { name?: string; focus?: string | null; image_url?: string | null },
 ): Promise<void> {
-  const { error } = await supabase.from('user_programs').update(fields).eq('id', id)
-  if (error) throw error
+  let res = await supabase.from('user_programs').update(fields).eq('id', id)
+  if (res.error && isMissingImageColumn(res.error)) {
+    const { image_url, ...rest } = fields
+    res = await supabase.from('user_programs').update(rest).eq('id', id)
+  }
+  if (res.error) throw res.error
+}
+
+/**
+ * Galerie d'images proposées pour la couverture d'un programme perso : on
+ * réutilise les visuels du catalogue (`programs` puis `workouts`) — aucun upload,
+ * style cohérent avec les cartes du carrousel. Dédupliqué, ordre catalogue.
+ */
+export async function fetchProgramImagePresets(): Promise<string[]> {
+  const [programsRes, workoutsRes] = await Promise.all([
+    supabase
+      .from('programs')
+      .select('image_url, display_order')
+      .not('image_url', 'is', null)
+      .order('display_order', { ascending: true }),
+    supabase
+      .from('workouts')
+      .select('image_url')
+      .eq('is_deleted', false)
+      .not('image_url', 'is', null),
+  ])
+  const urls: string[] = []
+  for (const row of programsRes.data ?? []) if (row.image_url) urls.push(row.image_url)
+  for (const row of workoutsRes.data ?? []) if (row.image_url) urls.push(row.image_url)
+  return Array.from(new Set(urls))
 }
 
 export async function softDeleteUserProgram(id: string): Promise<void> {

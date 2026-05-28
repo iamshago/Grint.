@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import {
   createUserProgram,
+  fetchProgramImagePresets,
   fetchUserProgram,
   softDeleteUserProgram,
   updateUserProgram,
@@ -20,10 +21,23 @@ export default function MyProgramEdit() {
 
   const [name, setName] = useState('')
   const [focus, setFocus] = useState('')
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [presets, setPresets] = useState<string[]>([])
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // Galerie d'images (réutilise les visuels du catalogue) pour la couverture.
+  useEffect(() => {
+    fetchProgramImagePresets()
+      .then((urls) => {
+        setPresets(urls)
+        // Pré-sélection en création : la 1ʳᵉ image (sinon le programme n'a pas de visuel).
+        if (!isEdit) setImageUrl((cur) => cur ?? urls[0] ?? null)
+      })
+      .catch((e) => console.error(e))
+  }, [isEdit])
 
   useEffect(() => {
     if (!isEdit) return
@@ -35,6 +49,7 @@ export default function MyProgramEdit() {
         if (active) {
           setName(program.name)
           setFocus(program.focus ?? '')
+          setImageUrl(program.image_url ?? null)
         }
       } catch (err) {
         console.error(err)
@@ -58,14 +73,18 @@ export default function MyProgramEdit() {
       setError('')
       const cleanFocus = focus.trim() || null
       if (isEdit) {
-        await updateUserProgram(id as string, { name: name.trim(), focus: cleanFocus })
+        await updateUserProgram(id as string, {
+          name: name.trim(),
+          focus: cleanFocus,
+          image_url: imageUrl,
+        })
         navigate(`/my-programs/${id}`)
       } else {
         const {
           data: { user },
         } = await supabase.auth.getUser()
         if (!user) return
-        const program = await createUserProgram(user.id, name.trim(), cleanFocus)
+        const program = await createUserProgram(user.id, name.trim(), cleanFocus, imageUrl)
         navigate(`/my-programs/${program.id}`, { replace: true })
       }
     } catch (err) {
@@ -131,6 +150,38 @@ export default function MyProgramEdit() {
               className="w-full bg-white rounded-12 px-4 py-4 font-sans text-base text-tx-1 placeholder-tx-3 focus:outline-none focus:ring-2 focus:ring-tx-1/10 shadow-[0px_0px_24px_0px_rgba(31,32,33,0.06)]"
             />
           </div>
+
+          {/* Image de couverture — galerie de presets (catalogue) */}
+          {presets.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <span className="font-sans font-semibold text-sm text-tx-1">
+                Image de couverture
+              </span>
+              <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
+                {presets.map((url) => {
+                  const selected = url === imageUrl
+                  return (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => setImageUrl(url)}
+                      aria-label="Choisir cette image"
+                      aria-pressed={selected}
+                      className="relative w-[112px] h-[72px] shrink-0 rounded-12 overflow-hidden cursor-pointer active:scale-95 transition-transform"
+                      style={selected ? { outline: '2.5px solid #1b1d1f', outlineOffset: '2px' } : undefined}
+                    >
+                      <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      {selected && (
+                        <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-tx-1 flex items-center justify-center">
+                          <Check size={12} strokeWidth={3} className="text-pr-1" />
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {error && (
             <p className="font-sans text-sm text-[#e62d2d] -mt-2" role="alert">

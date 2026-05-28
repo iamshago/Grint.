@@ -19,10 +19,11 @@ import ExercisePickerSheet from '@/components/features/ExercisePickerSheet'
 import { SLOT_ORDER, SLOT_LABELS } from '@/types'
 import type { Exercise, SlotType, WorkoutCategory } from '@/types'
 
+// Le rose (BBL) est réservé à la séance « BBL » du catalogue (easter egg) :
+// l'utilisateur ne peut pas créer une séance rose, seulement haut / bas du corps.
 const CATEGORY_OPTIONS: { value: WorkoutCategory; label: string }[] = [
   { value: 'upper', label: 'Haut du corps' },
   { value: 'lower', label: 'Bas du corps' },
-  { value: 'bbl', label: 'BBL' },
 ]
 
 function makeDraft(exercise: Exercise, slot: SlotType | null): DraftExercise {
@@ -300,8 +301,16 @@ export default function MyWorkoutEdit() {
             </div>
           </div>
 
-          {/* Slots guides */}
+          {/* Slots recommandés — structure suggérée, pas obligatoire. */}
           <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-0.5">
+              <h2 className="font-serif font-bold text-lg text-tx-1 tracking-tight">
+                Structure recommandée
+              </h2>
+              <p className="font-sans text-sm text-tx-3">
+                Optionnel — des repères pour équilibrer ta séance. Mets ce que tu veux, ou laisse vide.
+              </p>
+            </div>
             {SLOT_ORDER.map((slot) => {
               const draft = slots[slot]
               if (draft) {
@@ -311,6 +320,7 @@ export default function MyWorkoutEdit() {
                     draft={draft}
                     accent={accent}
                     label={SLOT_LABELS[slot]}
+                    recommended
                     onChange={(patch) => patchSlot(slot, patch)}
                     onRemove={() => setSlots((p) => ({ ...p, [slot]: null }))}
                     onReplace={() => setPicker({ kind: 'slot', slot })}
@@ -322,11 +332,20 @@ export default function MyWorkoutEdit() {
                   key={slot}
                   type="button"
                   onClick={() => setPicker({ kind: 'slot', slot })}
-                  className="w-full flex items-center justify-between gap-3 rounded-12 border-2 border-dashed border-bg-2 bg-white/40 px-4 py-5 text-left cursor-pointer active:scale-[0.99] transition-transform"
+                  className="w-full flex items-center justify-between gap-3 rounded-12 border border-dashed bg-white/40 px-4 py-4 text-left cursor-pointer active:scale-[0.99] transition-transform"
+                  style={{ borderColor: `${accent}80` }}
                 >
-                  <span className="font-sans font-semibold text-base text-tx-2">
-                    {SLOT_LABELS[slot]}
-                  </span>
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <span
+                      className="inline-flex self-start items-center px-2 py-0.5 rounded-md text-[10px] font-sans font-semibold uppercase tracking-wide"
+                      style={{ backgroundColor: `${accent}40`, color: accent }}
+                    >
+                      Recommandé
+                    </span>
+                    <span className="font-sans font-semibold text-base text-tx-2">
+                      {SLOT_LABELS[slot]}
+                    </span>
+                  </div>
                   <span
                     className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                     style={{ backgroundColor: `${accent}40` }}

@@ -47,46 +47,27 @@ export async function fetchUserProgram(programId: string): Promise<UserProgram |
   return { ...program, user_workouts: sortActiveWorkouts(program.user_workouts) }
 }
 
-/**
- * Vrai si l'erreur signale que la colonne `image_url` n'existe pas encore en base
- * (migration 20260529 pas encore appliquée). Permet un repli sans image — à
- * retirer une fois la migration en prod.
- */
-function isMissingImageColumn(error: { message?: string; code?: string } | null): boolean {
-  if (!error) return false
-  const msg = (error.message ?? '').toLowerCase()
-  return msg.includes('image_url') && (msg.includes('column') || msg.includes('schema cache'))
-}
-
 export async function createUserProgram(
   userId: string,
   name: string,
   focus: string | null,
   imageUrl: string | null = null,
 ): Promise<UserProgram> {
-  const base = { user_id: userId, name, focus }
-  let res = await supabase
+  const { data, error } = await supabase
     .from('user_programs')
-    .insert({ ...base, image_url: imageUrl })
+    .insert({ user_id: userId, name, focus, image_url: imageUrl })
     .select('*')
     .single()
-  if (res.error && isMissingImageColumn(res.error)) {
-    res = await supabase.from('user_programs').insert(base).select('*').single()
-  }
-  if (res.error) throw res.error
-  return res.data as UserProgram
+  if (error) throw error
+  return data as UserProgram
 }
 
 export async function updateUserProgram(
   id: string,
   fields: { name?: string; focus?: string | null; image_url?: string | null },
 ): Promise<void> {
-  let res = await supabase.from('user_programs').update(fields).eq('id', id)
-  if (res.error && isMissingImageColumn(res.error)) {
-    const { image_url, ...rest } = fields
-    res = await supabase.from('user_programs').update(rest).eq('id', id)
-  }
-  if (res.error) throw res.error
+  const { error } = await supabase.from('user_programs').update(fields).eq('id', id)
+  if (error) throw error
 }
 
 /**

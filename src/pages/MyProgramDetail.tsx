@@ -11,7 +11,7 @@ import {
   softDeleteUserWorkout,
 } from '@/lib/myPrograms'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
-import LightLayout from '@/components/layout/LightLayout'
+import DarkLayout from '@/components/layout/DarkLayout'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import ActionSheet from '@/components/ui/ActionSheet'
 import Button from '@/components/ui/Button'
@@ -94,9 +94,9 @@ export default function MyProgramDetail() {
   }
 
   return (
-    <LightLayout noSafeAreaTop className="pb-tabbar">
+    <DarkLayout noSafeAreaTop className="pb-tabbar">
       <StickyPageHeader
-        variant="light"
+        variant="dark"
         title={program?.name ?? 'Mon programme'}
         subtitle={program?.focus ?? undefined}
         onBack={() => navigate('/my-programs')}
@@ -107,7 +107,7 @@ export default function MyProgramDetail() {
         <button
           type="button"
           onClick={() => navigate(`/my-programs/${id}/workouts/new`)}
-          className="w-full flex items-center justify-center gap-3 bg-tx-1 text-pr-1 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform shadow-[0px_0px_24px_0px_rgba(31,32,33,0.12)]"
+          className="w-full flex items-center justify-center gap-3 bg-pr-1 text-tx-1 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform shadow-[0px_0px_20px_0px_rgba(255,238,140,0.3)]"
         >
           <Plus size={18} />
           <span>Ajouter une séance</span>
@@ -116,7 +116,7 @@ export default function MyProgramDetail() {
         {loading ? (
           <div className="flex flex-col gap-3">
             {[1, 2].map((i) => (
-              <div key={i} className="h-[72px] bg-surface rounded-16 animate-pulse" />
+              <div key={i} className="h-[72px] bg-[#1c1c1e] rounded-16 animate-pulse" />
             ))}
           </div>
         ) : workouts.length === 0 ? null : (
@@ -239,7 +239,7 @@ export default function MyProgramDetail() {
       {planWorkout && (
         <PlanModal workout={planWorkout} onClose={() => setPlanWorkout(null)} />
       )}
-    </LightLayout>
+    </DarkLayout>
   )
 }
 
@@ -263,7 +263,7 @@ function WorkoutReorderRow({
       dragListener={false}
       dragControls={controls}
       onDragEnd={onCommit}
-      className="bg-white rounded-16 shadow-[0px_0px_24px_0px_rgba(31,32,33,0.08)] flex items-center"
+      className="bg-tx-1 rounded-16 flex items-center"
     >
       <button
         type="button"
@@ -281,7 +281,7 @@ function WorkoutReorderRow({
         className="flex-1 min-w-0 flex items-center gap-3 py-3 pr-4 text-left cursor-pointer"
       >
         <div className="flex-1 min-w-0">
-          <h3 className="font-sans font-semibold text-base text-tx-1 truncate">
+          <h3 className="font-sans font-semibold text-base text-bg-1 truncate">
             {workout.name}
           </h3>
           <div className="flex items-center gap-2 mt-1">

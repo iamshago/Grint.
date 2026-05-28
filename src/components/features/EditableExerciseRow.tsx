@@ -38,7 +38,7 @@ export default function EditableExerciseRow({
   return (
     <div
       className={cn(
-        'bg-white rounded-12 p-3 shadow-[0px_0px_24px_0px_rgba(31,32,33,0.08)]',
+        'bg-tx-1 rounded-12 p-3',
         className,
       )}
       style={recommended ? { border: `1.5px solid ${accent}55` } : undefined}
@@ -62,7 +62,7 @@ export default function EditableExerciseRow({
           className="flex-1 min-w-0 flex items-center gap-1.5 text-left cursor-pointer"
           aria-label={`Remplacer ${draft.exercise?.name ?? "l'exercice"}`}
         >
-          <span className="font-sans font-semibold text-base text-tx-1 truncate">
+          <span className="font-sans font-semibold text-base text-bg-1 truncate">
             {draft.exercise?.name ?? 'Exercice'}
           </span>
           {onReplace && <Repeat size={13} className="text-tx-3 shrink-0" />}
@@ -71,7 +71,7 @@ export default function EditableExerciseRow({
           type="button"
           onClick={onRemove}
           aria-label="Retirer l'exercice"
-          className="w-9 h-9 rounded-full bg-surface flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+          className="w-9 h-9 rounded-full bg-[#3d4149] flex items-center justify-center shrink-0 active:scale-95 transition-transform"
         >
           <Trash2 size={16} className="text-[#e62d2d]" />
         </button>
@@ -111,7 +111,7 @@ function Stepper({
   onChange: (v: number) => void
 }) {
   return (
-    <div className="flex-1 bg-bg-1 rounded-12 py-2 flex flex-col items-center gap-1">
+    <div className="flex-1 bg-[#0c0c0c] rounded-12 py-2 flex flex-col items-center gap-1">
       <span className="font-sans font-semibold text-[10px] uppercase text-tx-3 tracking-wide">
         {caption}
       </span>
@@ -120,20 +120,20 @@ function Stepper({
           type="button"
           onClick={() => onChange(value - step)}
           aria-label={`Diminuer ${caption}`}
-          className="w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-90 transition-transform shadow-[0px_1px_3px_rgba(0,0,0,0.08)]"
+          className="w-8 h-8 rounded-full bg-[#3d4149] flex items-center justify-center active:scale-90 transition-transform"
         >
-          <Minus size={14} className="text-tx-1" />
+          <Minus size={14} className="text-bg-1" />
         </button>
-        <span className="w-8 text-center font-sans font-bold text-base text-tx-1 tabular-nums">
+        <span className="w-8 text-center font-sans font-bold text-base text-bg-1 tabular-nums">
           {value}
         </span>
         <button
           type="button"
           onClick={() => onChange(value + step)}
           aria-label={`Augmenter ${caption}`}
-          className="w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-90 transition-transform shadow-[0px_1px_3px_rgba(0,0,0,0.08)]"
+          className="w-8 h-8 rounded-full bg-[#3d4149] flex items-center justify-center active:scale-90 transition-transform"
         >
-          <Plus size={14} className="text-tx-1" />
+          <Plus size={14} className="text-bg-1" />
         </button>
       </div>
     </div>

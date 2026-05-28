@@ -269,15 +269,15 @@ export default function Program() {
               type="button"
               onClick={() => navigate('/my-programs/new')}
               aria-label="Créer mon programme"
-              className="relative w-[248px] h-[224px] shrink-0 rounded-16 bg-pr-1 flex flex-col justify-end p-4 gap-2 text-left cursor-pointer active:scale-95 transition-transform shadow-[0px_0px_24px_0px_rgba(255,238,140,0.5)]"
+              className="relative w-[248px] h-[224px] shrink-0 rounded-16 bg-tx-1 flex flex-col justify-end p-4 gap-2 text-left cursor-pointer active:scale-95 transition-transform shadow-[0px_0px_24px_0px_rgba(31,32,33,0.18)]"
             >
-              <div className="w-12 h-12 rounded-12 bg-tx-1 flex items-center justify-center">
-                <Plus size={24} className="text-pr-1" />
+              <div className="w-12 h-12 rounded-12 bg-pr-1 flex items-center justify-center">
+                <Plus size={24} className="text-tx-1" />
               </div>
-              <h3 className="font-serif font-bold text-[32px] text-tx-1 tracking-tight leading-none">
+              <h3 className="font-serif font-bold text-[32px] text-pr-1 tracking-tight leading-none">
                 Mon programme
               </h3>
-              <p className="font-sans text-base text-tx-1/70">Créer un programme</p>
+              <p className="font-sans text-base text-pr-1/70">Créer un programme</p>
             </button>
 
             {programs.map((prog) => (

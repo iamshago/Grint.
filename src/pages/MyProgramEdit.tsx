@@ -9,7 +9,7 @@ import {
   softDeleteUserProgram,
   updateUserProgram,
 } from '@/lib/myPrograms'
-import LightLayout from '@/components/layout/LightLayout'
+import DarkLayout from '@/components/layout/DarkLayout'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import ActionSheet from '@/components/ui/ActionSheet'
 
@@ -106,22 +106,22 @@ export default function MyProgramEdit() {
   }
 
   return (
-    <LightLayout noSafeAreaTop className="pb-tabbar">
+    <DarkLayout noSafeAreaTop className="pb-tabbar">
       <StickyPageHeader
-        variant="light"
+        variant="dark"
         title={isEdit ? 'Modifier le programme' : 'Nouveau programme'}
         onBack={() => navigate(isEdit ? `/my-programs/${id}` : '/my-programs')}
       />
 
       {loading ? (
         <div className="px-4 flex flex-col gap-4">
-          <div className="h-14 bg-surface rounded-12 animate-pulse" />
-          <div className="h-14 bg-surface rounded-12 animate-pulse" />
+          <div className="h-14 bg-[#1c1c1e] rounded-12 animate-pulse" />
+          <div className="h-14 bg-[#1c1c1e] rounded-12 animate-pulse" />
         </div>
       ) : (
         <div className="px-4 flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <label htmlFor="program-name" className="font-sans font-semibold text-sm text-tx-1">
+            <label htmlFor="program-name" className="font-sans font-semibold text-sm text-bg-1">
               Nom du programme
             </label>
             <input
@@ -133,12 +133,12 @@ export default function MyProgramEdit() {
                 if (error) setError('')
               }}
               placeholder="Ex : Push Pull Legs perso"
-              className="w-full bg-white rounded-12 px-4 py-4 font-sans text-base text-tx-1 placeholder-tx-3 focus:outline-none focus:ring-2 focus:ring-tx-1/10 shadow-[0px_0px_24px_0px_rgba(31,32,33,0.06)]"
+              className="w-full bg-tx-1 rounded-12 px-4 py-4 font-sans text-base text-bg-1 placeholder-tx-3 focus:outline-none focus:ring-2 focus:ring-pr-1/30"
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="program-focus" className="font-sans font-semibold text-sm text-tx-1">
+            <label htmlFor="program-focus" className="font-sans font-semibold text-sm text-bg-1">
               Focus / objectif <span className="text-tx-3 font-normal">(optionnel)</span>
             </label>
             <input
@@ -147,14 +147,14 @@ export default function MyProgramEdit() {
               value={focus}
               onChange={(e) => setFocus(e.target.value)}
               placeholder="Ex : Force & volume haut du corps"
-              className="w-full bg-white rounded-12 px-4 py-4 font-sans text-base text-tx-1 placeholder-tx-3 focus:outline-none focus:ring-2 focus:ring-tx-1/10 shadow-[0px_0px_24px_0px_rgba(31,32,33,0.06)]"
+              className="w-full bg-tx-1 rounded-12 px-4 py-4 font-sans text-base text-bg-1 placeholder-tx-3 focus:outline-none focus:ring-2 focus:ring-pr-1/30"
             />
           </div>
 
           {/* Image de couverture — galerie de presets (catalogue) */}
           {presets.length > 0 && (
             <div className="flex flex-col gap-2">
-              <span className="font-sans font-semibold text-sm text-tx-1">
+              <span className="font-sans font-semibold text-sm text-bg-1">
                 Image de couverture
               </span>
               <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
@@ -168,12 +168,12 @@ export default function MyProgramEdit() {
                       aria-label="Choisir cette image"
                       aria-pressed={selected}
                       className="relative w-[112px] h-[72px] shrink-0 rounded-12 overflow-hidden cursor-pointer active:scale-95 transition-transform"
-                      style={selected ? { outline: '2.5px solid #1b1d1f', outlineOffset: '2px' } : undefined}
+                      style={selected ? { outline: '2.5px solid #ffee8c', outlineOffset: '2px' } : undefined}
                     >
                       <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
                       {selected && (
-                        <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-tx-1 flex items-center justify-center">
-                          <Check size={12} strokeWidth={3} className="text-pr-1" />
+                        <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-pr-1 flex items-center justify-center">
+                          <Check size={12} strokeWidth={3} className="text-tx-1" />
                         </span>
                       )}
                     </button>
@@ -193,7 +193,7 @@ export default function MyProgramEdit() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="w-full flex items-center justify-center gap-3 bg-tx-1 text-pr-1 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform disabled:opacity-60 shadow-[0px_0px_40px_0px_rgba(31,32,33,0.4)]"
+            className="w-full flex items-center justify-center gap-3 bg-pr-1 text-tx-1 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform disabled:opacity-60 shadow-[0px_0px_20px_0px_rgba(255,238,140,0.3)]"
           >
             {saving ? 'Enregistrement...' : 'Enregistrer le programme'}
           </button>
@@ -228,6 +228,6 @@ export default function MyProgramEdit() {
           { label: 'Annuler', onClick: () => setConfirmDelete(false), variant: 'cancel' },
         ]}
       />
-    </LightLayout>
+    </DarkLayout>
   )
 }

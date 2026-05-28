@@ -32,7 +32,7 @@ export default function MyProgramCard({ program, onClick, className }: MyProgram
       onClick={onClick}
       aria-label={`Ouvrir le programme ${program.name}`}
       className={cn(
-        'w-full text-left bg-white rounded-16 p-4 flex items-center gap-4 shadow-[0px_0px_24px_0px_rgba(31,32,33,0.08)] cursor-pointer active:scale-[0.98] transition-transform',
+        'w-full text-left bg-tx-1 rounded-16 p-4 flex items-center gap-4 cursor-pointer active:scale-[0.98] transition-transform',
         className,
       )}
     >
@@ -45,7 +45,7 @@ export default function MyProgramCard({ program, onClick, className }: MyProgram
       </div>
 
       <div className="flex-1 min-w-0">
-        <h3 className="font-serif font-bold text-lg text-tx-1 tracking-tight truncate leading-tight">
+        <h3 className="font-serif font-bold text-lg text-bg-1 tracking-tight truncate leading-tight">
           {program.name}
         </h3>
         {program.focus && (

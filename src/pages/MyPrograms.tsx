@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, FolderPlus } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { fetchUserPrograms } from '@/lib/myPrograms'
-import LightLayout from '@/components/layout/LightLayout'
+import DarkLayout from '@/components/layout/DarkLayout'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import MyProgramCard from '@/components/features/MyProgramCard'
 import type { UserProgram } from '@/types'
@@ -40,9 +40,9 @@ export default function MyPrograms() {
   const isEmpty = !loading && programs.length === 0
 
   return (
-    <LightLayout noSafeAreaTop className="pb-tabbar">
+    <DarkLayout noSafeAreaTop className="pb-tabbar">
       <StickyPageHeader
-        variant="light"
+        variant="dark"
         title="Mon programme"
         onBack={() => navigate('/programs')}
       />
@@ -51,7 +51,7 @@ export default function MyPrograms() {
         {loading ? (
           <div className="flex flex-col gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-[88px] bg-surface rounded-16 animate-pulse" />
+              <div key={i} className="h-[88px] bg-[#1c1c1e] rounded-16 animate-pulse" />
             ))}
           </div>
         ) : isEmpty ? (
@@ -62,7 +62,7 @@ export default function MyPrograms() {
             <button
               type="button"
               onClick={() => navigate('/my-programs/new')}
-              className="w-full flex items-center justify-center gap-3 bg-tx-1 text-pr-1 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform shadow-[0px_0px_24px_0px_rgba(31,32,33,0.12)]"
+              className="w-full flex items-center justify-center gap-3 bg-pr-1 text-tx-1 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform shadow-[0px_0px_20px_0px_rgba(255,238,140,0.3)]"
             >
               <Plus size={18} />
               <span>Nouveau programme</span>
@@ -78,7 +78,7 @@ export default function MyPrograms() {
           </div>
         )}
       </div>
-    </LightLayout>
+    </DarkLayout>
   )
 }
 
@@ -88,7 +88,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       <div className="w-20 h-20 rounded-[28px] bg-pr-1 flex items-center justify-center mb-6">
         <FolderPlus size={36} className="text-tx-1" />
       </div>
-      <h2 className="font-serif font-bold text-2xl text-tx-1 tracking-tight mb-2">
+      <h2 className="font-serif font-bold text-2xl text-bg-1 tracking-tight mb-2">
         Crée tes séances sur mesure
       </h2>
       <p className="font-sans text-base text-tx-3 leading-6 mb-8 max-w-[300px]">
@@ -98,7 +98,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       <button
         type="button"
         onClick={onCreate}
-        className="w-full max-w-[320px] flex items-center justify-center gap-3 bg-tx-1 text-pr-1 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform shadow-[0px_0px_40px_0px_rgba(31,32,33,0.4)]"
+        className="w-full max-w-[320px] flex items-center justify-center gap-3 bg-pr-1 text-tx-1 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform shadow-[0px_0px_20px_0px_rgba(255,238,140,0.3)]"
       >
         <Plus size={18} />
         <span>Créer mon premier programme</span>

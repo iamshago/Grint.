@@ -12,7 +12,7 @@ import {
   type DraftExercise,
 } from '@/lib/myPrograms'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
-import LightLayout from '@/components/layout/LightLayout'
+import DarkLayout from '@/components/layout/DarkLayout'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import EditableExerciseRow from '@/components/features/EditableExerciseRow'
 import ExercisePickerSheet from '@/components/features/ExercisePickerSheet'
@@ -240,18 +240,18 @@ export default function MyWorkoutEdit() {
     picker?.kind === 'slot' ? `Exercice — ${SLOT_LABELS[picker.slot]}` : 'Ajouter un exercice'
 
   return (
-    <LightLayout noSafeAreaTop className="pb-tabbar">
+    <DarkLayout noSafeAreaTop className="pb-tabbar">
       {/* Toast soft (non bloquant) */}
       {toast && (
         <div className="fixed toast-top-safe left-0 right-0 z-[300] flex justify-center px-4 pointer-events-none">
-          <div className="flex items-center gap-3 px-5 py-3 rounded-full shadow-lg border border-border-light bg-white/90 backdrop-blur-md max-w-[360px]">
-            <span className="text-sm font-semibold text-tx-1 text-center">{toast}</span>
+          <div className="flex items-center gap-3 px-5 py-3 rounded-full shadow-lg border border-[#3d4149] bg-[#1c1c1e]/95 backdrop-blur-md max-w-[360px]">
+            <span className="text-sm font-semibold text-bg-1 text-center">{toast}</span>
           </div>
         </div>
       )}
 
       <StickyPageHeader
-        variant="light"
+        variant="dark"
         title={isEdit ? 'Modifier la séance' : 'Nouvelle séance'}
         onBack={() => navigate(`/my-programs/${programId}`)}
       />
@@ -259,7 +259,7 @@ export default function MyWorkoutEdit() {
       {loading ? (
         <div className="px-4 flex flex-col gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-20 bg-surface rounded-12 animate-pulse" />
+            <div key={i} className="h-20 bg-[#1c1c1e] rounded-12 animate-pulse" />
           ))}
         </div>
       ) : (
@@ -276,7 +276,7 @@ export default function MyWorkoutEdit() {
               }}
               placeholder="Nom de la séance"
               aria-label="Nom de la séance"
-              className="w-full bg-white rounded-12 px-4 py-4 font-serif font-bold text-xl text-tx-1 placeholder-tx-3 placeholder:font-sans placeholder:font-normal placeholder:text-base focus:outline-none focus:ring-2 focus:ring-tx-1/10 shadow-[0px_0px_24px_0px_rgba(31,32,33,0.06)]"
+              className="w-full bg-tx-1 rounded-12 px-4 py-4 font-serif font-bold text-xl text-bg-1 placeholder-tx-3 placeholder:font-sans placeholder:font-normal placeholder:text-base focus:outline-none focus:ring-2 focus:ring-pr-1/30"
             />
             <div className="flex gap-2" role="group" aria-label="Catégorie de la séance">
               {CATEGORY_OPTIONS.map((opt) => {
@@ -291,7 +291,7 @@ export default function MyWorkoutEdit() {
                     style={
                       isActive
                         ? { backgroundColor: accent, color: '#1b1d1f' }
-                        : { backgroundColor: '#e6e8ed', color: '#3d4149' }
+                        : { backgroundColor: '#3d4149', color: '#f1f4fb' }
                     }
                   >
                     {opt.label}
@@ -304,7 +304,7 @@ export default function MyWorkoutEdit() {
           {/* Slots recommandés — structure suggérée, pas obligatoire. */}
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-0.5">
-              <h2 className="font-serif font-bold text-lg text-tx-1 tracking-tight">
+              <h2 className="font-serif font-bold text-lg text-bg-1 tracking-tight">
                 Structure recommandée
               </h2>
               <p className="font-sans text-sm text-tx-3">
@@ -332,7 +332,7 @@ export default function MyWorkoutEdit() {
                   key={slot}
                   type="button"
                   onClick={() => setPicker({ kind: 'slot', slot })}
-                  className="w-full flex items-center justify-between gap-3 rounded-12 border border-dashed bg-white/40 px-4 py-4 text-left cursor-pointer active:scale-[0.99] transition-transform"
+                  className="w-full flex items-center justify-between gap-3 rounded-12 border border-dashed bg-tx-1 px-4 py-4 text-left cursor-pointer active:scale-[0.99] transition-transform"
                   style={{ borderColor: `${accent}80` }}
                 >
                   <div className="flex flex-col gap-1 min-w-0">
@@ -342,7 +342,7 @@ export default function MyWorkoutEdit() {
                     >
                       Recommandé
                     </span>
-                    <span className="font-sans font-semibold text-base text-tx-2">
+                    <span className="font-sans font-semibold text-base text-bg-1">
                       {SLOT_LABELS[slot]}
                     </span>
                   </div>
@@ -359,7 +359,7 @@ export default function MyWorkoutEdit() {
 
           {/* Exos libres */}
           <div className="flex flex-col gap-3">
-            <h2 className="font-serif font-bold text-lg text-tx-1 tracking-tight">
+            <h2 className="font-serif font-bold text-lg text-bg-1 tracking-tight">
               Autres exercices
             </h2>
             {freeExos.length > 0 && (
@@ -384,7 +384,7 @@ export default function MyWorkoutEdit() {
             <button
               type="button"
               onClick={() => setPicker({ kind: 'free-add' })}
-              className="w-full flex items-center justify-center gap-2 rounded-12 border-2 border-dashed border-bg-2 px-4 py-4 font-sans font-semibold text-sm text-tx-2 cursor-pointer active:scale-[0.99] transition-transform"
+              className="w-full flex items-center justify-center gap-2 rounded-12 border-2 border-dashed border-[#3d4149] px-4 py-4 font-sans font-semibold text-sm text-tx-3 cursor-pointer active:scale-[0.99] transition-transform"
             >
               <Plus size={16} />
               Ajouter un exercice
@@ -399,7 +399,7 @@ export default function MyWorkoutEdit() {
           className="fixed bottom-0 left-0 right-0 z-[110] pointer-events-none"
           style={{
             backgroundImage:
-              'linear-gradient(to bottom, rgba(241,244,251,0) 0%, #f1f4fb 36%)',
+              'linear-gradient(to bottom, rgba(12,12,12,0) 0%, #0c0c0c 36%)',
           }}
         >
           <div className="px-6 pt-8 pointer-events-auto cta-bottom-safe flex flex-col gap-2">
@@ -433,7 +433,7 @@ export default function MyWorkoutEdit() {
         onSelect={handleSelect}
         title={pickerTitle}
       />
-    </LightLayout>
+    </DarkLayout>
   )
 }
 

@@ -65,28 +65,28 @@ export default function ExercisePickerSheet({
         className="absolute inset-0 bg-black/40"
         onClick={onClose}
       />
-      <div className="relative bg-white rounded-t-[24px] w-full max-w-[402px] flex flex-col max-h-[78vh] pb-[env(safe-area-inset-bottom,16px)]">
+      <div className="relative bg-[#1c1c1e] rounded-t-[24px] w-full max-w-[402px] flex flex-col max-h-[78vh] pb-[env(safe-area-inset-bottom,16px)]">
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-bg-2" />
+          <div className="w-10 h-1 rounded-full bg-[#3d4149]" />
         </div>
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-2 pb-3 shrink-0">
-          <h3 className="font-serif font-bold text-xl text-tx-1">{title}</h3>
+          <h3 className="font-serif font-bold text-xl text-bg-1">{title}</h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Fermer"
-            className="bg-surface rounded-full p-2 active:scale-95 transition-transform"
+            className="bg-[#3d4149] rounded-full p-2 active:scale-95 transition-transform"
           >
-            <X size={18} className="text-tx-1" />
+            <X size={18} className="text-bg-1" />
           </button>
         </div>
 
         {/* Recherche */}
         <div className="px-5 pb-3 shrink-0">
-          <div className="relative flex items-center gap-3 bg-bg-2 rounded-12 px-4 py-3.5">
+          <div className="relative flex items-center gap-3 bg-[#3d4149] rounded-12 px-4 py-3.5">
             <Search size={16} className="text-tx-3 shrink-0" />
             <input
               ref={inputRef}
@@ -94,14 +94,14 @@ export default function ExercisePickerSheet({
               placeholder="Rechercher un exercice"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-transparent text-base font-sans text-tx-1 placeholder-tx-3 focus:outline-none"
+              className="w-full bg-transparent text-base font-sans text-bg-1 placeholder-tx-3 focus:outline-none"
             />
             {query && (
               <button
                 type="button"
                 onClick={() => setQuery('')}
                 aria-label="Effacer"
-                className="text-tx-2"
+                className="text-tx-3"
               >
                 <X size={16} />
               </button>
@@ -124,13 +124,13 @@ export default function ExercisePickerSheet({
                   onSelect(exercise)
                   onClose()
                 }}
-                className="w-full flex items-center justify-between gap-3 bg-bg-1 rounded-12 px-4 py-4 text-left cursor-pointer active:scale-[0.98] transition-transform"
+                className="w-full flex items-center justify-between gap-3 bg-tx-1 rounded-12 px-4 py-4 text-left cursor-pointer active:scale-[0.98] transition-transform"
               >
-                <span className="font-sans font-semibold text-base text-tx-1 truncate">
+                <span className="font-sans font-semibold text-base text-bg-1 truncate">
                   {exercise.name}
                 </span>
-                <span className="w-8 h-8 rounded-full bg-tx-1 flex items-center justify-center shrink-0">
-                  <Plus size={16} className="text-pr-1" />
+                <span className="w-8 h-8 rounded-full bg-pr-1 flex items-center justify-center shrink-0">
+                  <Plus size={16} className="text-tx-1" />
                 </span>
               </button>
             ))

@@ -14,7 +14,6 @@ import {
   type DraftExercise,
 } from '@/lib/myPrograms'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
-import DarkLayout from '@/components/layout/DarkLayout'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import EditableExerciseRow from '@/components/features/EditableExerciseRow'
 import ExercisePickerSheet from '@/components/features/ExercisePickerSheet'
@@ -250,7 +249,7 @@ export default function MyWorkoutEdit() {
     picker?.kind === 'slot' ? `Exercice — ${SLOT_LABELS[picker.slot]}` : 'Ajouter un exercice'
 
   return (
-    <DarkLayout noSafeAreaTop className="pb-tabbar">
+    <div className="fixed inset-0 bg-[#0c0c0c] text-bg-1 flex flex-col">
       {/* Toast soft (non bloquant) */}
       {toast && (
         <div className="fixed toast-top-safe left-0 right-0 z-[300] flex justify-center px-4 pointer-events-none">
@@ -266,14 +265,16 @@ export default function MyWorkoutEdit() {
         onBack={() => navigate(`/my-programs/${programId}`)}
       />
 
+      {/* Zone scrollable — seul ce bloc bouge ; header (haut) et footer (bas) statiques. */}
+      <div className="flex-1 overflow-y-auto no-scrollbar overscroll-none">
       {loading ? (
-        <div className="px-4 flex flex-col gap-4">
+        <div className="px-4 pt-4 flex flex-col gap-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-20 bg-[#1c1c1e] rounded-12 animate-pulse" />
           ))}
         </div>
       ) : (
-        <div className="px-4 flex flex-col gap-6 pb-32">
+        <div className="px-4 pt-4 flex flex-col gap-6 pb-6">
           {/* Effet cascade : cette séance est liée à plusieurs programmes */}
           {isEdit && usedInCount > 0 && (
             <div
@@ -416,37 +417,29 @@ export default function MyWorkoutEdit() {
           </div>
         </div>
       )}
+      </div>
 
-      {/* CTA bas + message bloquant inline */}
+      {/* Footer statique : le CTA reste collé en bas, ne bouge pas au scroll. */}
       {!loading && (
-        <div
-          className="fixed bottom-0 left-0 right-0 z-[110] pointer-events-none"
-          style={{
-            backgroundImage:
-              'linear-gradient(to bottom, rgba(12,12,12,0) 0%, #0c0c0c 36%)',
-          }}
-        >
-          <div className="px-6 pt-8 pointer-events-auto cta-bottom-safe flex flex-col gap-2">
-            {blockError && (
-              <p className="font-sans text-sm text-[#e62d2d] text-center" role="alert">
-                {blockError}
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full flex items-center justify-center gap-3 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform disabled:opacity-60"
-              style={{
-                backgroundColor: accent,
-                color: '#1b1d1f',
-                boxShadow: `0px 0px 20px 0px ${accent}4D`,
-              }}
-            >
-              <Check size={16} />
-              {saving ? 'Enregistrement...' : 'Enregistrer la séance'}
-            </button>
-          </div>
+        <div className="shrink-0 bg-[#0c0c0c] border-t border-[#1c1c1e] px-6 pt-4 cta-bottom-safe flex flex-col gap-2">
+          {blockError && (
+            <p className="font-sans text-sm text-[#e62d2d] text-center" role="alert">
+              {blockError}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full flex items-center justify-center gap-3 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform disabled:opacity-60"
+            style={{
+              backgroundColor: accent,
+              color: '#1b1d1f',
+            }}
+          >
+            <Check size={16} />
+            {saving ? 'Enregistrement...' : 'Enregistrer la séance'}
+          </button>
         </div>
       )}
 
@@ -457,7 +450,7 @@ export default function MyWorkoutEdit() {
         onSelect={handleSelect}
         title={pickerTitle}
       />
-    </DarkLayout>
+    </div>
   )
 }
 

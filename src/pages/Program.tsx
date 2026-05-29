@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, Dumbbell, ArrowLeft, X, Play, Check, Calendar, Target, Plus, FolderPlus } from 'lucide-react'
+import { Search, Clock, Dumbbell, ArrowLeft, X, Play, Check, Calendar, Target, Plus, FolderPlus, MoreVertical } from 'lucide-react'
 
 import LightLayout from '@/components/layout/LightLayout'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
@@ -16,7 +16,7 @@ import IconButton from '@/components/ui/IconButton'
 import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 import ActionSheet from '@/components/ui/ActionSheet'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
-import { fetchUserPrograms } from '@/lib/myPrograms'
+import { fetchUserPrograms, softDeleteUserWorkout } from '@/lib/myPrograms'
 
 const WEEKDAYS = [
   { label: 'Lundi', value: 1 },
@@ -52,6 +52,9 @@ export default function Program() {
 
   // FAB « + » : bottom sheet de création (programme / séance directe).
   const [createSheetOpen, setCreateSheetOpen] = useState(false)
+  // Séance perso ciblée par le menu ⋮ (suppression).
+  const [menuWorkout, setMenuWorkout] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   // Fade de l'image au scroll (ref callback)
   const snapRef = useCallback((node: HTMLDivElement | null) => {
@@ -156,6 +159,14 @@ export default function Program() {
     raw: w,
   }))
 
+  // Le tag « Mes séances » peut disparaître (suppression de la dernière séance
+  // perso) alors qu'il est actif → on rebascule sur « Tout ».
+  useEffect(() => {
+    if (activeFilter === 'Mes séances' && userWorkouts.length === 0) {
+      setActiveFilter('All')
+    }
+  }, [activeFilter, userWorkouts.length])
+
   // Filtrage des séances (catalogue par titre, perso par catégorie).
   const processedWorkouts = [...userItems, ...catalogItems].filter((item) => {
     const search = searchTerm.toLowerCase()
@@ -248,6 +259,23 @@ export default function Program() {
         exercise: e.exercise,
       })),
     })
+  }
+
+  // Suppression (soft) d'une séance perso depuis le menu ⋮.
+  const handleDeleteUserWorkout = async () => {
+    if (!menuWorkout) return
+    try {
+      setDeleting(true)
+      await softDeleteUserWorkout(menuWorkout.id)
+      setUserWorkouts((prev) => prev.filter((w) => w.id !== menuWorkout.id))
+      setMenuWorkout(null)
+      showToast('Séance supprimée.', 'success')
+    } catch (err) {
+      console.error(err)
+      showToast('Erreur lors de la suppression.', 'error')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const handleOpenVideo = (exo) => {
@@ -408,16 +436,29 @@ export default function Program() {
         ) : (
           <div className="flex flex-col gap-4 pb-8">
             {processedWorkouts.map((item) => (
-              <WorkoutCard
-                key={`${item.source}-${item.id}`}
-                title={item.title}
-                difficulty={item.difficulty === 'Beginner' ? 'DÉBUTANT' : item.difficulty === 'Intermediate' ? 'INTERMÉDIAIRE' : item.difficulty === 'Advanced' ? 'AVANCÉ' : item.difficulty}
-                durationMin={item.durationMin}
-                exerciseCount={item.exerciseCount}
-                imageUrl={item.imageUrl}
-                category={item.category}
-                onPlay={() => (item.source === 'user' ? openUserWorkout(item.raw) : setPreviewWorkout(item.raw))}
-              />
+              <div key={`${item.source}-${item.id}`} className="relative">
+                <WorkoutCard
+                  title={item.title}
+                  difficulty={item.difficulty === 'Beginner' ? 'DÉBUTANT' : item.difficulty === 'Intermediate' ? 'INTERMÉDIAIRE' : item.difficulty === 'Advanced' ? 'AVANCÉ' : item.difficulty}
+                  durationMin={item.durationMin}
+                  exerciseCount={item.exerciseCount}
+                  imageUrl={item.imageUrl}
+                  category={item.category}
+                  onPlay={() => (item.source === 'user' ? openUserWorkout(item.raw) : setPreviewWorkout(item.raw))}
+                />
+                {/* Menu ⋮ — séances perso uniquement : suppression. Sibling du
+                 *  bouton-carte (pas imbriqué) pour rester un HTML valide. */}
+                {item.source === 'user' && (
+                  <button
+                    type="button"
+                    onClick={() => setMenuWorkout(item.raw)}
+                    aria-label={`Options pour ${item.title}`}
+                    className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/45 backdrop-blur-sm flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
+                  >
+                    <MoreVertical size={18} className="text-bg-1" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -537,7 +578,7 @@ export default function Program() {
             icon: <FolderPlus size={20} className="text-tx-1" />,
             onClick: () => {
               setCreateSheetOpen(false)
-              navigate('/my-programs/new')
+              navigate('/my-programs')
             },
           },
           {
@@ -549,6 +590,22 @@ export default function Program() {
             },
           },
           { label: 'Annuler', variant: 'cancel', onClick: () => setCreateSheetOpen(false) },
+        ]}
+      />
+
+      {/* === Menu ⋮ d'une séance perso (suppression) === */}
+      <ActionSheet
+        open={Boolean(menuWorkout)}
+        onClose={() => !deleting && setMenuWorkout(null)}
+        ariaLabel={menuWorkout ? `Options pour ${menuWorkout.name}` : 'Options de la séance'}
+        actions={[
+          {
+            label: deleting ? 'Suppression…' : 'Supprimer la séance',
+            variant: 'destructive',
+            disabled: deleting,
+            onClick: handleDeleteUserWorkout,
+          },
+          { label: 'Annuler', variant: 'cancel', disabled: deleting, onClick: () => setMenuWorkout(null) },
         ]}
       />
 

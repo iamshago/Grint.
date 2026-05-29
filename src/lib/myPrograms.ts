@@ -347,7 +347,7 @@ export async function replaceWorkoutExercises(
 export async function fetchExerciseCatalog(): Promise<Exercise[]> {
   const { data, error } = await supabase
     .from('exercises')
-    .select('id, name, video_url')
+    .select('id, name, video_url, tension_type')
     .order('name', { ascending: true })
   if (error) throw error
   return (data ?? []) as Exercise[]

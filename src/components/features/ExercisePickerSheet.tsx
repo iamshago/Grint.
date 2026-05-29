@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, X, Plus } from 'lucide-react'
-import type { Exercise } from '@/types'
+import type { Exercise, SlotType } from '@/types'
+
+/** Libellés courts pour le tag de type de tension sur chaque exo. */
+const TENSION_SHORT: Record<SlotType, string> = {
+  contraction: 'Contraction',
+  stretch: 'Étirement',
+  unilateral: 'Unilatéral',
+  isolation: 'Isolation',
+}
 
 interface ExercisePickerSheetProps {
   open: boolean
@@ -10,6 +18,8 @@ interface ExercisePickerSheetProps {
   onSelect: (exercise: Exercise) => void
   /** Titre contextuel (ex. « Exercice de contraction » ou « Ajouter un exercice »). */
   title?: string
+  /** Slot ciblé : les exos de ce type de tension sont mis en avant (« Recommandés »). */
+  slot?: SlotType | null
 }
 
 /**
@@ -22,6 +32,7 @@ export default function ExercisePickerSheet({
   catalog,
   onSelect,
   title = 'Ajouter un exercice',
+  slot,
 }: ExercisePickerSheetProps) {
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -49,6 +60,34 @@ export default function ExercisePickerSheet({
     if (!q) return catalog
     return catalog.filter((e) => e.name.toLowerCase().includes(q))
   }, [catalog, query])
+
+  // Slot ciblé : exos du bon type de tension d'abord (« Recommandés »), reste ensuite.
+  const recommended = slot ? results.filter((e) => e.tension_type === slot) : []
+  const others = slot ? results.filter((e) => e.tension_type !== slot) : results
+
+  const renderRow = (exercise: Exercise) => (
+    <button
+      key={exercise.id}
+      type="button"
+      onClick={() => {
+        onSelect(exercise)
+        onClose()
+      }}
+      className="w-full flex items-center justify-between gap-3 bg-tx-1 rounded-12 px-4 py-4 text-left cursor-pointer active:scale-[0.98] transition-transform"
+    >
+      <span className="min-w-0 flex items-center gap-2">
+        <span className="font-sans font-semibold text-base text-bg-1 truncate">{exercise.name}</span>
+        {exercise.tension_type && (
+          <span className="shrink-0 font-sans text-[10px] uppercase tracking-wide text-tx-3 border border-[#3d4149] rounded-md px-1.5 py-0.5">
+            {TENSION_SHORT[exercise.tension_type]}
+          </span>
+        )}
+      </span>
+      <span className="w-8 h-8 rounded-full bg-pr-1 flex items-center justify-center shrink-0">
+        <Plus size={16} className="text-tx-1" />
+      </span>
+    </button>
+  )
 
   if (!open) return null
 
@@ -115,25 +154,27 @@ export default function ExercisePickerSheet({
             <p className="text-center text-tx-3 font-sans text-sm py-10">
               Aucun exercice ne correspond.
             </p>
+          ) : slot ? (
+            <>
+              {recommended.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <span className="font-sans font-semibold text-xs uppercase text-tx-3 tracking-wide">
+                    Recommandés
+                  </span>
+                  {recommended.map(renderRow)}
+                </div>
+              )}
+              {others.length > 0 && (
+                <div className="flex flex-col gap-2 mt-2">
+                  <span className="font-sans font-semibold text-xs uppercase text-tx-3 tracking-wide">
+                    Autres exercices
+                  </span>
+                  {others.map(renderRow)}
+                </div>
+              )}
+            </>
           ) : (
-            results.map((exercise) => (
-              <button
-                key={exercise.id}
-                type="button"
-                onClick={() => {
-                  onSelect(exercise)
-                  onClose()
-                }}
-                className="w-full flex items-center justify-between gap-3 bg-tx-1 rounded-12 px-4 py-4 text-left cursor-pointer active:scale-[0.98] transition-transform"
-              >
-                <span className="font-sans font-semibold text-base text-bg-1 truncate">
-                  {exercise.name}
-                </span>
-                <span className="w-8 h-8 rounded-full bg-pr-1 flex items-center justify-center shrink-0">
-                  <Plus size={16} className="text-tx-1" />
-                </span>
-              </button>
-            ))
+            results.map(renderRow)
           )}
         </div>
       </div>

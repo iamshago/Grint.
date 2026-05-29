@@ -449,6 +449,7 @@ export default function MyWorkoutEdit() {
         catalog={catalog}
         onSelect={handleSelect}
         title={pickerTitle}
+        slot={picker?.kind === 'slot' ? picker.slot : undefined}
       />
     </div>
   )

@@ -4,6 +4,8 @@ export interface Exercise {
   id: string
   name: string
   video_url: string | null
+  /** Type de tension dominant — aligne l'exo sur un slot recommandé (cf. SLOT_LABELS). */
+  tension_type?: SlotType | null
 }
 
 export interface WorkoutExercise {

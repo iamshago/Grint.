@@ -230,13 +230,10 @@ function WorkoutDetail({
           <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-2">
-                <div
-                  className="inline-flex items-center px-3 py-1.5 rounded-lg self-start"
-                  style={{ backgroundColor: `${accent}40`, border: `1px solid ${accent}` }}
-                >
-                  {/* Texte sombre : lisible sur le fond clair de la page, quelle que soit
-                   *  la couleur d'accent (le jaune sur jaune pâle était illisible). */}
-                  <span className="font-sans font-semibold text-xs uppercase text-tx-1">
+                {/* Tag neutre gris, identique au badge difficulté du catalogue
+                 *  (pas de distinction couleur haut/bas du corps). */}
+                <div className="inline-flex items-center px-3 py-1.5 rounded-lg border border-tx-2 bg-bg-2 self-start">
+                  <span className="font-sans font-semibold text-xs text-tx-2 uppercase">
                     {CATEGORY_LABEL[item.category]}
                   </span>
                 </div>
@@ -303,7 +300,8 @@ function WorkoutDetail({
             type="button"
             onClick={() => setVideo(null)}
             aria-label="Fermer la vidéo"
-            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-tx-1 flex items-center justify-center active:scale-95 transition-transform"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+            className="absolute right-6 w-10 h-10 rounded-full bg-tx-1 flex items-center justify-center active:scale-95 transition-transform"
           >
             <X size={18} className="text-bg-1" />
           </button>

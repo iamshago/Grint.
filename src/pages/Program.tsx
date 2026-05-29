@@ -11,6 +11,7 @@ import ProgramCard from '@/components/features/ProgramCard'
 import WorkoutCard from '@/components/features/WorkoutCard'
 import ExerciseRow from '@/components/features/ExerciseRow'
 import UserProgramPreview from '@/components/features/UserProgramPreview'
+import SwipeableDeleteRow from '@/components/features/SwipeableDeleteRow'
 import Button from '@/components/ui/Button'
 import IconButton from '@/components/ui/IconButton'
 import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
@@ -269,6 +270,8 @@ export default function Program() {
       await softDeleteUserWorkout(menuWorkout.id)
       setUserWorkouts((prev) => prev.filter((w) => w.id !== menuWorkout.id))
       setMenuWorkout(null)
+      // Si on supprimait depuis l'écran de détail, on le ferme.
+      setPreviewWorkout((pw) => (pw && pw.id === menuWorkout.id ? null : pw))
       showToast('Séance supprimée.', 'success')
     } catch (err) {
       console.error(err)
@@ -435,8 +438,8 @@ export default function Program() {
           </div>
         ) : (
           <div className="flex flex-col gap-4 pb-8">
-            {processedWorkouts.map((item) => (
-              <div key={`${item.source}-${item.id}`} className="relative">
+            {processedWorkouts.map((item) => {
+              const card = (
                 <WorkoutCard
                   title={item.title}
                   difficulty={item.difficulty === 'Beginner' ? 'DÉBUTANT' : item.difficulty === 'Intermediate' ? 'INTERMÉDIAIRE' : item.difficulty === 'Advanced' ? 'AVANCÉ' : item.difficulty}
@@ -446,20 +449,20 @@ export default function Program() {
                   category={item.category}
                   onPlay={() => (item.source === 'user' ? openUserWorkout(item.raw) : setPreviewWorkout(item.raw))}
                 />
-                {/* Menu ⋮ — séances perso uniquement : suppression. Sibling du
-                 *  bouton-carte (pas imbriqué) pour rester un HTML valide. */}
-                {item.source === 'user' && (
-                  <button
-                    type="button"
-                    onClick={() => setMenuWorkout(item.raw)}
-                    aria-label={`Options pour ${item.title}`}
-                    className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/45 backdrop-blur-sm flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
-                  >
-                    <MoreVertical size={18} className="text-bg-1" />
-                  </button>
-                )}
-              </div>
-            ))}
+              )
+              // Séances perso : swipe gauche → poubelle. Catalogue : carte simple.
+              return item.source === 'user' ? (
+                <SwipeableDeleteRow
+                  key={`${item.source}-${item.id}`}
+                  ariaLabel={`Supprimer ${item.title}`}
+                  onDelete={() => setMenuWorkout(item.raw)}
+                >
+                  {card}
+                </SwipeableDeleteRow>
+              ) : (
+                <div key={`${item.source}-${item.id}`}>{card}</div>
+              )
+            })}
           </div>
         )}
       </div>
@@ -635,6 +638,17 @@ export default function Program() {
           >
             <ArrowLeft size={16} className="text-tx-1" />
           </button>
+
+          {/* Menu ⋮ — séances perso uniquement : suppression depuis le détail. */}
+          {previewWorkout.__source === 'user' && (
+            <button
+              onClick={() => setMenuWorkout({ id: previewWorkout.id, name: previewWorkout.title })}
+              className="fixed right-4 z-[110] bg-white rounded-[24px] p-3 cursor-pointer active:scale-95 transition-transform fixed-top-button"
+              aria-label="Options de la séance"
+            >
+              <MoreVertical size={16} className="text-tx-1" />
+            </button>
+          )}
 
           {/* Contenu scrollable — CSS snap + fade image. Pas de TopFadeOverlay
            *  ici : il créait un liseré clair par-dessus le haut de l'image hero

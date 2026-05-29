@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Reorder, useDragControls } from 'framer-motion'
 import { Plus, GripVertical, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
+import { ImagePlus } from 'lucide-react'
 import {
   addProgramItem,
   countProgramsUsingUserWorkout,
@@ -11,12 +12,14 @@ import {
   replaceWorkoutExercises,
   updateUserWorkout,
   fetchExerciseCatalog,
+  CATEGORY_FALLBACK_IMAGE,
   type DraftExercise,
 } from '@/lib/myPrograms'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import EditableExerciseRow from '@/components/features/EditableExerciseRow'
 import ExercisePickerSheet from '@/components/features/ExercisePickerSheet'
+import ImagePickerSheet from '@/components/features/ImagePickerSheet'
 import { SLOT_ORDER, SLOT_LABELS } from '@/types'
 import type { Exercise, SlotType, WorkoutCategory } from '@/types'
 
@@ -58,9 +61,14 @@ export default function MyWorkoutEdit() {
   const navigate = useNavigate()
   const { id: programId, workoutId } = useParams()
   const isEdit = Boolean(workoutId)
+  // Séance orpheline (route /workouts/new) : pas de programme parent → on
+  // retourne au Programs Hub et on ne crée aucun lien user_program_workouts.
+  const returnTo = programId ? `/my-programs/${programId}` : '/programs'
 
   const [name, setName] = useState('')
   const [category, setCategory] = useState<WorkoutCategory>('upper')
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [imagePickerOpen, setImagePickerOpen] = useState(false)
   const [slots, setSlots] = useState<SlotMap>(EMPTY_SLOTS)
   const [freeExos, setFreeExos] = useState<DraftExercise[]>([])
   const [catalog, setCatalog] = useState<Exercise[]>([])
@@ -96,10 +104,11 @@ export default function MyWorkoutEdit() {
     async function load() {
       try {
         const workout = await fetchUserWorkout(workoutId as string)
-        if (!workout) return navigate(`/my-programs/${programId}`, { replace: true })
+        if (!workout) return navigate(returnTo, { replace: true })
         if (!active) return
         setName(workout.name)
         setCategory(workout.category)
+        setImageUrl(workout.image_url ?? null)
         const nextSlots: SlotMap = { ...EMPTY_SLOTS }
         const free: DraftExercise[] = []
         for (const e of workout.user_workout_exercises ?? []) {
@@ -204,10 +213,17 @@ export default function MyWorkoutEdit() {
         ...freeExos.map((d) => ({ ...d, slot_type: null })),
       ]
 
+      // Aucune image choisie → repli par catégorie (temporaire, cf. brief).
+      const finalImageUrl = imageUrl ?? CATEGORY_FALLBACK_IMAGE[category]
+
       let targetWorkoutId = workoutId as string
       let createdNew = false
       if (isEdit) {
-        await updateUserWorkout(targetWorkoutId, { name: name.trim(), category })
+        await updateUserWorkout(targetWorkoutId, {
+          name: name.trim(),
+          category,
+          image_url: finalImageUrl,
+        })
       } else {
         const {
           data: { user },
@@ -217,6 +233,7 @@ export default function MyWorkoutEdit() {
           user_id: user.id,
           name: name.trim(),
           category,
+          image_url: finalImageUrl,
         })
         targetWorkoutId = workout.id
         createdNew = true
@@ -224,9 +241,10 @@ export default function MyWorkoutEdit() {
 
       await replaceWorkoutExercises(targetWorkoutId, ordered)
 
-      // Nouvelle séance → la lier au programme courant (table de liaison).
-      if (createdNew) {
-        await addProgramItem(programId as string, { source: 'user', refId: targetWorkoutId })
+      // Nouvelle séance dans un programme → créer le lien (table de liaison).
+      // Séance orpheline (pas de programId) → aucun lien, elle vit seule.
+      if (createdNew && programId) {
+        await addProgramItem(programId, { source: 'user', refId: targetWorkoutId })
       }
 
       const emptySlots = SLOT_ORDER.length - filledSlots
@@ -234,9 +252,9 @@ export default function MyWorkoutEdit() {
         setToast(
           `Ta séance pourrait être plus équilibrée — tu as laissé ${emptySlots} slot${emptySlots > 1 ? 's' : ''} vide${emptySlots > 1 ? 's' : ''}`,
         )
-        navTimerRef.current = setTimeout(() => navigate(`/my-programs/${programId}`), 1600)
+        navTimerRef.current = setTimeout(() => navigate(returnTo), 1600)
       } else {
-        navigate(`/my-programs/${programId}`)
+        navigate(returnTo)
       }
     } catch (err) {
       console.error(err)
@@ -262,7 +280,7 @@ export default function MyWorkoutEdit() {
       <StickyPageHeader
         variant="dark"
         title={isEdit ? 'Modifier la séance' : 'Nouvelle séance'}
-        onBack={() => navigate(`/my-programs/${programId}`)}
+        onBack={() => navigate(returnTo)}
       />
 
       {/* Zone scrollable — seul ce bloc bouge ; header (haut) et footer (bas) statiques. */}
@@ -287,6 +305,37 @@ export default function MyWorkoutEdit() {
               </p>
             </div>
           )}
+
+          {/* Image de couverture — choisie dans la galerie partagée. */}
+          <button
+            type="button"
+            onClick={() => setImagePickerOpen(true)}
+            aria-label="Choisir une image de couverture"
+            className="relative w-full h-[160px] rounded-16 overflow-hidden bg-[#1c1c1e] border border-[#3d4149] flex items-center justify-center cursor-pointer active:scale-[0.99] transition-transform"
+          >
+            {imageUrl ? (
+              <>
+                <img src={imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <span
+                  className="absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-sans font-semibold"
+                  style={{ backgroundColor: accent, color: '#1b1d1f' }}
+                >
+                  <ImagePlus size={14} />
+                  Changer
+                </span>
+              </>
+            ) : (
+              <span className="flex flex-col items-center gap-2 text-tx-3">
+                <span
+                  className="w-12 h-12 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: `${accent}26` }}
+                >
+                  <ImagePlus size={22} style={{ color: accent }} />
+                </span>
+                <span className="font-sans font-semibold text-sm">Choisir une image</span>
+              </span>
+            )}
+          </button>
 
           {/* Nom + catégorie */}
           <div className="flex flex-col gap-3">
@@ -450,6 +499,14 @@ export default function MyWorkoutEdit() {
         onSelect={handleSelect}
         title={pickerTitle}
         slot={picker?.kind === 'slot' ? picker.slot : undefined}
+      />
+
+      <ImagePickerSheet
+        open={imagePickerOpen}
+        onClose={() => setImagePickerOpen(false)}
+        category={category}
+        selectedUrl={imageUrl}
+        onSelect={setImageUrl}
       />
     </div>
   )

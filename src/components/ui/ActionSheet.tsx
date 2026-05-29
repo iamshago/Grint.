@@ -7,6 +7,8 @@ export interface ActionSheetAction {
   onClick: () => void
   variant?: 'default' | 'destructive' | 'cancel'
   disabled?: boolean
+  /** Icône optionnelle affichée à gauche du label (ignorée pour la variante cancel). */
+  icon?: ReactNode
 }
 
 interface ActionSheetProps {
@@ -65,11 +67,16 @@ export default function ActionSheet({ open, onClose, ariaLabel, actions, header 
             disabled={action.disabled}
             className={cn(
               'w-full font-sans font-semibold text-[16px] rounded-[12px] py-[14px] px-[16px] disabled:opacity-60',
-              action.variant === 'cancel' ? 'text-center' : 'text-left',
+              action.variant === 'cancel'
+                ? 'text-center'
+                : action.icon
+                  ? 'flex items-center gap-[12px] text-left'
+                  : 'text-left',
               variantClass[action.variant ?? 'default'],
             )}
           >
-            {action.label}
+            {action.variant !== 'cancel' && action.icon}
+            <span>{action.label}</span>
           </button>
         ))}
       </div>

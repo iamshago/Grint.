@@ -106,7 +106,7 @@ export default function MyProgramEdit() {
   }
 
   return (
-    <DarkLayout noSafeAreaTop className="pb-tabbar">
+    <DarkLayout noSafeAreaTop hideTabBar className="pb-[calc(env(safe-area-inset-bottom,0px)+24px)]">
       <StickyPageHeader
         variant="dark"
         title={isEdit ? 'Modifier le programme' : 'Nouveau programme'}

@@ -40,7 +40,7 @@ export default function MyPrograms() {
   const isEmpty = !loading && programs.length === 0
 
   return (
-    <DarkLayout noSafeAreaTop className="pb-tabbar">
+    <DarkLayout noSafeAreaTop hideTabBar className="pb-[calc(env(safe-area-inset-bottom,0px)+24px)]">
       <StickyPageHeader
         variant="dark"
         title="Mon programme"

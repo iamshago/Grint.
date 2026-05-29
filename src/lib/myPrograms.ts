@@ -1,11 +1,23 @@
 import { supabase } from './supabaseClient'
 import type {
   Exercise,
+  ImageLibraryCategory,
   SlotType,
   UserProgram,
   UserWorkout,
   WorkoutCategory,
+  WorkoutImage,
 } from '@/types'
+
+/**
+ * Image de secours par catégorie quand l'utilisateur n'a pas choisi de visuel.
+ * Temporaire : Pestakle fournira des `generic` dans workout_image_library.
+ */
+export const CATEGORY_FALLBACK_IMAGE: Record<WorkoutCategory, string> = {
+  upper: '/assets/workouts/upper-body-h.png',
+  lower: '/assets/workouts/leg-day.png',
+  bbl: '/assets/workouts/bbl-day.png',
+}
 
 /**
  * Couche d'accès aux données « Mon programme » (programmes & séances persos).
@@ -204,6 +216,7 @@ export async function createUserWorkout(input: {
   user_id: string
   name: string
   category: WorkoutCategory
+  image_url?: string | null
 }): Promise<UserWorkout> {
   const { data, error } = await supabase.from('user_workouts').insert(input).select('*').single()
   if (error) throw error
@@ -212,10 +225,35 @@ export async function createUserWorkout(input: {
 
 export async function updateUserWorkout(
   id: string,
-  fields: { name?: string; category?: WorkoutCategory },
+  fields: { name?: string; category?: WorkoutCategory; image_url?: string | null },
 ): Promise<void> {
   const { error } = await supabase.from('user_workouts').update(fields).eq('id', id)
   if (error) throw error
+}
+
+/**
+ * Galerie d'images partagée (`workout_image_library`) pour la couverture d'une
+ * séance perso. Filtrée par catégorie ; `generic` sert de repli passe-partout.
+ * Retourne les images de la catégorie demandée, complétées par les `generic`.
+ */
+export async function fetchWorkoutImages(
+  category?: ImageLibraryCategory,
+): Promise<WorkoutImage[]> {
+  const { data, error } = await supabase
+    .from('workout_image_library')
+    .select('id, image_url, category, label, display_order, is_active')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true })
+  if (error) throw error
+  const all = (data ?? []) as WorkoutImage[]
+  if (!category || category === 'generic') {
+    return all.filter((img) => img.category === (category ?? 'generic') || img.category === 'generic')
+  }
+  // Catégorie précise d'abord, puis generic en complément.
+  return [
+    ...all.filter((img) => img.category === category),
+    ...all.filter((img) => img.category === 'generic'),
+  ]
 }
 
 export async function softDeleteUserWorkout(id: string): Promise<void> {

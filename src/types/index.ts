@@ -89,17 +89,32 @@ export interface UserProgram {
 
 export interface UserWorkout {
   id: string
-  /** @deprecated Obsolète : l'appartenance à un programme passe par user_program_workouts. */
+  /** @deprecated Obsolète : l'appartenance à un programme passe par user_program_workouts. NULL = séance orpheline. */
   user_program_id?: string | null
   user_id: string
   name: string
   category: WorkoutCategory
+  /** Image de couverture choisie dans la galerie (workout_image_library). */
+  image_url: string | null
   order_index: number
   is_deleted: boolean
   created_at: string
   updated_at: string
   /** Exercices de la séance (jointure optionnelle). */
   user_workout_exercises?: UserWorkoutExercise[]
+}
+
+/** Catégorie d'une image de la galerie — `generic` = passe-partout. */
+export type ImageLibraryCategory = WorkoutCategory | 'generic'
+
+/** Image preset de la bibliothèque partagée (`workout_image_library`). */
+export interface WorkoutImage {
+  id: string
+  image_url: string
+  category: ImageLibraryCategory | null
+  label: string | null
+  display_order: number
+  is_active: boolean
 }
 
 export interface UserWorkoutExercise {

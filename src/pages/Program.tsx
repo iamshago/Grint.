@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, Dumbbell, ArrowLeft, X, Play, Check, Calendar, Target, Plus } from 'lucide-react'
+import { Search, Clock, Dumbbell, ArrowLeft, X, Play, Check, Calendar, Target, Plus, FolderPlus } from 'lucide-react'
 
 import LightLayout from '@/components/layout/LightLayout'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
@@ -14,10 +14,9 @@ import UserProgramPreview from '@/components/features/UserProgramPreview'
 import Button from '@/components/ui/Button'
 import IconButton from '@/components/ui/IconButton'
 import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
+import ActionSheet from '@/components/ui/ActionSheet'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
 import { fetchUserPrograms } from '@/lib/myPrograms'
-
-const FILTERS = ['All', 'Haut du corps', 'Bas du corps', 'Abdos']
 
 const WEEKDAYS = [
   { label: 'Lundi', value: 1 },
@@ -32,6 +31,7 @@ const WEEKDAYS = [
 export default function Program() {
   const navigate = useNavigate()
   const [workouts, setWorkouts] = useState([])
+  const [userWorkouts, setUserWorkouts] = useState([])
   const [programs, setPrograms] = useState([])
   const [userPrograms, setUserPrograms] = useState([])
   const [previewUserProgramId, setPreviewUserProgramId] = useState(null)
@@ -49,6 +49,9 @@ export default function Program() {
 
   const [toast, setToast] = useState(null)
   const [videoModal, setVideoModal] = useState({ isOpen: false, url: null, title: '' })
+
+  // FAB « + » : bottom sheet de création (programme / séance directe).
+  const [createSheetOpen, setCreateSheetOpen] = useState(false)
 
   // Fade de l'image au scroll (ref callback)
   const snapRef = useCallback((node: HTMLDivElement | null) => {
@@ -96,34 +99,84 @@ export default function Program() {
     fetchCatalog()
   }, [])
 
-  // Programmes persos de l'utilisateur — affichés dans le carrousel après le catalogue.
+  // Programmes & séances persos de l'utilisateur.
+  // - Programmes → carrousel (après le catalogue).
+  // - Séances perso → fusionnées dans « Toutes les séances » + filtre « Mes séances ».
   useEffect(() => {
-    async function loadUserPrograms() {
+    async function loadUserData() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       try {
-        setUserPrograms(await fetchUserPrograms(user.id))
+        const [progs, wkRes] = await Promise.all([
+          fetchUserPrograms(user.id),
+          supabase
+            .from('user_workouts')
+            .select('*, user_workout_exercises(*, exercise:exercises(*))')
+            .eq('user_id', user.id)
+            .eq('is_deleted', false)
+            .order('updated_at', { ascending: false }),
+        ])
+        setUserPrograms(progs)
+        if (wkRes.error) throw wkRes.error
+        setUserWorkouts(wkRes.data || [])
       } catch (err) {
-        console.error('Erreur programmes persos:', err)
+        console.error('Erreur données perso:', err)
       }
     }
-    loadUserPrograms()
+    loadUserData()
   }, [])
 
-  // Filtrage des séances
-  const processedWorkouts = workouts.filter((workout) => {
-    const title = workout.title.toLowerCase()
+  // Tag « Mes séances » caché tant que l'utilisateur n'a pas de séance perso.
+  const hasUserWorkouts = userWorkouts.length > 0
+  const filters = hasUserWorkouts
+    ? ['All', 'Mes séances', 'Haut du corps', 'Bas du corps', 'Abdos']
+    : ['All', 'Haut du corps', 'Bas du corps', 'Abdos']
+
+  // Liste unifiée catalogue + perso. Les séances perso d'abord (mises en avant).
+  const userItems = userWorkouts.map((w) => ({
+    source: 'user',
+    id: w.id,
+    title: w.name,
+    category: w.category || 'upper',
+    imageUrl: w.image_url,
+    durationMin: undefined,
+    exerciseCount: w.user_workout_exercises?.length,
+    difficulty: undefined,
+    raw: w,
+  }))
+  const catalogItems = workouts.map((w) => ({
+    source: 'catalog',
+    id: w.id,
+    title: w.title,
+    category: w.category || 'upper',
+    imageUrl: w.image_url,
+    durationMin: w.duration_min,
+    exerciseCount: w.workout_exercises?.length,
+    difficulty: w.difficulty,
+    raw: w,
+  }))
+
+  // Filtrage des séances (catalogue par titre, perso par catégorie).
+  const processedWorkouts = [...userItems, ...catalogItems].filter((item) => {
     const search = searchTerm.toLowerCase()
-    if (search && !title.includes(search)) return false
+    if (search && !item.title.toLowerCase().includes(search)) return false
     if (activeFilter === 'All') return true
-    if (activeFilter === 'Haut du corps')
-      return title.includes('upper') || title.includes('push') || title.includes('pull')
-    if (activeFilter === 'Bas du corps')
-      return title.includes('lower') || title.includes('leg') || title.includes('bbl')
-    if (activeFilter === 'Abdos')
-      return title.includes('abdos') || title.includes('circuit') || title.includes('core')
-    if (activeFilter === 'Cardio')
-      return title.includes('cardio') || title.includes('hiit')
+    if (activeFilter === 'Mes séances') return item.source === 'user'
+    if (activeFilter === 'Haut du corps') {
+      if (item.source === 'user') return item.category === 'upper'
+      const t = item.title.toLowerCase()
+      return t.includes('upper') || t.includes('push') || t.includes('pull')
+    }
+    if (activeFilter === 'Bas du corps') {
+      if (item.source === 'user') return item.category === 'lower' || item.category === 'bbl'
+      const t = item.title.toLowerCase()
+      return t.includes('lower') || t.includes('leg') || t.includes('bbl')
+    }
+    if (activeFilter === 'Abdos') {
+      if (item.source === 'user') return false
+      const t = item.title.toLowerCase()
+      return t.includes('abdos') || t.includes('circuit') || t.includes('core')
+    }
     return true
   })
 
@@ -143,10 +196,13 @@ export default function Program() {
       } = await supabase.auth.getUser()
       if (!user) return showToast('Tu dois être connecté !', 'error')
 
+      const isUser = selectedWorkout.__source === 'user'
       const plansToInsert = selectedDays.map((dayIndex) => ({
         user_id: user.id,
         day_of_week: dayIndex,
-        workout_id: selectedWorkout.id,
+        source: isUser ? 'user' : 'catalog',
+        workout_id: isUser ? null : selectedWorkout.id,
+        user_workout_id: isUser ? selectedWorkout.id : null,
       }))
 
       const { error } = await supabase
@@ -170,6 +226,30 @@ export default function Program() {
     setIsModalOpen(true)
   }
 
+  // Libellé de catégorie pour le badge d'une séance perso (pas de difficulté).
+  const CATEGORY_LABEL = { upper: 'Haut du corps', lower: 'Bas du corps', bbl: 'BBL' }
+
+  // Normalise une séance perso vers la forme attendue par la modale détail.
+  const openUserWorkout = (uw) => {
+    setPreviewWorkout({
+      id: uw.id,
+      __source: 'user',
+      title: uw.name,
+      category: uw.category || 'upper',
+      image_url: uw.image_url,
+      detail_image_url: uw.image_url,
+      difficulty: CATEGORY_LABEL[uw.category] || 'Séance',
+      description: null,
+      duration_min: null,
+      workout_exercises: (uw.user_workout_exercises || []).map((e) => ({
+        order_index: e.order_index,
+        sets: e.sets,
+        reps: e.reps,
+        exercise: e.exercise,
+      })),
+    })
+  }
+
   const handleOpenVideo = (exo) => {
     if (exo.exercise?.video_url && exo.exercise.video_url.length > 5) {
       setVideoModal({ isOpen: true, url: exo.exercise.video_url, title: exo.exercise.name })
@@ -180,7 +260,7 @@ export default function Program() {
 
   return (
     <>
-    <LightLayout scrollable className="pb-tabbar">
+    <LightLayout scrollable hideTabBar className="pb-[calc(env(safe-area-inset-bottom,0px)+96px)]">
       {/* Easing gradient haut — 15 stops sigmoïde, zéro liseré (cf. Round 3). */}
       <TopFadeOverlay />
 
@@ -255,31 +335,14 @@ export default function Program() {
         </div>
       </div>
 
-      {/* Section Programmes — masquée pendant la recherche. La 1ʳᵉ carte « + Mon
-       *  programme » (espace perso) ouvre la création ; elle s'affiche toujours,
-       *  même si le catalogue est vide. */}
+      {/* Section Programmes — masquée pendant la recherche. La création passe
+       *  désormais par le FAB « + » en bas à droite (cf. brief programs-hub-v2). */}
       {!searchTerm && (
         <div className="mb-8">
           <h2 className="font-serif font-bold text-2xl text-tx-1 tracking-tight px-4 mb-4">
             Programmes
           </h2>
           <div className="flex gap-4 overflow-x-auto no-scrollbar pl-4 pr-4 pb-2">
-            {/* Carte création — perso (jaune), première de la liste */}
-            <button
-              type="button"
-              onClick={() => navigate('/my-programs')}
-              aria-label="Ouvrir mes programmes"
-              className="relative w-[248px] h-[224px] shrink-0 rounded-16 bg-tx-1 flex flex-col justify-end p-4 gap-2 text-left cursor-pointer active:scale-95 transition-transform shadow-[0px_0px_24px_0px_rgba(31,32,33,0.18)]"
-            >
-              <div className="w-12 h-12 rounded-12 bg-pr-1 flex items-center justify-center">
-                <Plus size={24} className="text-tx-1" />
-              </div>
-              <h3 className="font-serif font-bold text-[32px] text-pr-1 tracking-tight leading-none">
-                Mon programme
-              </h3>
-              <p className="font-sans text-base text-pr-1/70">Créer ou modifier</p>
-            </button>
-
             {programs.map((prog) => (
               <ProgramCard
                 key={prog.id}
@@ -316,7 +379,7 @@ export default function Program() {
 
         {/* Filtres */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 -mx-4 px-4">
-          {FILTERS.map((filter) => (
+          {filters.map((filter) => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
@@ -326,7 +389,7 @@ export default function Program() {
                   : 'bg-surface text-[#3d4149]'
               }`}
             >
-              {filter}
+              {filter === 'All' ? 'Tout' : filter}
             </button>
           ))}
         </div>
@@ -344,21 +407,32 @@ export default function Program() {
           </div>
         ) : (
           <div className="flex flex-col gap-4 pb-8">
-            {processedWorkouts.map((workout) => (
+            {processedWorkouts.map((item) => (
               <WorkoutCard
-                key={workout.id}
-                title={workout.title}
-                difficulty={workout.difficulty === 'Beginner' ? 'DÉBUTANT' : workout.difficulty === 'Intermediate' ? 'INTERMÉDIAIRE' : workout.difficulty === 'Advanced' ? 'AVANCÉ' : workout.difficulty}
-                durationMin={workout.duration_min}
-                exerciseCount={workout.workout_exercises?.length}
-                imageUrl={workout.image_url}
-                category={workout.category || 'upper'}
-                onPlay={() => setPreviewWorkout(workout)}
+                key={`${item.source}-${item.id}`}
+                title={item.title}
+                difficulty={item.difficulty === 'Beginner' ? 'DÉBUTANT' : item.difficulty === 'Intermediate' ? 'INTERMÉDIAIRE' : item.difficulty === 'Advanced' ? 'AVANCÉ' : item.difficulty}
+                durationMin={item.durationMin}
+                exerciseCount={item.exerciseCount}
+                imageUrl={item.imageUrl}
+                category={item.category}
+                onPlay={() => (item.source === 'user' ? openUserWorkout(item.raw) : setPreviewWorkout(item.raw))}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* FAB création — bas-droite, au-dessus de la liste qui scrolle. */}
+      <button
+        type="button"
+        onClick={() => setCreateSheetOpen(true)}
+        aria-label="Créer"
+        className="fixed right-6 z-40 w-14 h-14 rounded-full bg-tx-1 flex items-center justify-center shadow-[0px_8px_24px_0px_rgba(31,32,33,0.32)] cursor-pointer active:scale-95 transition-transform"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
+      >
+        <Plus size={28} className="text-pr-1" />
+      </button>
 
     </LightLayout>
 
@@ -452,6 +526,32 @@ export default function Program() {
         document.body
       )}
 
+      {/* === Bottom sheet création (FAB) === */}
+      <ActionSheet
+        open={createSheetOpen}
+        onClose={() => setCreateSheetOpen(false)}
+        ariaLabel="Que veux-tu créer ?"
+        actions={[
+          {
+            label: 'Créer un programme',
+            icon: <FolderPlus size={20} className="text-tx-1" />,
+            onClick: () => {
+              setCreateSheetOpen(false)
+              navigate('/my-programs/new')
+            },
+          },
+          {
+            label: 'Créer une séance',
+            icon: <Dumbbell size={20} className="text-tx-1" />,
+            onClick: () => {
+              setCreateSheetOpen(false)
+              navigate('/workouts/new')
+            },
+          },
+          { label: 'Annuler', variant: 'cancel', onClick: () => setCreateSheetOpen(false) },
+        ]}
+      />
+
       {/* === Portals — rendus hors du LightLayout pour éviter le stacking context === */}
 
       {/* === MODALE DÉTAIL SÉANCE (Light — Planifier) === */}
@@ -511,6 +611,7 @@ export default function Program() {
 
                   {/* Stats — icônes accent dynamique */}
                   <div className="flex items-center gap-4">
+                    {previewWorkout.duration_min != null && (
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-[24px] bg-tx-1 flex items-center justify-center p-2">
                         <Clock size={16} style={{ color: accent }} />
@@ -522,6 +623,7 @@ export default function Program() {
                         </p>
                       </div>
                     </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-[24px] bg-tx-1 flex items-center justify-center p-2">
                         <Dumbbell size={16} style={{ color: accent }} />

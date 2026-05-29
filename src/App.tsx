@@ -5,8 +5,23 @@ import ThemeProvider from '@/components/layout/ThemeProvider'
 import { AccentProvider } from '@/lib/AccentContext'
 import TabBar from '@/components/layout/TabBar'
 
-/** Routes où le TabBar ne doit PAS s'afficher */
-const HIDE_TABBAR_ROUTES = ['/login', '/splash', '/workout', '/profile/avatar', '/onboarding', '/community/challenges']
+/**
+ * Routes où le TabBar ne doit PAS s'afficher.
+ * `/programs`, `/my-programs` et `/workouts` (création directe) descendent de la
+ * Home (carte « Programmer mes séances ») : ce ne sont pas des racines de tab,
+ * le bouton retour du header suffit. Cf. brief programs-hub-v2.
+ */
+const HIDE_TABBAR_ROUTES = [
+  '/login',
+  '/splash',
+  '/workout',
+  '/profile/avatar',
+  '/onboarding',
+  '/community/challenges',
+  '/programs',
+  '/my-programs',
+  '/workouts',
+]
 
 /**
  * iOS Safari (hors-PWA) : au mount de l'app, déclencher un micro-scroll pour
@@ -40,12 +55,7 @@ function PersistentTabBar() {
   const location = useLocation()
   const path = location.pathname
   const hiddenByPrefix = HIDE_TABBAR_ROUTES.some((r) => path.startsWith(r))
-  // Éditeurs de programme/séance perso : formulaires plein écran avec leur propre
-  // CTA fixe en bas — la TabBar passerait derrière (le « CTA noir » fantôme).
-  const isMyProgramEditor =
-    path.startsWith('/my-programs') &&
-    (path.endsWith('/new') || path.endsWith('/edit') || path.includes('/workouts/'))
-  if (hiddenByPrefix || isMyProgramEditor) return null
+  if (hiddenByPrefix) return null
   return <TabBar />
 }
 
@@ -170,6 +180,9 @@ export default function App() {
           <Route path="/my-programs/:id/edit" element={<MyProgramEdit />} />
           <Route path="/my-programs/:id/workouts/new" element={<MyWorkoutEdit />} />
           <Route path="/my-programs/:id/workouts/:workoutId/edit" element={<MyWorkoutEdit />} />
+
+          {/* Création directe d'une séance perso (sans programme parent) — light */}
+          <Route path="/workouts/new" element={<MyWorkoutEdit />} />
           <Route path="/community" element={<Community />} />
           <Route path="/community/challenges/:id" element={<ChallengeDetail />} />
           <Route path="/community/challenges/:id/join" element={<ChallengeJoin />} />

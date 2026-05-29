@@ -29,6 +29,7 @@ interface PreviewExo {
   name: string
   sets: number
   reps: string
+  videoUrl: string | null
 }
 
 interface UserProgramPreviewProps {
@@ -84,16 +85,22 @@ export default function UserProgramPreview({ programId, onClose, onToast }: User
           name: e.exercise?.name ?? 'Exercice',
           sets: e.sets,
           reps: e.reps,
+          videoUrl: e.exercise?.video_url ?? null,
         }))
       } else {
         const { data } = await supabase
           .from('workouts')
-          .select('workout_exercises(sets, reps, order_index, exercise:exercises(name))')
+          .select('workout_exercises(sets, reps, order_index, exercise:exercises(name, video_url))')
           .eq('id', item.refId)
           .maybeSingle()
         exos = ((data as any)?.workout_exercises ?? [])
           .sort((a: any, b: any) => a.order_index - b.order_index)
-          .map((e: any) => ({ name: e.exercise?.name ?? 'Exercice', sets: e.sets, reps: e.reps }))
+          .map((e: any) => ({
+            name: e.exercise?.name ?? 'Exercice',
+            sets: e.sets,
+            reps: e.reps,
+            videoUrl: e.exercise?.video_url ?? null,
+          }))
       }
       setDetail({ item, exos })
     } catch (e) {
@@ -156,6 +163,7 @@ export default function UserProgramPreview({ programId, onClose, onToast }: User
           item={detail.item}
           exos={detail.exos}
           coverUrl={detail.item.imageUrl ?? program?.image_url ?? null}
+          onToast={onToast}
           onClose={() => setDetail(null)}
           onPlan={() => setPlanItem(detail.item)}
         />
@@ -182,16 +190,19 @@ function WorkoutDetail({
   item,
   exos,
   coverUrl,
+  onToast,
   onClose,
   onPlan,
 }: {
   item: ProgramItem
   exos: PreviewExo[]
   coverUrl: string | null
+  onToast: (message: string, type?: 'success' | 'error' | 'info') => void
   onClose: () => void
   onPlan: () => void
 }) {
   const accent = CATEGORY_ACCENT[item.category] || '#ffee8c'
+  const [video, setVideo] = useState<{ url: string; title: string } | null>(null)
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-bg-1 overflow-hidden">
@@ -223,7 +234,9 @@ function WorkoutDetail({
                   className="inline-flex items-center px-3 py-1.5 rounded-lg self-start"
                   style={{ backgroundColor: `${accent}40`, border: `1px solid ${accent}` }}
                 >
-                  <span className="font-sans font-semibold text-xs uppercase" style={{ color: accent }}>
+                  {/* Texte sombre : lisible sur le fond clair de la page, quelle que soit
+                   *  la couleur d'accent (le jaune sur jaune pâle était illisible). */}
+                  <span className="font-sans font-semibold text-xs uppercase text-tx-1">
                     {CATEGORY_LABEL[item.category]}
                   </span>
                 </div>
@@ -254,6 +267,11 @@ function WorkoutDetail({
                     reps={exo.reps}
                     variant="light"
                     accent={accent}
+                    onPlay={() =>
+                      exo.videoUrl && exo.videoUrl.length > 5
+                        ? setVideo({ url: exo.videoUrl, title: exo.name })
+                        : onToast(`Vidéo bientôt disponible pour ${exo.name}`, 'info')
+                    }
                   />
                 ))}
               </div>
@@ -277,6 +295,32 @@ function WorkoutDetail({
           </button>
         </div>
       </div>
+
+      {/* Vidéo de l'exercice (raccordée comme dans le Workout Player) */}
+      {video && (
+        <div className="fixed inset-0 z-[10001] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4">
+          <button
+            type="button"
+            onClick={() => setVideo(null)}
+            aria-label="Fermer la vidéo"
+            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-tx-1 flex items-center justify-center active:scale-95 transition-transform"
+          >
+            <X size={18} className="text-bg-1" />
+          </button>
+          <h3 className="font-serif font-bold text-xl text-bg-1 mb-6 text-center px-8">
+            {video.title}
+          </h3>
+          <video
+            src={video.url}
+            autoPlay
+            loop
+            muted
+            playsInline
+            controls={false}
+            className="w-full max-w-sm rounded-16 overflow-hidden"
+          />
+        </div>
+      )}
     </div>,
     document.body,
   )

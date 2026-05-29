@@ -87,7 +87,8 @@ export interface UserProgram {
 
 export interface UserWorkout {
   id: string
-  user_program_id: string
+  /** @deprecated Obsolète : l'appartenance à un programme passe par user_program_workouts. */
+  user_program_id?: string | null
   user_id: string
   name: string
   category: WorkoutCategory

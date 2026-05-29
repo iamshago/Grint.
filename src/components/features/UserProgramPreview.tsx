@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, Calendar, Dumbbell, X } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
-import { fetchUserProgram, fetchUserWorkout } from '@/lib/myPrograms'
+import { fetchUserProgram, fetchUserWorkout, type ProgramItem } from '@/lib/myPrograms'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import ExerciseRow from '@/components/features/ExerciseRow'
 import WorkoutCard from '@/components/features/WorkoutCard'
-import type { UserProgram, UserWorkout } from '@/types'
+import type { UserProgram } from '@/types'
 
 const CATEGORY_LABEL: Record<string, string> = {
   upper: 'Haut du corps',
@@ -25,6 +25,12 @@ const WEEKDAYS = [
   { label: 'Dimanche', value: 0 },
 ]
 
+interface PreviewExo {
+  name: string
+  sets: number
+  reps: string
+}
+
 interface UserProgramPreviewProps {
   programId: string
   onClose: () => void
@@ -33,15 +39,14 @@ interface UserProgramPreviewProps {
 
 /**
  * Aperçu « consultation » d'un programme perso depuis le carrousel Programmes —
- * miroir du détail catalogue : liste des séances → exos → « Planifier cette séance »
- * (écrit `workout_plan` en source='user'). L'exécution se lance ensuite depuis
- * l'Accueil, comme une séance classique. Lecture seule (édition = /my-programs/:id).
+ * miroir du détail catalogue (light) : liste des séances (catalogue + perso) →
+ * exos → « Planifier cette séance ». L'exécution se lance depuis l'Accueil.
  */
 export default function UserProgramPreview({ programId, onClose, onToast }: UserProgramPreviewProps) {
-  const [program, setProgram] = useState<UserProgram | null>(null)
+  const [program, setProgram] = useState<(UserProgram & { items: ProgramItem[] }) | null>(null)
   const [loading, setLoading] = useState(true)
-  const [detail, setDetail] = useState<UserWorkout | null>(null)
-  const [planFor, setPlanFor] = useState<UserWorkout | null>(null)
+  const [detail, setDetail] = useState<{ item: ProgramItem; exos: PreviewExo[] } | null>(null)
+  const [planItem, setPlanItem] = useState<ProgramItem | null>(null)
 
   useEffect(() => {
     let active = true
@@ -60,17 +65,34 @@ export default function UserProgramPreview({ programId, onClose, onToast }: User
     }
   }, [programId])
 
-  async function openWorkout(id: string) {
+  async function openItem(item: ProgramItem) {
     try {
-      const full = await fetchUserWorkout(id)
-      if (full) setDetail(full)
+      let exos: PreviewExo[] = []
+      if (item.source === 'user') {
+        const uw = await fetchUserWorkout(item.refId)
+        exos = (uw?.user_workout_exercises ?? []).map((e) => ({
+          name: e.exercise?.name ?? 'Exercice',
+          sets: e.sets,
+          reps: e.reps,
+        }))
+      } else {
+        const { data } = await supabase
+          .from('workouts')
+          .select('workout_exercises(sets, reps, order_index, exercise:exercises(name))')
+          .eq('id', item.refId)
+          .maybeSingle()
+        exos = ((data as any)?.workout_exercises ?? [])
+          .sort((a: any, b: any) => a.order_index - b.order_index)
+          .map((e: any) => ({ name: e.exercise?.name ?? 'Exercice', sets: e.sets, reps: e.reps }))
+      }
+      setDetail({ item, exos })
     } catch (e) {
       console.error(e)
       onToast('Impossible de charger la séance.', 'error')
     }
   }
 
-  const workouts = program?.user_workouts ?? []
+  const items = program?.items ?? []
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-bg-1 flex flex-col">
@@ -86,7 +108,6 @@ export default function UserProgramPreview({ programId, onClose, onToast }: User
           className="px-4 flex flex-col gap-6"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)' }}
         >
-          {/* Image de couverture */}
           {program?.image_url && (
             <div className="rounded-16 overflow-hidden h-[160px] -mt-1">
               <img src={program.image_url} alt="" className="w-full h-full object-cover" />
@@ -104,19 +125,20 @@ export default function UserProgramPreview({ programId, onClose, onToast }: User
                   <div key={i} className="h-[168px] bg-surface rounded-16 animate-pulse" />
                 ))}
               </div>
-            ) : workouts.length === 0 ? (
+            ) : items.length === 0 ? (
               <div className="bg-surface rounded-16 p-10 text-center">
                 <p className="font-sans text-tx-3 text-sm">Ce programme n'a pas encore de séance.</p>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                {workouts.map((w) => (
+                {items.map((it) => (
                   <WorkoutCard
-                    key={w.id}
-                    title={w.name}
-                    category={w.category}
-                    exerciseCount={w.user_workout_exercises?.length}
-                    onPlay={() => openWorkout(w.id)}
+                    key={it.linkId}
+                    title={it.name}
+                    category={it.category}
+                    exerciseCount={it.exerciseCount}
+                    imageUrl={it.imageUrl ?? program?.image_url ?? undefined}
+                    onPlay={() => openItem(it)}
                   />
                 ))}
               </div>
@@ -125,23 +147,22 @@ export default function UserProgramPreview({ programId, onClose, onToast }: User
         </div>
       </div>
 
-      {/* Détail séance (exos + Planifier) */}
       {detail && (
         <WorkoutDetail
-          workout={detail}
-          coverUrl={program?.image_url ?? null}
+          item={detail.item}
+          exos={detail.exos}
+          coverUrl={detail.item.imageUrl ?? program?.image_url ?? null}
           onClose={() => setDetail(null)}
-          onPlan={() => setPlanFor(detail)}
+          onPlan={() => setPlanItem(detail.item)}
         />
       )}
 
-      {/* Sélecteur de jours — planifie en source='user' */}
-      {planFor && (
+      {planItem && (
         <PlanModal
-          workout={planFor}
-          onClose={() => setPlanFor(null)}
+          item={planItem}
+          onClose={() => setPlanItem(null)}
           onDone={() => {
-            setPlanFor(null)
+            setPlanItem(null)
             setDetail(null)
             onToast('Séance planifiée avec succès !', 'success')
           }}
@@ -152,24 +173,24 @@ export default function UserProgramPreview({ programId, onClose, onToast }: User
   )
 }
 
-/** Détail d'une séance perso — miroir light du détail catalogue. */
+/** Détail d'une séance (catalogue ou perso) — miroir light du détail catalogue. */
 function WorkoutDetail({
-  workout,
+  item,
+  exos,
   coverUrl,
   onClose,
   onPlan,
 }: {
-  workout: UserWorkout
+  item: ProgramItem
+  exos: PreviewExo[]
   coverUrl: string | null
   onClose: () => void
   onPlan: () => void
 }) {
-  const accent = CATEGORY_ACCENT[workout.category] || '#ffee8c'
-  const exos = workout.user_workout_exercises ?? []
+  const accent = CATEGORY_ACCENT[item.category] || '#ffee8c'
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-bg-1 overflow-hidden">
-      {/* Image hero (image du programme) */}
       <div className="absolute top-0 left-0 right-0 h-[308px]">
         {coverUrl && <img src={coverUrl} alt="" className="w-full h-full object-cover" />}
       </div>
@@ -199,11 +220,11 @@ function WorkoutDetail({
                   style={{ backgroundColor: `${accent}40`, border: `1px solid ${accent}` }}
                 >
                   <span className="font-sans font-semibold text-xs uppercase" style={{ color: accent }}>
-                    {CATEGORY_LABEL[workout.category]}
+                    {CATEGORY_LABEL[item.category]}
                   </span>
                 </div>
                 <h2 className="font-serif font-bold text-[32px] text-tx-1 tracking-[-0.96px]">
-                  {workout.name}
+                  {item.name}
                 </h2>
               </div>
               <div className="flex items-center gap-2">
@@ -222,9 +243,9 @@ function WorkoutDetail({
               <div className="flex flex-col gap-2">
                 {exos.map((exo, index) => (
                   <ExerciseRow
-                    key={exo.id ?? index}
+                    key={index}
                     index={index + 1}
-                    name={exo.exercise?.name || 'Exercice'}
+                    name={exo.name}
                     sets={exo.sets}
                     reps={exo.reps}
                     variant="light"
@@ -237,7 +258,6 @@ function WorkoutDetail({
         </div>
       </div>
 
-      {/* CTA Planifier */}
       <div
         className="fixed bottom-0 left-0 right-0 z-[110] pointer-events-none"
         style={{ backgroundImage: 'linear-gradient(to bottom, rgba(241,244,251,0) 0%, #f1f4fb 32%)' }}
@@ -258,13 +278,13 @@ function WorkoutDetail({
   )
 }
 
-/** Sélecteur de jours — planifie une séance perso (workout_plan source='user'). */
+/** Sélecteur de jours — planifie la séance (catalogue ou perso) dans workout_plan. */
 function PlanModal({
-  workout,
+  item,
   onClose,
   onDone,
 }: {
-  workout: UserWorkout
+  item: ProgramItem
   onClose: () => void
   onDone: () => void
 }) {
@@ -282,9 +302,9 @@ function PlanModal({
       const rows = selectedDays.map((d) => ({
         user_id: user.id,
         day_of_week: d,
-        source: 'user' as const,
-        user_workout_id: workout.id,
-        workout_id: null,
+        source: item.source,
+        workout_id: item.source === 'catalog' ? item.refId : null,
+        user_workout_id: item.source === 'user' ? item.refId : null,
       }))
       const { error } = await supabase
         .from('workout_plan')
@@ -314,7 +334,7 @@ function PlanModal({
         </div>
         <p className="font-sans text-sm text-tx-3 mb-4">
           Sélectionne un ou plusieurs jours pour{' '}
-          <span className="font-bold text-tx-1">{workout.name}</span> :
+          <span className="font-bold text-tx-1">{item.name}</span> :
         </p>
         <div className="grid grid-cols-2 gap-3 mb-6">
           {WEEKDAYS.map((day) => {

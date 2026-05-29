@@ -292,7 +292,7 @@ export default function Program() {
 
             {/* Programmes perso — après le catalogue, badge « Perso » pour les distinguer */}
             {userPrograms.map((up) => {
-              const count = up.user_workouts?.length ?? 0
+              const count = up.categories?.length ?? 0
               return (
                 <ProgramCard
                   key={up.id}

@@ -5,17 +5,20 @@ import { Plus, GripVertical, ChevronRight, X, Dumbbell } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { supabase } from '@/lib/supabaseClient'
 import {
+  addProgramItem,
   fetchUserProgram,
-  reorderUserWorkouts,
+  removeProgramItem,
+  reorderProgramItems,
   softDeleteUserProgram,
-  softDeleteUserWorkout,
+  type ProgramItem,
 } from '@/lib/myPrograms'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
 import DarkLayout from '@/components/layout/DarkLayout'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import ActionSheet from '@/components/ui/ActionSheet'
 import Button from '@/components/ui/Button'
-import type { UserProgram, UserWorkout } from '@/types'
+import SeancePicker from '@/components/features/SeancePicker'
+import type { UserProgram } from '@/types'
 
 const CATEGORY_LABEL: Record<string, string> = {
   upper: 'Haut du corps',
@@ -33,39 +36,43 @@ const WEEKDAYS = [
   { label: 'Dimanche', value: 0 },
 ]
 
-/** Détail d'un programme perso — liste des séances (réordonnables), planification. */
+/** Détail d'un programme perso — séances liées (catalogue + perso), réordonnables, planification. */
 export default function MyProgramDetail() {
   const navigate = useNavigate()
   const { id } = useParams()
 
   const [program, setProgram] = useState<UserProgram | null>(null)
-  const [workouts, setWorkouts] = useState<UserWorkout[]>([])
+  const [items, setItems] = useState<ProgramItem[]>([])
+  const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [programMenu, setProgramMenu] = useState(false)
   const [confirmDeleteProgram, setConfirmDeleteProgram] = useState(false)
 
-  // Séance ciblée par l'action sheet / la modale de planification
-  const [actionWorkout, setActionWorkout] = useState<UserWorkout | null>(null)
-  const [planWorkout, setPlanWorkout] = useState<UserWorkout | null>(null)
-  const [confirmDeleteWorkout, setConfirmDeleteWorkout] = useState<UserWorkout | null>(null)
+  const [addChoice, setAddChoice] = useState(false)
+  const [showPicker, setShowPicker] = useState(false)
+  const [actionItem, setActionItem] = useState<ProgramItem | null>(null)
+  const [planItem, setPlanItem] = useState<ProgramItem | null>(null)
+  const [confirmRemove, setConfirmRemove] = useState<ProgramItem | null>(null)
 
-  const orderRef = useRef<UserWorkout[]>([])
-  orderRef.current = workouts
+  const orderRef = useRef<ProgramItem[]>([])
+  orderRef.current = items
 
-  // Met à jour la ref de façon synchrone pour que commitOrder (onDragEnd) lise
-  // toujours le dernier ordre, sans dépendre du flush de setWorkouts.
-  const handleReorder = useCallback((next: UserWorkout[]) => {
+  const handleReorder = useCallback((next: ProgramItem[]) => {
     orderRef.current = next
-    setWorkouts(next)
+    setItems(next)
   }, [])
 
   const load = useCallback(async () => {
     try {
       setLoading(true)
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setUserId(user?.id ?? null)
       const data = await fetchUserProgram(id as string)
       if (!data) return navigate('/my-programs', { replace: true })
       setProgram(data)
-      setWorkouts(data.user_workouts ?? [])
+      setItems(data.items)
     } catch (err) {
       console.error(err)
     } finally {
@@ -78,7 +85,7 @@ export default function MyProgramDetail() {
   }, [load])
 
   const commitOrder = useCallback(() => {
-    reorderUserWorkouts(orderRef.current.map((w) => w.id)).catch((e) => console.error(e))
+    reorderProgramItems(orderRef.current.map((it) => it.linkId)).catch((e) => console.error(e))
   }, [])
 
   async function handleDeleteProgram() {
@@ -87,10 +94,23 @@ export default function MyProgramDetail() {
     navigate('/my-programs', { replace: true })
   }
 
-  async function handleDeleteWorkout(workout: UserWorkout) {
-    setConfirmDeleteWorkout(null)
-    await softDeleteUserWorkout(workout.id)
-    setWorkouts((prev) => prev.filter((w) => w.id !== workout.id))
+  async function handleAddExisting(ref: { source: 'catalog' | 'user'; id: string }) {
+    try {
+      await addProgramItem(id as string, { source: ref.source, refId: ref.id })
+      await load()
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  async function handleRemove(item: ProgramItem) {
+    setConfirmRemove(null)
+    try {
+      await removeProgramItem(item.linkId)
+      setItems((prev) => prev.filter((it) => it.linkId !== item.linkId))
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   return (
@@ -106,7 +126,7 @@ export default function MyProgramDetail() {
       <div className="px-4 pt-2 flex flex-col gap-4">
         <button
           type="button"
-          onClick={() => navigate(`/my-programs/${id}/workouts/new`)}
+          onClick={() => setAddChoice(true)}
           className="w-full flex items-center justify-center gap-3 bg-pr-1 text-tx-1 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform shadow-[0px_0px_20px_0px_rgba(255,238,140,0.3)]"
         >
           <Plus size={18} />
@@ -119,24 +139,58 @@ export default function MyProgramDetail() {
               <div key={i} className="h-[72px] bg-[#1c1c1e] rounded-16 animate-pulse" />
             ))}
           </div>
-        ) : workouts.length === 0 ? null : (
+        ) : items.length === 0 ? null : (
           <Reorder.Group
             axis="y"
-            values={workouts}
+            values={items}
             onReorder={handleReorder}
             className="flex flex-col gap-3 list-none"
           >
-            {workouts.map((workout) => (
-              <WorkoutReorderRow
-                key={workout.id}
-                workout={workout}
+            {items.map((item) => (
+              <ItemRow
+                key={item.linkId}
+                item={item}
                 onCommit={commitOrder}
-                onOpen={() => setActionWorkout(workout)}
+                onOpen={() => setActionItem(item)}
               />
             ))}
           </Reorder.Group>
         )}
       </div>
+
+      {/* Choix : séance existante ou nouvelle */}
+      <ActionSheet
+        open={addChoice}
+        onClose={() => setAddChoice(false)}
+        ariaLabel="Ajouter une séance"
+        actions={[
+          {
+            label: 'Choisir une séance existante',
+            onClick: () => {
+              setAddChoice(false)
+              setShowPicker(true)
+            },
+          },
+          {
+            label: 'Créer une nouvelle séance',
+            onClick: () => {
+              setAddChoice(false)
+              navigate(`/my-programs/${id}/workouts/new`)
+            },
+          },
+          { label: 'Annuler', variant: 'cancel', onClick: () => setAddChoice(false) },
+        ]}
+      />
+
+      {/* Sélecteur de séance existante */}
+      {userId && (
+        <SeancePicker
+          open={showPicker}
+          onClose={() => setShowPicker(false)}
+          userId={userId}
+          onSelect={handleAddExisting}
+        />
+      )}
 
       {/* Menu programme */}
       <ActionSheet
@@ -165,34 +219,38 @@ export default function MyProgramDetail() {
 
       {/* Actions d'une séance */}
       <ActionSheet
-        open={Boolean(actionWorkout)}
-        onClose={() => setActionWorkout(null)}
+        open={Boolean(actionItem)}
+        onClose={() => setActionItem(null)}
         ariaLabel="Actions de la séance"
         actions={[
-          {
-            label: 'Modifier la séance',
-            onClick: () => {
-              const w = actionWorkout
-              setActionWorkout(null)
-              if (w) navigate(`/my-programs/${id}/workouts/${w.id}/edit`)
-            },
-          },
+          ...(actionItem?.editable
+            ? [
+                {
+                  label: 'Modifier la séance',
+                  onClick: () => {
+                    const it = actionItem
+                    setActionItem(null)
+                    if (it) navigate(`/my-programs/${id}/workouts/${it.refId}/edit`)
+                  },
+                },
+              ]
+            : []),
           {
             label: 'Planifier dans la semaine',
             onClick: () => {
-              setPlanWorkout(actionWorkout)
-              setActionWorkout(null)
+              setPlanItem(actionItem)
+              setActionItem(null)
             },
           },
           {
-            label: 'Supprimer la séance',
+            label: 'Retirer du programme',
             variant: 'destructive',
             onClick: () => {
-              setConfirmDeleteWorkout(actionWorkout)
-              setActionWorkout(null)
+              setConfirmRemove(actionItem)
+              setActionItem(null)
             },
           },
-          { label: 'Annuler', variant: 'cancel', onClick: () => setActionWorkout(null) },
+          { label: 'Annuler', variant: 'cancel', onClick: () => setActionItem(null) },
         ]}
       />
 
@@ -205,7 +263,7 @@ export default function MyProgramDetail() {
           <div className="text-center pb-2">
             <p className="font-serif font-bold text-lg text-tx-1">Supprimer ce programme ?</p>
             <p className="font-sans text-sm text-tx-3 mt-1">
-              Les séances de ce programme seront aussi supprimées.
+              Les séances perso restent disponibles dans tes autres programmes.
             </p>
           </div>
         }
@@ -215,51 +273,53 @@ export default function MyProgramDetail() {
         ]}
       />
 
-      {/* Confirmation suppression séance */}
+      {/* Confirmation retrait séance */}
       <ActionSheet
-        open={Boolean(confirmDeleteWorkout)}
-        onClose={() => setConfirmDeleteWorkout(null)}
-        ariaLabel="Confirmer la suppression de la séance"
+        open={Boolean(confirmRemove)}
+        onClose={() => setConfirmRemove(null)}
+        ariaLabel="Confirmer le retrait de la séance"
         header={
           <div className="text-center pb-2">
-            <p className="font-serif font-bold text-lg text-tx-1">Supprimer cette séance ?</p>
+            <p className="font-serif font-bold text-lg text-tx-1">Retirer cette séance ?</p>
+            <p className="font-sans text-sm text-tx-3 mt-1">
+              Elle est juste retirée de ce programme, pas supprimée.
+            </p>
           </div>
         }
         actions={[
           {
-            label: 'Supprimer',
+            label: 'Retirer',
             variant: 'destructive',
-            onClick: () => confirmDeleteWorkout && handleDeleteWorkout(confirmDeleteWorkout),
+            onClick: () => confirmRemove && handleRemove(confirmRemove),
           },
-          { label: 'Annuler', variant: 'cancel', onClick: () => setConfirmDeleteWorkout(null) },
+          { label: 'Annuler', variant: 'cancel', onClick: () => setConfirmRemove(null) },
         ]}
       />
 
       {/* Modale de planification */}
-      {planWorkout && (
-        <PlanModal workout={planWorkout} onClose={() => setPlanWorkout(null)} />
+      {planItem && userId && (
+        <PlanModal item={planItem} userId={userId} onClose={() => setPlanItem(null)} />
       )}
     </DarkLayout>
   )
 }
 
-/** Ligne séance réordonnable par drag handle (framer-motion Reorder). */
-function WorkoutReorderRow({
-  workout,
+/** Ligne séance réordonnable (catalogue ou perso). */
+function ItemRow({
+  item,
   onCommit,
   onOpen,
 }: {
-  workout: UserWorkout
+  item: ProgramItem
   onCommit: () => void
   onOpen: () => void
 }) {
   const controls = useDragControls()
-  const accent = CATEGORY_ACCENT[workout.category] || '#ffee8c'
-  const exoCount = workout.user_workout_exercises?.length ?? 0
+  const accent = CATEGORY_ACCENT[item.category] || '#ffee8c'
 
   return (
     <Reorder.Item
-      value={workout}
+      value={item}
       dragListener={false}
       dragControls={controls}
       onDragEnd={onCommit}
@@ -277,23 +337,24 @@ function WorkoutReorderRow({
       <button
         type="button"
         onClick={onOpen}
-        aria-label={`Actions pour ${workout.name}`}
+        aria-label={`Actions pour ${item.name}`}
         className="flex-1 min-w-0 flex items-center gap-3 py-3 pr-4 text-left cursor-pointer"
       >
         <div className="flex-1 min-w-0">
-          <h3 className="font-sans font-semibold text-base text-bg-1 truncate">
-            {workout.name}
-          </h3>
-          <div className="flex items-center gap-2 mt-1">
+          <h3 className="font-sans font-semibold text-base text-bg-1 truncate">{item.name}</h3>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span
               className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-sans font-semibold uppercase"
               style={{ backgroundColor: `${accent}40`, color: accent }}
             >
-              {CATEGORY_LABEL[workout.category]}
+              {CATEGORY_LABEL[item.category]}
+            </span>
+            <span className="font-sans text-[11px] text-tx-3">
+              {item.source === 'catalog' ? 'Catalogue' : 'Perso'}
             </span>
             <span className="flex items-center gap-1 font-sans text-xs text-tx-3">
               <Dumbbell size={12} />
-              {exoCount} exo{exoCount > 1 ? 's' : ''}
+              {item.exerciseCount} exo{item.exerciseCount > 1 ? 's' : ''}
             </span>
           </div>
         </div>
@@ -303,8 +364,16 @@ function WorkoutReorderRow({
   )
 }
 
-/** Modale de sélection de jours pour planifier une séance perso. */
-function PlanModal({ workout, onClose }: { workout: UserWorkout; onClose: () => void }) {
+/** Modale de sélection de jours pour planifier une séance (catalogue ou perso). */
+function PlanModal({
+  item,
+  userId,
+  onClose,
+}: {
+  item: ProgramItem
+  userId: string
+  onClose: () => void
+}) {
   const [selectedDays, setSelectedDays] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
@@ -313,16 +382,12 @@ function PlanModal({ workout, onClose }: { workout: UserWorkout; onClose: () => 
     if (selectedDays.length === 0) return
     try {
       setSaving(true)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
       const rows = selectedDays.map((d) => ({
-        user_id: user.id,
+        user_id: userId,
         day_of_week: d,
-        source: 'user' as const,
-        user_workout_id: workout.id,
-        workout_id: null,
+        source: item.source,
+        workout_id: item.source === 'catalog' ? item.refId : null,
+        user_workout_id: item.source === 'user' ? item.refId : null,
       }))
       const { error } = await supabase
         .from('workout_plan')
@@ -353,7 +418,7 @@ function PlanModal({ workout, onClose }: { workout: UserWorkout; onClose: () => 
         </div>
         <p className="font-sans text-sm text-tx-3 mb-4">
           Sélectionne un ou plusieurs jours pour{' '}
-          <span className="font-bold text-tx-1">{workout.name}</span> :
+          <span className="font-bold text-tx-1">{item.name}</span> :
         </p>
         <div className="grid grid-cols-2 gap-3 mb-6">
           {WEEKDAYS.map((day) => {
@@ -382,11 +447,7 @@ function PlanModal({ workout, onClose }: { workout: UserWorkout; onClose: () => 
           onClick={handleSave}
           disabled={saving || selectedDays.length === 0}
         >
-          {done
-            ? 'Planifiée !'
-            : saving
-              ? 'Enregistrement...'
-              : `Valider (${selectedDays.length})`}
+          {done ? 'Planifiée !' : saving ? 'Enregistrement...' : `Valider (${selectedDays.length})`}
         </Button>
       </div>
     </div>,

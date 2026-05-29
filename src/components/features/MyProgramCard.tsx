@@ -21,10 +21,11 @@ interface MyProgramCardProps {
  * le programme contient une séance BBL — easter egg), pictogramme crayon.
  */
 export default function MyProgramCard({ program, onClick, className }: MyProgramCardProps) {
-  const workouts = program.user_workouts ?? []
-  const hasBBL = workouts.some((w) => w.category === 'bbl')
+  // `categories` est fourni par fetchUserPrograms (catégories des séances liées).
+  const categories: string[] = (program as { categories?: string[] }).categories ?? []
+  const hasBBL = categories.includes('bbl')
   const accent = hasBBL ? CATEGORY_ACCENT.bbl : '#ffee8c'
-  const count = workouts.length
+  const count = categories.length
 
   return (
     <button
@@ -57,12 +58,12 @@ export default function MyProgramCard({ program, onClick, className }: MyProgram
           </span>
           {count > 0 && (
             <div className="flex items-center gap-1">
-              {workouts.slice(0, 5).map((w) => (
+              {categories.slice(0, 5).map((cat, i) => (
                 <span
-                  key={w.id}
+                  key={i}
                   className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: CATEGORY_ACCENT[w.category] || '#ffee8c' }}
-                  aria-label={`Séance ${CATEGORY_LABEL[w.category]}`}
+                  style={{ backgroundColor: CATEGORY_ACCENT[cat] || '#ffee8c' }}
+                  aria-label={`Séance ${CATEGORY_LABEL[cat]}`}
                 />
               ))}
             </div>

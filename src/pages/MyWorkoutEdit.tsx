@@ -4,6 +4,8 @@ import { Reorder, useDragControls } from 'framer-motion'
 import { Plus, GripVertical, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import {
+  addProgramItem,
+  countProgramsUsingUserWorkout,
   createUserWorkout,
   fetchUserWorkout,
   replaceWorkoutExercises,
@@ -68,6 +70,8 @@ export default function MyWorkoutEdit() {
   const [saving, setSaving] = useState(false)
   const [blockError, setBlockError] = useState('')
   const [toast, setToast] = useState<string | null>(null)
+  // Nombre de programmes qui lient cette séance (édition) → prévient l'effet cascade.
+  const [usedInCount, setUsedInCount] = useState(0)
 
   const [picker, setPicker] = useState<PickerTarget | null>(null)
 
@@ -116,6 +120,12 @@ export default function MyWorkoutEdit() {
         }
         setSlots(nextSlots)
         setFreeExos(free)
+        try {
+          const n = await countProgramsUsingUserWorkout(workoutId as string)
+          if (active) setUsedInCount(n)
+        } catch {
+          /* compteur non bloquant */
+        }
       } catch (err) {
         console.error(err)
       } finally {
@@ -196,6 +206,7 @@ export default function MyWorkoutEdit() {
       ]
 
       let targetWorkoutId = workoutId as string
+      let createdNew = false
       if (isEdit) {
         await updateUserWorkout(targetWorkoutId, { name: name.trim(), category })
       } else {
@@ -203,22 +214,21 @@ export default function MyWorkoutEdit() {
           data: { user },
         } = await supabase.auth.getUser()
         if (!user) return
-        const { count } = await supabase
-          .from('user_workouts')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_program_id', programId as string)
-          .eq('is_deleted', false)
         const workout = await createUserWorkout({
-          user_program_id: programId as string,
           user_id: user.id,
           name: name.trim(),
           category,
-          order_index: count ?? 0,
         })
         targetWorkoutId = workout.id
+        createdNew = true
       }
 
       await replaceWorkoutExercises(targetWorkoutId, ordered)
+
+      // Nouvelle séance → la lier au programme courant (table de liaison).
+      if (createdNew) {
+        await addProgramItem(programId as string, { source: 'user', refId: targetWorkoutId })
+      }
 
       const emptySlots = SLOT_ORDER.length - filledSlots
       if (emptySlots > 0) {
@@ -264,6 +274,19 @@ export default function MyWorkoutEdit() {
         </div>
       ) : (
         <div className="px-4 flex flex-col gap-6 pb-32">
+          {/* Effet cascade : cette séance est liée à plusieurs programmes */}
+          {isEdit && usedInCount > 0 && (
+            <div
+              className="rounded-12 px-4 py-3"
+              style={{ backgroundColor: `${accent}1A`, border: `1px solid ${accent}66` }}
+            >
+              <p className="font-sans text-sm" style={{ color: accent }}>
+                Utilisée dans {usedInCount} programme{usedInCount > 1 ? 's' : ''}.
+                {usedInCount > 1 && ' Tes modifications s’appliqueront partout.'}
+              </p>
+            </div>
+          )}
+
           {/* Nom + catégorie */}
           <div className="flex flex-col gap-3">
             <input

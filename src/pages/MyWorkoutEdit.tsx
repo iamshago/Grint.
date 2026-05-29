@@ -330,8 +330,9 @@ export default function MyWorkoutEdit() {
               <h2 className="font-serif font-bold text-lg text-bg-1 tracking-tight">
                 Structure recommandée
               </h2>
-              <p className="font-sans text-sm text-tx-3">
-                Optionnel — des repères pour équilibrer ta séance. Mets ce que tu veux, ou laisse vide.
+              <p className="font-sans text-sm text-tx-3 leading-5">
+                4 types d'exercices à retrouver au minimum dans chacune de tes séances. C'est
+                optionnel, mais ce sont des repères pour mieux équilibrer ta séance.
               </p>
             </div>
             {SLOT_ORDER.map((slot) => {

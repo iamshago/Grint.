@@ -65,8 +65,8 @@ export const SLOT_ORDER: SlotType[] = ['contraction', 'stretch', 'unilateral', '
 
 /** Libellés FR des slots guides (purement indicatifs). */
 export const SLOT_LABELS: Record<SlotType, string> = {
-  contraction: 'Contraction',
-  stretch: 'Étirement',
+  contraction: 'Tension de contraction',
+  stretch: "Tension d'étirement",
   unilateral: 'Unilatéral',
   isolation: 'Isolation',
 }

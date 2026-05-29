@@ -267,8 +267,8 @@ export default function Program() {
             {/* Carte création — perso (jaune), première de la liste */}
             <button
               type="button"
-              onClick={() => navigate('/my-programs/new')}
-              aria-label="Créer mon programme"
+              onClick={() => navigate('/my-programs')}
+              aria-label="Ouvrir mes programmes"
               className="relative w-[248px] h-[224px] shrink-0 rounded-16 bg-tx-1 flex flex-col justify-end p-4 gap-2 text-left cursor-pointer active:scale-95 transition-transform shadow-[0px_0px_24px_0px_rgba(31,32,33,0.18)]"
             >
               <div className="w-12 h-12 rounded-12 bg-pr-1 flex items-center justify-center">
@@ -277,7 +277,7 @@ export default function Program() {
               <h3 className="font-serif font-bold text-[32px] text-pr-1 tracking-tight leading-none">
                 Mon programme
               </h3>
-              <p className="font-sans text-base text-pr-1/70">Créer un programme</p>
+              <p className="font-sans text-base text-pr-1/70">Créer ou modifier</p>
             </button>
 
             {programs.map((prog) => (

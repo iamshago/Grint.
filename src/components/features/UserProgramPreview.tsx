@@ -48,6 +48,16 @@ export default function UserProgramPreview({ programId, onClose, onToast }: User
   const [detail, setDetail] = useState<{ item: ProgramItem; exos: PreviewExo[] } | null>(null)
   const [planItem, setPlanItem] = useState<ProgramItem | null>(null)
 
+  // Verrou du scroll du body tant que la modale est ouverte : sinon la page
+  // précédente (le carrousel) reste scrollable/visible derrière en overscroll iOS.
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [])
+
   useEffect(() => {
     let active = true
     fetchUserProgram(programId)
@@ -108,13 +118,7 @@ export default function UserProgramPreview({ programId, onClose, onToast }: User
           className="px-4 flex flex-col gap-6"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)' }}
         >
-          {program?.image_url && (
-            <div className="rounded-16 overflow-hidden h-[160px] -mt-1">
-              <img src={program.image_url} alt="" className="w-full h-full object-cover" />
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 pt-2">
             <h3 className="font-serif font-bold text-2xl text-tx-1 tracking-[-0.72px]">
               Séances du programme
             </h3>

@@ -58,11 +58,12 @@ export default function MyPrograms() {
           <EmptyState onCreate={() => navigate('/my-programs/new')} />
         ) : (
           <div className="flex flex-col gap-4">
-            {/* CTA création — toujours en tête de liste */}
+            {/* CTA création — toujours en tête de liste. Pas de glow : il baverait
+             *  derrière le header sticky et créerait une scission disgracieuse. */}
             <button
               type="button"
               onClick={() => navigate('/my-programs/new')}
-              className="w-full flex items-center justify-center gap-3 bg-pr-1 text-tx-1 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform shadow-[0px_0px_20px_0px_rgba(255,238,140,0.3)]"
+              className="w-full flex items-center justify-center gap-3 bg-pr-1 text-tx-1 font-sans font-semibold text-base p-4 rounded-12 cursor-pointer active:scale-[0.98] transition-transform"
             >
               <Plus size={18} />
               <span>Nouveau programme</span>

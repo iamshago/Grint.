@@ -31,7 +31,11 @@ export interface StreakData {
  *
  * Règle métier : une semaine est validée si l'utilisateur a fait
  * ≥1 séance upper ET ≥1 séance lower/bbl dans la même semaine.
- * Le streak = nombre de semaines consécutives validées.
+ * Le streak = nombre TOTAL de semaines validées sur la fenêtre glissante de
+ * 52 semaines (cumulatif). Une semaine de pause (trou) ne remet PAS le compteur
+ * à zéro : on compte simplement toutes les semaines validées, trous inclus.
+ * (Décision produit du 2026-06-09 : on abandonne le streak « consécutif » au
+ * profit du cumul, pour ne pas effacer l'historique sur une semaine off.)
  *
  * @param userId - UUID de l'utilisateur (null = pas de fetch)
  */
@@ -90,11 +94,14 @@ export function useStreak(userId: string | null | undefined): StreakData {
       })
       setWeekDays(days)
 
-      // Calcul du streak : semaines consécutives avec upper ET lower
+      // Calcul du streak : nombre TOTAL de semaines validées (upper ET lower)
+      // sur la fenêtre glissante de 52 semaines. Cumulatif — un trou ne casse pas
+      // la série, on continue à compter (pas de `break`). Semaine courante (si
+      // validée) + 51 semaines passées = 52 semaines au plus → streak ≤ 52.
       let streak = 0
       if (upperCount > 0 && lowerCount > 0) streak++
 
-      for (let w = 1; w <= 52; w++) {
+      for (let w = 1; w <= 51; w++) {
         const wMon = new Date(monday)
         wMon.setDate(monday.getDate() - 7 * w)
         const wSun = new Date(wMon)
@@ -118,7 +125,6 @@ export function useStreak(userId: string | null | undefined): StreakData {
         })
 
         if (hasUpper && hasLower) streak++
-        else break
       }
 
       setStreakCount(streak)
@@ -135,6 +141,10 @@ export function useStreak(userId: string | null | undefined): StreakData {
 /**
  * Fonction utilitaire (non-hook) pour calculer le streak d'un utilisateur.
  * Utilisable dans des boucles / Promise.all contrairement au hook.
+ *
+ * Même règle que `useStreak` : streak = nombre TOTAL de semaines validées sur
+ * la fenêtre glissante de 52 semaines (cumulatif, les trous ne resettent pas).
+ * w=0 = semaine courante → 52 semaines au plus (w=0..51).
  */
 export async function computeStreakForUser(userId: string): Promise<number> {
   const today = new Date()
@@ -143,7 +153,7 @@ export async function computeStreakForUser(userId: string): Promise<number> {
   monday.setHours(0, 0, 0, 0)
 
   let streak = 0
-  for (let w = 0; w <= 52; w++) {
+  for (let w = 0; w <= 51; w++) {
     const wMon = new Date(monday)
     wMon.setDate(monday.getDate() - 7 * w)
     const wSun = new Date(wMon)
@@ -167,7 +177,6 @@ export async function computeStreakForUser(userId: string): Promise<number> {
     })
 
     if (hasUpper && hasLower) streak++
-    else if (w > 0) break
   }
 
   return streak

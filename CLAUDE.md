@@ -217,8 +217,15 @@ Une semaine est **validée** (cochée) quand l'utilisateur a fait dans la même 
 - Au moins **1 séance haut du corps** (upper/push/pull)
 - ET au moins **1 séance bas du corps** (lower/legs/bbl)
 
-Le streak = nombre de **semaines consécutives** validées selon cette règle.
-Le total = 52 semaines dans l'année.
+Le streak = nombre **TOTAL de semaines validées** selon cette règle, sur une
+fenêtre glissante de **52 semaines** (cumulatif). Une semaine de pause (trou)
+ne remet **PAS** le compteur à zéro : on compte toutes les semaines validées,
+trous inclus. Le total = 52 semaines dans l'année.
+
+> **Décision produit 2026-06-09** : abandon du streak « consécutif » (qui
+> retombait à 0 dès une semaine sautée) au profit du **cumul**, pour ne pas
+> effacer l'historique sur une semaine off. Implémenté dans `useStreak.ts`
+> (`useStreak` + `computeStreakForUser`, sans `break`).
 
 ### Couleurs des jours (checkboxes Lun-Dim)
 Sur la carte streak, chaque jour où une séance a été faite affiche une checkbox colorée :

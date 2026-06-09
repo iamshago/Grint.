@@ -673,7 +673,7 @@ const ExerciseSelectionHub = ({ workout, exercises, accentColor, onFinish, onClo
             value={weight}
             onChange={setWeight}
             min={0}
-            max={200}
+            max={500}
             stepKey={stepKey}
           />
         </div>

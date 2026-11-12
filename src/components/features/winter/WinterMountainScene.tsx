@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { WINTER_MONTAGNE } from '@/lib/winter'
+import { useNuit } from '@/hooks/useNuit'
 import WinterSnow, { FLOCONS_MONTAGNE } from './WinterSnow'
 import WinterPile, { type Grimpeur } from './WinterPile'
 
@@ -26,6 +27,8 @@ const chemin = `path('${WINTER_MONTAGNE.trace}')`
 export default function WinterMountainScene({ summit, milestones, moi, autres, foule }: WinterMountainSceneProps) {
   const boxRef = useRef<HTMLDivElement>(null)
   const [k, setK] = useState(1)
+  // Easter egg : la montagne suit l'heure (nuit et lune de 18 h à 7 h, plein jour sinon).
+  const nuit = useNuit()
   const [ouvert, setOuvert] = useState<number | null>(null)
 
   useLayoutEffect(() => {
@@ -55,7 +58,13 @@ export default function WinterMountainScene({ summit, milestones, moi, autres, f
   return (
     <div ref={boxRef} className="relative w-full overflow-hidden" style={{ aspectRatio: `${W} / ${H}` }}>
       <div className="absolute left-0 top-0" style={{ width: W, height: H, transform: `scale(${k})`, transformOrigin: '0 0' }}>
-        <img src={WINTER_MONTAGNE.image} alt="" className="absolute inset-0 size-full object-cover" />
+        <img src={WINTER_MONTAGNE.imageJour} alt="" className="absolute inset-0 size-full object-cover" />
+        <img
+          src={WINTER_MONTAGNE.image}
+          alt=""
+          className="absolute inset-0 size-full object-cover"
+          style={{ opacity: nuit ? 1 : 0, transition: 'opacity 2.4s ease-in-out' }}
+        />
         <WinterSnow flocons={FLOCONS_MONTAGNE} fall={340} />
 
         <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-hidden="true" className="absolute inset-0 overflow-visible">

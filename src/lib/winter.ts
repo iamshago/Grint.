@@ -4,9 +4,12 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 /** Illustration de la montagne Winter (terrasses) et son chemin, calculé sur l'image
  *  (canevas/outils/terrasses.py, points de passage [[90,262],[240,230],[150,185],[160,102],[183,60]]).
- *  Le chemin est en unités de la carte 370 × 330. */
+ *  Le chemin est en unités de la carte 370 × 330.
+ *  `image` = la nuit (lune), `imageJour` = la même image en plein jour (canevas/outils/jour.py :
+ *  même rendu, même cadrage ; ciel, soleil à la place de la lune, nuages et lumière changés). */
 export const WINTER_MONTAGNE = {
   image: '/assets/challenges/winter-montagne.jpg',
+  imageJour: '/assets/challenges/winter-montagne-jour.jpg',
   tete: '/assets/challenges/winter-tete.jpg',
   largeur: 370,
   hauteur: 330,

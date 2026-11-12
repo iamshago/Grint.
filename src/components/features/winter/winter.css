@@ -62,3 +62,55 @@
   }
   .winter-flocon { display: none; }
 }
+
+/* ---------- Page défi : la montagne (maquette G-Montagne) ---------- */
+/* Grimpeurs et paliers sont posés sur le chemin (offset-path en unités de la scène 370 × 330) */
+.winter-sur { position: absolute; left: 0; top: 0; offset-rotate: 0deg; offset-anchor: center; }
+.winter-moi { transition: offset-distance 1.1s cubic-bezier(0.22, 1, 0.36, 1); }
+.winter-fait { transition: stroke-dasharray 1.1s cubic-bezier(0.22, 1, 0.36, 1); }
+.winter-atteint { animation: winter-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s backwards; }
+@keyframes winter-pop { 0% { transform: scale(0.5); } 60% { transform: scale(1.4); } 100% { transform: none; } }
+.winter-saute { display: inline-block; animation: winter-saute 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s backwards; }
+@keyframes winter-saute { 0% { transform: scale(0.6); } 60% { transform: scale(1.18); } 100% { transform: none; } }
+.winter-membre { transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.winter-nom { transition: opacity 0.25s; }
+.winter-compte { transition: opacity 0.2s; }
+.winter-lueur { animation: winter-lueur 2.6s ease-in-out infinite alternate; }
+@keyframes winter-lueur { from { opacity: 0.55; } to { opacity: 1; } }
+
+/* ---------- Page défi : missions et course (maquettes C5 / G-LigneCourse) ---------- */
+.winter-mission { transition: box-shadow 0.3s, background 0.3s; }
+.winter-coche { animation: winter-coche 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s backwards; }
+@keyframes winter-coche { from { transform: scale(0.3); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Chaque ligne garde sa place dans la liste, seule sa position change : elle glisse */
+.winter-ligne { position: absolute; left: 0; right: 0; transition: top 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.35s; }
+/* Flèche de la semaine : verte qui monte, rouge qui descend, grise si rien ne bouge */
+.winter-evol {
+  display: inline-block; font-family: Figtree, system-ui, sans-serif; font-size: 12px; font-weight: 800;
+  line-height: 1; letter-spacing: 0;
+  animation: winter-evol 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+@keyframes winter-evol {
+  0% { transform: translateY(6px) scale(0.3); opacity: 0; }
+  60% { transform: scale(1.3); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+/* Barre « ta place » : le gain qui tombe, la place qui saute, la flèche depuis ta dernière visite */
+.winter-gain { animation: winter-gain 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s backwards; }
+@keyframes winter-gain { 0% { transform: translateY(12px) scale(0.5); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.winter-rang { display: inline-block; animation: winter-rang 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1.1s; }
+@keyframes winter-rang { 0% { transform: none; } 35% { transform: translateY(-4px) scale(1.06); } 100% { transform: none; } }
+.winter-rang-bas { display: inline-block; animation: winter-rang-bas 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1.1s; }
+@keyframes winter-rang-bas { 0% { transform: none; } 35% { transform: translateY(4px) scale(1.06); } 100% { transform: none; } }
+.winter-fleche {
+  display: inline-block; margin-left: 8px; font-size: 12px; font-weight: 800; line-height: 1;
+  animation: winter-evol 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s backwards;
+}
+.winter-piste { transform-origin: left; animation: winter-piste 1.1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes winter-piste { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .winter-moi, .winter-fait, .winter-ligne, .winter-mission, .winter-membre { transition: none !important; }
+  .winter-atteint, .winter-saute, .winter-lueur, .winter-coche, .winter-evol, .winter-gain,
+  .winter-rang, .winter-rang-bas, .winter-fleche, .winter-piste { animation: none !important; }
+}

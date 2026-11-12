@@ -11,8 +11,11 @@ import ChallengeInfoPopup from '@/components/features/ChallengeInfoPopup'
 import ProgressBar from '@/components/ui/ProgressBar'
 import { useChallengeProgress } from '@/hooks/useChallengeProgress'
 import { useChallengeParticipation } from '@/hooks/useChallengeParticipation'
+import { useCurrentUserProfile } from '@/hooks/useCurrentUserProfile'
+import { useWeeklyMissions } from '@/hooks/useWeeklyMissions'
 import { supabase } from '@/lib/supabaseClient'
-import { formatLongDate } from '@/lib/formatRelativeTime'
+import { isSummitChallenge } from '@/lib/winter'
+import WinterChallengeView from '@/components/features/winter/WinterChallengeView'
 
 /** Page Détail défi (déjà rejoint) — light mode, header sticky, podium + classement. */
 export default function ChallengeDetail() {
@@ -22,11 +25,32 @@ export default function ChallengeDetail() {
   const { leave } = useChallengeParticipation(id)
   const [menuOpen, setMenuOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
-  const [meId, setMeId] = useState<string | null>(null)
+  const { profile: me } = useCurrentUserProfile()
+  const [friendIds, setFriendIds] = useState<Set<string>>(new Set())
+  const winter = isSummitChallenge(challenge)
 
+  // Amis : leur visage sur la montagne (les autres participants sont des points)
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setMeId(user?.id ?? null))
-  }, [])
+    if (!winter || !me?.id) return
+    supabase
+      .from('friendships')
+      .select('requester_id, addressee_id')
+      .eq('status', 'accepted')
+      .or(`requester_id.eq.${me.id},addressee_id.eq.${me.id}`)
+      .then(({ data }) => {
+        const ids = new Set<string>()
+        for (const row of data ?? []) ids.add(row.requester_id === me.id ? row.addressee_id : row.requester_id)
+        setFriendIds(ids)
+      })
+  }, [winter, me?.id])
+
+  // Missions de la semaine, comptées comme les points : à partir de max(départ, inscription)
+  const myJoinedAt = progress?.ranking.find((r) => r.user_id === me?.id)?.joined_at ?? null
+  const missionsFrom =
+    challenge && myJoinedAt
+      ? new Date(Math.max(new Date(challenge.starts_at).getTime(), new Date(myJoinedAt).getTime())).toISOString()
+      : null
+  const { missions } = useWeeklyMissions(me?.id ?? null, missionsFrom, winter && !!myJoinedAt)
 
   // Redirection si invalide
   useEffect(() => {
@@ -50,9 +74,6 @@ export default function ChallengeDetail() {
   const weeklyGoal = progress.weeklyTarget
   const weeklyReached = weeklyGoal > 0 && weeklyDone >= weeklyGoal
   const showWeekly = !progress.isExpired && !progress.notStarted
-  // Défi individuel avec sommet (Winter) : pas d'objectif d'équipe, chacun ses points.
-  const summit = challenge.summit_points ?? null
-  const myPts = progress.ranking.find((r) => r.user_id === meId)?.pts ?? 0
 
   const handleLeave = async () => {
     await leave()
@@ -77,113 +98,108 @@ export default function ChallengeDetail() {
         menuLabel="Options du défi"
       />
 
-      {/* Body — pas de padding-top (le header est sticky donc déjà au-dessus du flow) */}
-      <div className="relative w-full max-w-[402px] mx-auto pb-[80px]">
-        {/* Carte progression noire — cliquable pour ouvrir la popup explicative
-         *  (règles du défi). Wrappée dans un <button> pour avoir clavier + a11y
-         *  natifs. Affordance : icône Info subtile en haut-droite + active:scale. */}
-        {summit !== null ? (
-          <SummitCard
-            name={challenge.name}
-            startsAt={progress.notStarted ? challenge.starts_at : null}
-            pts={myPts}
-            summit={summit}
-          />
-        ) : (
-        <button
-          type="button"
-          onClick={() => setInfoOpen(true)}
-          aria-label="Voir les règles du défi"
-          className="mx-[16px] bg-tx-1 rounded-[24px] px-[24px] py-[16px] flex flex-col gap-[4px] text-left cursor-pointer active:scale-[0.98] transition-transform"
-          style={{ width: 'calc(100% - 32px)' }}
-        >
-          <div className="flex items-start justify-between gap-[12px]">
-            <p className="font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px] leading-normal flex-1">
-              {challenge.name}
-            </p>
-            <div
-              aria-hidden="true"
-              className="shrink-0 mt-[2px] w-[24px] h-[24px] rounded-full bg-[rgba(255,238,140,0.15)] flex items-center justify-center"
-            >
-              <Info size={12} className="text-pr-1" strokeWidth={2.5} />
+      {winter ? (
+        <WinterChallengeView challenge={challenge} progress={progress} me={me} friendIds={friendIds} missions={missions} />
+      ) : (
+        // Body — pas de padding-top (le header est sticky donc déjà au-dessus du flow)
+        <div className="relative w-full max-w-[402px] mx-auto pb-[80px]">
+          {/* Carte progression noire — cliquable pour ouvrir la popup explicative
+           *  (règles du défi). Wrappée dans un <button> pour avoir clavier + a11y
+           *  natifs. Affordance : icône Info subtile en haut-droite + active:scale. */}
+          <button
+            type="button"
+            onClick={() => setInfoOpen(true)}
+            aria-label="Voir les règles du défi"
+            className="mx-[16px] bg-tx-1 rounded-[24px] px-[24px] py-[16px] flex flex-col gap-[4px] text-left cursor-pointer active:scale-[0.98] transition-transform"
+            style={{ width: 'calc(100% - 32px)' }}
+          >
+            <div className="flex items-start justify-between gap-[12px]">
+              <p className="font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px] leading-normal flex-1">
+                {challenge.name}
+              </p>
+              <div
+                aria-hidden="true"
+                className="shrink-0 mt-[2px] w-[24px] h-[24px] rounded-full bg-[rgba(255,238,140,0.15)] flex items-center justify-center"
+              >
+                <Info size={12} className="text-pr-1" strokeWidth={2.5} />
+              </div>
             </div>
-          </div>
-          {/* Deux barres collectives clairement distinguées par leur label.
-           *  - Hebdo : reset chaque lundi 00:00 heure locale (cf. brief
-           *    community-defi-weekly-bar). Masquée si défi terminé.
-           *  - Totale : sur toute la durée du défi.
-           *  Le compteur passe en pr-1 saturé quand le quota est atteint. */}
-          <div className="flex flex-col gap-[16px] mt-[8px]">
-            {showWeekly && (
+            {/* Deux barres collectives clairement distinguées par leur label.
+             *  - Hebdo : reset chaque lundi 00:00 heure locale (cf. brief
+             *    community-defi-weekly-bar). Masquée si défi terminé.
+             *  - Totale : sur toute la durée du défi.
+             *  Le compteur passe en pr-1 saturé quand le quota est atteint. */}
+            <div className="flex flex-col gap-[16px] mt-[8px]">
+              {showWeekly && (
+                <div className="flex flex-col gap-[8px]">
+                  <div className="flex items-center justify-between">
+                    <span className="font-sans font-semibold text-[12px] text-bg-2 leading-none">
+                      Cette semaine
+                    </span>
+                    <span
+                      className={`font-sans font-bold text-[12px] leading-none tabular-nums ${
+                        weeklyReached ? 'text-pr-1' : 'text-bg-2'
+                      }`}
+                    >
+                      {weeklyDone} / {weeklyGoal}
+                    </span>
+                  </div>
+                  <ProgressBar
+                    value={weeklyDone}
+                    max={weeklyGoal}
+                    ariaLabel="Progression hebdomadaire collective du défi"
+                  />
+                </div>
+              )}
               <div className="flex flex-col gap-[8px]">
                 <div className="flex items-center justify-between">
                   <span className="font-sans font-semibold text-[12px] text-bg-2 leading-none">
-                    Cette semaine
+                    Au total
                   </span>
-                  <span
-                    className={`font-sans font-bold text-[12px] leading-none tabular-nums ${
-                      weeklyReached ? 'text-pr-1' : 'text-bg-2'
-                    }`}
-                  >
-                    {weeklyDone} / {weeklyGoal}
+                  <span className="font-sans font-bold text-[12px] leading-none tabular-nums">
+                    <span className="text-pr-1">{done}</span>
+                    <span className="text-tx-3"> / {total}</span>
                   </span>
                 </div>
                 <ProgressBar
-                  value={weeklyDone}
-                  max={weeklyGoal}
-                  ariaLabel="Progression hebdomadaire collective du défi"
+                  value={done}
+                  max={total}
+                  ariaLabel="Progression totale du défi"
                 />
               </div>
-            )}
-            <div className="flex flex-col gap-[8px]">
-              <div className="flex items-center justify-between">
-                <span className="font-sans font-semibold text-[12px] text-bg-2 leading-none">
-                  Au total
-                </span>
-                <span className="font-sans font-bold text-[12px] leading-none tabular-nums">
-                  <span className="text-pr-1">{done}</span>
-                  <span className="text-tx-3"> / {total}</span>
-                </span>
-              </div>
-              <ProgressBar
-                value={done}
-                max={total}
-                ariaLabel="Progression totale du défi"
-              />
             </div>
-          </div>
-          <div className="bg-tx-1 rounded-[12px] flex gap-[12px] items-center px-[8px] py-[4px]">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="shrink-0">
-              <circle cx="10" cy="10" r="9" stroke="#f1f4fb" strokeWidth="1.5" />
-              <circle cx="10" cy="6" r="0.9" fill="#f1f4fb" />
-              <rect x="9.1" y="8.5" width="1.8" height="6" rx="0.9" fill="#f1f4fb" />
-            </svg>
-            {/* Texte de l'avertissement — Figma 553:6290 : 15px Figtree Regular,
-                doit tenir sur 2 lignes maxi à 274px de largeur dispo. */}
-            <p className="flex-1 font-sans font-normal text-[15px] text-bg-1 leading-[1.2]">
-              Attention, le nombre à atteindre change selon le nombre de participants au défi !
-            </p>
-          </div>
-        </button>
-        )}
+            <div className="bg-tx-1 rounded-[12px] flex gap-[12px] items-center px-[8px] py-[4px]">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="shrink-0">
+                <circle cx="10" cy="10" r="9" stroke="#f1f4fb" strokeWidth="1.5" />
+                <circle cx="10" cy="6" r="0.9" fill="#f1f4fb" />
+                <rect x="9.1" y="8.5" width="1.8" height="6" rx="0.9" fill="#f1f4fb" />
+              </svg>
+              {/* Texte de l'avertissement — Figma 553:6290 : 15px Figtree Regular,
+                  doit tenir sur 2 lignes maxi à 274px de largeur dispo. */}
+              <p className="flex-1 font-sans font-normal text-[15px] text-bg-1 leading-[1.2]">
+                Attention, le nombre à atteindre change selon le nombre de participants au défi !
+              </p>
+            </div>
+          </button>
 
-        {/* Podium */}
-        <div className="mx-[16px] mt-[24px]">
-          <ChallengePodium top={top3} />
-        </div>
+          {/* Podium */}
+          <div className="mx-[16px] mt-[24px]">
+            <ChallengePodium top={top3} />
+          </div>
 
-        {/* Liste classement */}
-        <div className="mx-[16px] mt-[24px] flex flex-col gap-[12px] drop-shadow-[0px_0px_12px_rgba(31,32,33,0.12)]">
-          {progress.ranking.map((p, idx) => (
-            <ParticipantRow key={p.user_id} rank={idx + 1} participant={p} />
-          ))}
-          {progress.ranking.length === 0 && (
-            <p className="font-sans text-[14px] text-tx-3 text-center py-[24px]">
-              Aucun participant pour l'instant.
-            </p>
-          )}
+          {/* Liste classement */}
+          <div className="mx-[16px] mt-[24px] flex flex-col gap-[12px] drop-shadow-[0px_0px_12px_rgba(31,32,33,0.12)]">
+            {progress.ranking.map((p, idx) => (
+              <ParticipantRow key={p.user_id} rank={idx + 1} participant={p} />
+            ))}
+            {progress.ranking.length === 0 && (
+              <p className="font-sans text-[14px] text-tx-3 text-center py-[24px]">
+                Aucun participant pour l'instant.
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <ChallengeMenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} onConfirmLeave={handleLeave} />
 
@@ -201,31 +217,3 @@ export default function ChallengeDetail() {
   )
 }
 
-/** Carte héro d'un défi à sommet (Winter) : tes points sur le sommet, et la date
- *  de départ tant que le défi n'a pas commencé. Remplacée par la page montagne (C5). */
-function SummitCard({ name, startsAt, pts, summit }: { name: string; startsAt: string | null; pts: number; summit: number }) {
-  return (
-    <div
-      className="mx-[16px] bg-tx-1 rounded-[24px] px-[24px] py-[16px] flex flex-col gap-[16px]"
-      style={{ width: 'calc(100% - 32px)' }}
-    >
-      <p className="font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px] leading-normal">{name}</p>
-      {startsAt && (
-        <div className="flex items-center justify-between">
-          <span className="font-sans font-semibold text-[12px] text-bg-2 leading-none">Départ</span>
-          <span className="font-sans font-bold text-[12px] text-pr-1 leading-none">{formatLongDate(startsAt)}</span>
-        </div>
-      )}
-      <div className="flex flex-col gap-[8px]">
-        <div className="flex items-center justify-between">
-          <span className="font-sans font-semibold text-[12px] text-bg-2 leading-none">Toi</span>
-          <span className="font-sans font-bold text-[12px] leading-none tabular-nums">
-            <span className="text-pr-1">{pts}</span>
-            <span className="text-tx-3"> / {summit} pts</span>
-          </span>
-        </div>
-        <ProgressBar value={pts} max={summit} ariaLabel="Tes points vers le sommet" />
-      </div>
-    </div>
-  )
-}

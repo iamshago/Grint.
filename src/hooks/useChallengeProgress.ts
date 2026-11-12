@@ -94,6 +94,10 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
       let totalCompleted = 0
       let weeklyCompleted = 0
       const ptsByUser: Record<string, number> = {}
+      // Pour la course Winter : points de la semaine et heure du dernier point
+      // (à égalité, celui qui y était avant reste devant).
+      const weekPtsByUser: Record<string, number> = {}
+      const lastPointByUser: Record<string, number> = {}
       // Bornes de la semaine collective courante (lundi 00:00 → dimanche 23:59:59 heure locale).
       const weekBounds = getCurrentLocalWeekBounds(now)
       const weekStartMs = new Date(weekBounds.startISO).getTime()
@@ -127,7 +131,11 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
           totalCompleted += 1
           // Compteur hebdo collectif (groupe) — mêmes contraintes (>= joined_at).
           const ts = completedAt.getTime()
-          if (ts >= weekStartMs && ts <= weekEndMs) weeklyCompleted += 1
+          if (ts >= weekStartMs && ts <= weekEndMs) {
+            weeklyCompleted += 1
+            weekPtsByUser[row.user_id] = (weekPtsByUser[row.user_id] ?? 0) + 1
+          }
+          lastPointByUser[row.user_id] = Math.max(lastPointByUser[row.user_id] ?? 0, ts)
         }
       }
 
@@ -156,6 +164,8 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
             profile: profilesById[p.user_id],
             pts,
             sessionsPerWeek,
+            ptsThisWeek: weekPtsByUser[p.user_id] ?? 0,
+            lastPointAt: lastPointByUser[p.user_id] ? new Date(lastPointByUser[p.user_id]).toISOString() : null,
           }
         })
         .sort((a, b) => b.pts - a.pts)

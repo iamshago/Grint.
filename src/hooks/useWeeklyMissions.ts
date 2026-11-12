@@ -8,13 +8,17 @@ export interface WeeklyMissions {
   duo: boolean
   /** Au moins une séance haut du corps ET une séance bas du corps (BBL compte en bas). */
   hautBas: boolean
+  /** Catégories faites cette semaine (0, 1 ou 2), pour « 1 / 2 ». */
+  hautBasCount: number
   /** Un record battu cette semaine (post « pr » automatique). */
   record: boolean
+  /** « Presse · 140 kg » : le dernier record de la semaine. */
+  recordLabel: string | null
   done: number
   total: number
 }
 
-const EMPTY: WeeklyMissions = { duo: false, hautBas: false, record: false, done: 0, total: 3 }
+const EMPTY: WeeklyMissions = { duo: false, hautBas: false, hautBasCount: 0, record: false, recordLabel: null, done: 0, total: 3 }
 
 interface CategoryRow {
   category: string | null
@@ -51,11 +55,12 @@ export function useWeeklyMissions(userId: string | null, countFrom: string | nul
         .lte('completed_at', week.endISO),
       supabase
         .from('posts')
-        .select('id')
+        .select('id, payload, created_at')
         .eq('user_id', userId)
         .eq('type', 'pr')
         .gte('created_at', from)
-        .lte('created_at', week.endISO),
+        .lte('created_at', week.endISO)
+        .order('created_at', { ascending: false }),
     ])
 
     let hasUpper = false
@@ -66,8 +71,15 @@ export function useWeeklyMissions(userId: string | null, countFrom: string | nul
       if (c === 'lower' || c === 'bbl') hasLower = true
     }
     const hautBas = hasUpper && hasLower
-    const record = (prs ?? []).length > 0
-    setMissions({ duo: false, hautBas, record, done: Number(hautBas) + Number(record), total: 3 })
+    const dernier = ((prs ?? []) as Array<{ payload: { exercise_name?: string; weight?: number } | null }>)[0]
+    const record = !!dernier
+    const recordLabel = dernier?.payload
+      ? `${dernier.payload.exercise_name ?? 'Record'} · ${Number(dernier.payload.weight ?? 0).toLocaleString('fr-FR')} kg`
+      : null
+    setMissions({
+      duo: false, hautBas, hautBasCount: Number(hasUpper) + Number(hasLower), record, recordLabel,
+      done: Number(hautBas) + Number(record), total: 3,
+    })
   }, [userId, countFrom, enabled])
 
   useEffect(() => {

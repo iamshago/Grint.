@@ -230,6 +230,10 @@ export interface ChallengeRanking {
   profile?: ProfileSummary
   pts: number
   sessionsPerWeek: number
+  /** Points gagnés depuis lundi 00:00 (heure locale). */
+  ptsThisWeek?: number
+  /** Heure de la dernière séance comptée (départage les ex æquo). */
+  lastPointAt?: string | null
 }
 
 export interface ChallengeProgress {

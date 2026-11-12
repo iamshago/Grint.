@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import type { Challenge } from '@/types'
+import { CHALLENGE_SELECT, type Challenge } from '@/types'
 
 interface UseActiveChallengeResult {
   challenge: Challenge | null
@@ -22,7 +22,7 @@ export function useActiveChallenge(): UseActiveChallengeResult {
     try {
       const { data, error: e1 } = await supabase
         .from('challenges')
-        .select('id, name, description, hero_image_url, cover_image_url, starts_at, ends_at, sessions_per_week_per_member, is_active')
+        .select(CHALLENGE_SELECT)
         .eq('is_active', true)
         .order('starts_at', { ascending: false })
         .limit(1)

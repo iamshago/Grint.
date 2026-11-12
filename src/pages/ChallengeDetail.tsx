@@ -11,6 +11,8 @@ import ChallengeInfoPopup from '@/components/features/ChallengeInfoPopup'
 import ProgressBar from '@/components/ui/ProgressBar'
 import { useChallengeProgress } from '@/hooks/useChallengeProgress'
 import { useChallengeParticipation } from '@/hooks/useChallengeParticipation'
+import { supabase } from '@/lib/supabaseClient'
+import { formatLongDate } from '@/lib/formatRelativeTime'
 
 /** Page Détail défi (déjà rejoint) — light mode, header sticky, podium + classement. */
 export default function ChallengeDetail() {
@@ -20,6 +22,11 @@ export default function ChallengeDetail() {
   const { leave } = useChallengeParticipation(id)
   const [menuOpen, setMenuOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
+  const [meId, setMeId] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setMeId(user?.id ?? null))
+  }, [])
 
   // Redirection si invalide
   useEffect(() => {
@@ -42,7 +49,10 @@ export default function ChallengeDetail() {
   const weeklyDone = progress.weeklyCompleted
   const weeklyGoal = progress.weeklyTarget
   const weeklyReached = weeklyGoal > 0 && weeklyDone >= weeklyGoal
-  const showWeekly = !progress.isExpired
+  const showWeekly = !progress.isExpired && !progress.notStarted
+  // Défi individuel avec sommet (Winter) : pas d'objectif d'équipe, chacun ses points.
+  const summit = challenge.summit_points ?? null
+  const myPts = progress.ranking.find((r) => r.user_id === meId)?.pts ?? 0
 
   const handleLeave = async () => {
     await leave()
@@ -72,6 +82,14 @@ export default function ChallengeDetail() {
         {/* Carte progression noire — cliquable pour ouvrir la popup explicative
          *  (règles du défi). Wrappée dans un <button> pour avoir clavier + a11y
          *  natifs. Affordance : icône Info subtile en haut-droite + active:scale. */}
+        {summit !== null ? (
+          <SummitCard
+            name={challenge.name}
+            startsAt={progress.notStarted ? challenge.starts_at : null}
+            pts={myPts}
+            summit={summit}
+          />
+        ) : (
         <button
           type="button"
           onClick={() => setInfoOpen(true)}
@@ -147,6 +165,7 @@ export default function ChallengeDetail() {
             </p>
           </div>
         </button>
+        )}
 
         {/* Podium */}
         <div className="mx-[16px] mt-[24px]">
@@ -179,5 +198,34 @@ export default function ChallengeDetail() {
         document.body,
       )}
     </LightLayout>
+  )
+}
+
+/** Carte héro d'un défi à sommet (Winter) : tes points sur le sommet, et la date
+ *  de départ tant que le défi n'a pas commencé. Remplacée par la page montagne (C5). */
+function SummitCard({ name, startsAt, pts, summit }: { name: string; startsAt: string | null; pts: number; summit: number }) {
+  return (
+    <div
+      className="mx-[16px] bg-tx-1 rounded-[24px] px-[24px] py-[16px] flex flex-col gap-[16px]"
+      style={{ width: 'calc(100% - 32px)' }}
+    >
+      <p className="font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px] leading-normal">{name}</p>
+      {startsAt && (
+        <div className="flex items-center justify-between">
+          <span className="font-sans font-semibold text-[12px] text-bg-2 leading-none">Départ</span>
+          <span className="font-sans font-bold text-[12px] text-pr-1 leading-none">{formatLongDate(startsAt)}</span>
+        </div>
+      )}
+      <div className="flex flex-col gap-[8px]">
+        <div className="flex items-center justify-between">
+          <span className="font-sans font-semibold text-[12px] text-bg-2 leading-none">Toi</span>
+          <span className="font-sans font-bold text-[12px] leading-none tabular-nums">
+            <span className="text-pr-1">{pts}</span>
+            <span className="text-tx-3"> / {summit} pts</span>
+          </span>
+        </div>
+        <ProgressBar value={pts} max={summit} ariaLabel="Tes points vers le sommet" />
+      </div>
+    </div>
   )
 }

@@ -166,7 +166,15 @@ export interface Challenge {
   ends_at: string
   sessions_per_week_per_member: number
   is_active: boolean
+  /** Sommet d'un défi individuel en points (Winter : 24). Absent ou null = défi d'équipe. */
+  summit_points?: number | null
+  /** Paliers intermédiaires en points, croissants (Winter : [8, 16]). */
+  milestones?: number[] | null
 }
+
+/** Colonnes lues sur `challenges` : `*` pour rester compatible avant/après la
+ *  migration 20261112_challenges_summit (summit_points, milestones). */
+export const CHALLENGE_SELECT = '*'
 
 export interface ProfileSummary {
   id: string
@@ -234,6 +242,8 @@ export interface ChallengeProgress {
   weeklyCompleted: number
   /** Vrai si `ends_at` est dans le passé — masque la barre hebdo, fige la totale. */
   isExpired: boolean
+  /** Vrai avant `starts_at` : on peut déjà rejoindre, tout le monde reste à 0 pt. */
+  notStarted: boolean
   weeksTotal: number
   weeksElapsed: number
   ranking: ChallengeRanking[]

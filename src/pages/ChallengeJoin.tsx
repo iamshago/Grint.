@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { useChallengeParticipation } from '@/hooks/useChallengeParticipation'
-import type { Challenge } from '@/types'
+import { CHALLENGE_SELECT, type Challenge } from '@/types'
 
 /** Page Rejoindre — full-bleed, photo hero + carte sticky en bas. */
 export default function ChallengeJoin() {
@@ -16,7 +16,7 @@ export default function ChallengeJoin() {
     if (!id) return
     supabase
       .from('challenges')
-      .select('id, name, description, hero_image_url, cover_image_url, starts_at, ends_at, sessions_per_week_per_member, is_active')
+      .select(CHALLENGE_SELECT)
       .eq('id', id)
       .maybeSingle()
       .then(({ data }) => {

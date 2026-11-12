@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { getCurrentLocalWeekBounds } from '@/lib/weekBounds'
-import type { Challenge, ChallengeProgress, ChallengeRanking, ProfileSummary } from '@/types'
+import { CHALLENGE_SELECT, type Challenge, type ChallengeProgress, type ChallengeRanking, type ProfileSummary } from '@/types'
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -23,7 +23,8 @@ interface UseChallengeProgressResult {
  *  - W_elapsed = clamp(now - starts_at, 0..W_total)
  *  - totalGoal = S × N × W_total
  *  - totalCompleted = SUM completed_workouts de tous les participants entre starts_at et min(now, ends_at)
- *  - pts(p) = nb completed_workouts entre joined_at(p) et min(now, ends_at)
+ *  - pts(p) = nb completed_workouts entre max(starts_at, joined_at(p)) et min(now, ends_at)
+ *    (rejoindre avant starts_at est possible : rien ne compte avant le départ)
  *  - sessionsPerWeek(p) = pts / max(1, semaines depuis joined_at)
  */
 export function useChallengeProgress(challengeId: string | null | undefined): UseChallengeProgressResult {
@@ -44,7 +45,7 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
     try {
       const { data: ch, error: e1 } = await supabase
         .from('challenges')
-        .select('id, name, description, hero_image_url, cover_image_url, starts_at, ends_at, sessions_per_week_per_member, is_active')
+        .select(CHALLENGE_SELECT)
         .eq('id', challengeId)
         .maybeSingle()
 
@@ -61,6 +62,9 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
       const endsAt = new Date(challengeRow.ends_at)
       const now = new Date()
       const windowEnd = endsAt < now ? endsAt : now
+      // Avant starts_at, on peut déjà rejoindre mais rien ne compte encore :
+      // aucune séance n'est lue, tout le monde est à 0 pt.
+      const notStarted = now < startsAt
 
       // Participants + leur profile (jointure manuelle, pas de FK déclarée vers profiles)
       const { data: parts, error: e2 } = await supabase
@@ -94,7 +98,7 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
       const weekBounds = getCurrentLocalWeekBounds(now)
       const weekStartMs = new Date(weekBounds.startISO).getTime()
       const weekEndMs = new Date(weekBounds.endISO).getTime()
-      if (userIds.length > 0) {
+      if (userIds.length > 0 && !notStarted) {
         const { data: cw, error: e4 } = await supabase
           .from('completed_workouts')
           .select('user_id, completed_at')
@@ -138,10 +142,12 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
       const ranking: ChallengeRanking[] = participants
         .map((p) => {
           const pts = ptsByUser[p.user_id] ?? 0
-          const joinedMs = new Date(p.joined_at).getTime()
+          // Moyenne depuis le départ réel de la personne : inscrite avant
+          // starts_at, sa moyenne part de starts_at (pas de jours « à vide »).
+          const fromMs = Math.max(new Date(p.joined_at).getTime(), startsAt.getTime())
           const personalElapsedWeeks = Math.max(
             1,
-            (Math.min(now.getTime(), endsAt.getTime()) - joinedMs) / ONE_WEEK_MS,
+            (Math.min(now.getTime(), endsAt.getTime()) - fromMs) / ONE_WEEK_MS,
           )
           const sessionsPerWeek = pts / personalElapsedWeeks
           return {
@@ -161,6 +167,7 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
         weeklyTarget,
         weeklyCompleted,
         isExpired: endsAt.getTime() < now.getTime(),
+        notStarted,
         weeksTotal,
         weeksElapsed,
         ranking,

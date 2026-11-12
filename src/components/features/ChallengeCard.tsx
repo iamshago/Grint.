@@ -26,6 +26,8 @@ export default function ChallengeCard({ challenge, isParticipant, progress, part
   const totalCompleted = progress?.totalCompleted ?? 0
   const totalGoal = progress?.totalGoal ?? 0
   const ratio = totalGoal > 0 ? Math.min(1, totalCompleted / totalGoal) : 0
+  // Lu sur la date plutôt que sur `progress` : juste dès le premier rendu.
+  const notStarted = new Date(challenge.starts_at).getTime() > Date.now()
 
   const visibleAvatars = participantProfiles.slice(0, 3)
   const extra = Math.max(0, N - 3)
@@ -47,11 +49,11 @@ export default function ChallengeCard({ challenge, isParticipant, progress, part
         {challenge.name}
       </p>
 
-      {/* Date à droite */}
+      {/* Date à droite : le départ tant que le défi n'a pas commencé, sinon la fin */}
       <div className="absolute right-[16px] top-[16px] flex flex-col items-end gap-[2px]">
-        <span className="font-sans text-[12px] text-bg-2 leading-none">Jusqu'au</span>
+        <span className="font-sans text-[12px] text-bg-2 leading-none">{notStarted ? 'Dès le' : "Jusqu'au"}</span>
         <span className="font-sans font-bold text-[16px] text-bg-1 leading-none">
-          {formatShortDate(challenge.ends_at)}
+          {formatShortDate(notStarted ? challenge.starts_at : challenge.ends_at)}
         </span>
       </div>
 

@@ -1,9 +1,9 @@
 // @ts-nocheck
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, Dumbbell, ArrowLeft, X, Play, Check, Calendar, Target, Plus, FolderPlus, MoreVertical } from 'lucide-react'
+import { Search, Clock, Dumbbell, ArrowLeft, X, Play, Check, Calendar, Target, MoreVertical } from 'lucide-react'
 
 import LightLayout from '@/components/layout/LightLayout'
 import StickyPageHeader from '@/components/layout/StickyPageHeader'
@@ -17,7 +17,10 @@ import IconButton from '@/components/ui/IconButton'
 import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 import ActionSheet from '@/components/ui/ActionSheet'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
-import { fetchUserPrograms, softDeleteUserWorkout } from '@/lib/myPrograms'
+import { fetchUserPrograms, softDeleteUserWorkout, updateUserWorkout } from '@/lib/myPrograms'
+import PlusFeuille, { type EtapeCreer } from '@/components/features/creer-seance/PlusFeuille'
+import HeroSeance from '@/components/features/creer-seance/HeroSeance'
+import ImagePickerSheet from '@/components/features/ImagePickerSheet'
 
 const WEEKDAYS = [
   { label: 'Lundi', value: 1 },
@@ -51,8 +54,12 @@ export default function Program() {
   const [toast, setToast] = useState(null)
   const [videoModal, setVideoModal] = useState({ isOpen: false, url: null, title: '' })
 
-  // FAB « + » : bottom sheet de création (programme / séance directe).
-  const [createSheetOpen, setCreateSheetOpen] = useState(false)
+  // FAB « + » (planche F1) : fermé → feuille d'actions → éditeur de séance qui monte du bas.
+  const [etapeCreer, setEtapeCreer] = useState<EtapeCreer>('ferme')
+  // Position de défilement figée pendant que la page recule sous l'éditeur (null = page libre).
+  const [figeY, setFigeY] = useState<number | null>(null)
+  // Aperçu d'une séance perso sans image (planche G1) : feuille d'images ouverte.
+  const [apercuImagesOuvert, setApercuImagesOuvert] = useState(false)
   // Séance perso ciblée par le menu ⋮ (suppression).
   const [menuWorkout, setMenuWorkout] = useState(null)
   const [deleting, setDeleting] = useState(false)
@@ -106,8 +113,7 @@ export default function Program() {
   // Programmes & séances persos de l'utilisateur.
   // - Programmes → carrousel (après le catalogue).
   // - Séances perso → fusionnées dans « Toutes les séances » + filtre « Mes séances ».
-  useEffect(() => {
-    async function loadUserData() {
+  const loadUserData = useCallback(async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       try {
@@ -126,9 +132,32 @@ export default function Program() {
       } catch (err) {
         console.error('Erreur données perso:', err)
       }
-    }
-    loadUserData()
   }, [])
+  useEffect(() => {
+    loadUserData()
+  }, [loadUserData])
+
+  // F1 : la page recule sous l'éditeur. Elle est figée (position fixe, défilement gardé)
+  // le temps que l'éditeur est ouvert, puis rendue au défilement du body une fois revenue.
+  useLayoutEffect(() => {
+    if (etapeCreer === 'editeur' && figeY === null) {
+      setFigeY(window.scrollY)
+      return
+    }
+    if (etapeCreer !== 'editeur' && figeY !== null) {
+      const y = figeY
+      const t = setTimeout(() => {
+        setFigeY(null)
+        requestAnimationFrame(() => window.scrollTo(0, y))
+      }, 500)
+      return () => clearTimeout(t)
+    }
+  }, [etapeCreer, figeY])
+  useLayoutEffect(() => {
+    if (figeY === null) return
+    const page = document.querySelector('.f1-page') as HTMLElement | null
+    if (page) page.scrollTop = figeY
+  }, [figeY])
 
   // Tag « Mes séances » caché tant que l'utilisateur n'a pas de séance perso.
   const hasUserWorkouts = userWorkouts.length > 0
@@ -243,9 +272,12 @@ export default function Program() {
 
   // Normalise une séance perso vers la forme attendue par la modale détail.
   const openUserWorkout = (uw) => {
+    setApercuImagesOuvert(false)
     setPreviewWorkout({
       id: uw.id,
       __source: 'user',
+      // Séance perso sans image : le haut reçoit le bouton « Image » (planche G1).
+      __sansImage: !uw.image_url,
       title: uw.name,
       category: uw.category || 'upper',
       image_url: uw.image_url,
@@ -281,6 +313,18 @@ export default function Program() {
     }
   }
 
+  // G1 : l'image choisie remplit le haut de l'aperçu et devient la couverture de la séance.
+  const choisirImageApercu = (url) => {
+    const id = previewWorkout?.id
+    if (!id) return
+    setPreviewWorkout((pw) => (pw && pw.id === id ? { ...pw, image_url: url, detail_image_url: url } : pw))
+    setUserWorkouts((prev) => prev.map((w) => (w.id === id ? { ...w, image_url: url } : w)))
+    updateUserWorkout(id, { image_url: url }).catch((err) => {
+      console.error(err)
+      showToast('Erreur lors de la sauvegarde.', 'error')
+    })
+  }
+
   const handleOpenVideo = (exo) => {
     if (exo.exercise?.video_url && exo.exercise.video_url.length > 5) {
       setVideoModal({ isOpen: true, url: exo.exercise.video_url, title: exo.exercise.name })
@@ -291,7 +335,13 @@ export default function Program() {
 
   return (
     <>
-    <LightLayout scrollable hideTabBar className="pb-[calc(env(safe-area-inset-bottom,0px)+96px)]">
+    {/* F1 : fond noir derrière la page quand elle recule */}
+    {figeY !== null && <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 0, background: '#0c0c0c' }} />}
+    <LightLayout
+      scrollable
+      hideTabBar
+      className={`pb-[calc(env(safe-area-inset-bottom,0px)+96px)] f1-page ${figeY !== null ? 'f1-fige' : ''} ${figeY !== null && etapeCreer === 'editeur' ? 'f1-recule' : ''}`}
+    >
       {/* Easing gradient haut — 15 stops sigmoïde, zéro liseré (cf. Round 3). */}
       <TopFadeOverlay />
 
@@ -467,18 +517,21 @@ export default function Program() {
         )}
       </div>
 
-      {/* FAB création — bas-droite, au-dessus de la liste qui scrolle. */}
-      <button
-        type="button"
-        onClick={() => setCreateSheetOpen(true)}
-        aria-label="Créer"
-        className="fixed right-6 z-40 w-14 h-14 rounded-full bg-tx-1 flex items-center justify-center shadow-[0px_8px_24px_0px_rgba(31,32,33,0.32)] cursor-pointer active:scale-95 transition-transform"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
-      >
-        <Plus size={28} className="text-pr-1" />
-      </button>
-
     </LightLayout>
+
+      {/* === FAB « + », feuille d'actions et éditeur de séance (planche F1) === */}
+      <PlusFeuille
+        etape={etapeCreer}
+        onEtape={setEtapeCreer}
+        onCreerProgramme={() => {
+          setEtapeCreer('ferme')
+          navigate('/my-programs')
+        }}
+        onSeanceEnregistree={() => {
+          setEtapeCreer('ferme')
+          loadUserData()
+        }}
+      />
 
       {/* === APERÇU PROGRAMME PERSO — composant dédié (carrousel → séances → planifier) === */}
       {previewUserProgramId && (
@@ -570,32 +623,6 @@ export default function Program() {
         document.body
       )}
 
-      {/* === Bottom sheet création (FAB) === */}
-      <ActionSheet
-        open={createSheetOpen}
-        onClose={() => setCreateSheetOpen(false)}
-        ariaLabel="Que veux-tu créer ?"
-        actions={[
-          {
-            label: 'Créer un programme',
-            icon: <FolderPlus size={20} className="text-tx-1" />,
-            onClick: () => {
-              setCreateSheetOpen(false)
-              navigate('/my-programs')
-            },
-          },
-          {
-            label: 'Créer une séance',
-            icon: <Dumbbell size={20} className="text-tx-1" />,
-            onClick: () => {
-              setCreateSheetOpen(false)
-              navigate('/workouts/new')
-            },
-          },
-          { label: 'Annuler', variant: 'cancel', onClick: () => setCreateSheetOpen(false) },
-        ]}
-      />
-
       {/* === Menu ⋮ d'une séance perso (suppression) === */}
       <ActionSheet
         open={Boolean(menuWorkout)}
@@ -621,7 +648,14 @@ export default function Program() {
         <div className="fixed inset-0 z-[9999] bg-bg-1 overflow-hidden">
           {/* Image hero — sticky derrière le contenu */}
           <div data-hero-image className="absolute top-0 left-0 right-0 h-[308px] transition-opacity duration-300">
-            {(previewWorkout.detail_image_url || previewWorkout.image_url) && (
+            {previewWorkout.__sansImage ? (
+              // Séance perso sans image (planche G1) : zone grise + bouton « Image ».
+              <HeroSeance
+                image={previewWorkout.image_url}
+                onOuvrir={() => setApercuImagesOuvert(true)}
+                couleur={previewWorkout.category === 'bbl' ? CATEGORY_ACCENT.bbl : '#ffee8c'}
+              />
+            ) : (previewWorkout.detail_image_url || previewWorkout.image_url) && (
               <img
                 src={previewWorkout.detail_image_url || previewWorkout.image_url}
                 alt=""
@@ -653,10 +687,15 @@ export default function Program() {
           {/* Contenu scrollable — CSS snap + fade image. Pas de TopFadeOverlay
            *  ici : il créait un liseré clair par-dessus le haut de l'image hero
            *  (le fade light bg-1 → transparent voilait le sujet de la photo). */}
-          <div ref={snapRef} className="h-full overflow-y-auto no-scrollbar overscroll-none snap-y snap-mandatory scroll-smooth">
+          <div
+            ref={snapRef}
+            className="h-full overflow-y-auto no-scrollbar overscroll-none snap-y snap-mandatory scroll-smooth"
+            // G1 : le haut laisse passer le toucher jusqu'au bouton « Image ».
+            style={previewWorkout.__sansImage ? { pointerEvents: 'none' } : undefined}
+          >
             <div className="h-[258px] shrink-0 snap-start snap-always" />
 
-            <div className="relative bg-bg-1 rounded-t-[24px] shadow-[0px_0px_13px_0px_rgba(0,0,0,0.1)] px-4 pt-3 snap-start snap-always" style={{ paddingBottom: '120px' }}>
+            <div className="relative bg-bg-1 rounded-t-[24px] shadow-[0px_0px_13px_0px_rgba(0,0,0,0.1)] px-4 pt-3 snap-start snap-always" style={{ paddingBottom: '120px', pointerEvents: 'auto' }}>
               {/* Handle / tiret indicateur de scroll */}
               <div className="flex justify-center mb-4">
                 <div className="w-10 h-1 rounded-full bg-bg-2" />
@@ -750,6 +789,16 @@ export default function Program() {
               </button>
             </div>
           </div>
+
+          {/* G1 : feuille d'images de l'app (« Ta photo » en premier) */}
+          {previewWorkout.__sansImage && (
+            <ImagePickerSheet
+              open={apercuImagesOuvert}
+              onClose={() => setApercuImagesOuvert(false)}
+              category={previewWorkout.category}
+              onSelect={choisirImageApercu}
+            />
+          )}
         </div>
         )
       })(), document.body)}

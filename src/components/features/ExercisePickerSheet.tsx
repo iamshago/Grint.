@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { Search, X, Plus } from 'lucide-react'
 import type { Exercise, SlotType } from '@/types'
+import { IconePlus, IconeRecherche, IconeX } from '@/components/features/creer-seance/icones'
+import '@/components/features/creer-seance/creer-seance.css'
 
 /** Libellés courts pour le tag de type de tension sur chaque exo. */
-const TENSION_SHORT: Record<SlotType, string> = {
+export const TENSION_SHORT: Record<SlotType, string> = {
   contraction: 'Contraction',
   stretch: 'Étirement',
   unilateral: 'Unilatéral',
@@ -16,15 +16,16 @@ interface ExercisePickerSheetProps {
   onClose: () => void
   catalog: Exercise[]
   onSelect: (exercise: Exercise) => void
-  /** Titre contextuel (ex. « Exercice de contraction » ou « Ajouter un exercice »). */
+  /** Titre contextuel (ex. « Exercice — Tension de contraction » ou « Ajouter un exercice »). */
   title?: string
   /** Slot ciblé : les exos de ce type de tension sont mis en avant (« Recommandés »). */
   slot?: SlotType | null
 }
 
 /**
- * Bottom sheet de sélection d'un exercice dans le catalogue (`exercises`, read-only).
- * Recherche en haut + liste scrollable. Au clic, renvoie l'exercice choisi.
+ * Feuille de sélection d'un exercice dans le catalogue (`exercises`, read-only) — planche G-FeuilleExercices.
+ * Posée dans la page (absolute, plein cadre) : le voile s'éclaircit, la feuille monte du bas.
+ * Recherche en haut + liste scrollable (« Recommandés » = type de l'emplacement en premier).
  */
 export default function ExercisePickerSheet({
   open,
@@ -39,12 +40,13 @@ export default function ExercisePickerSheet({
 
   useEffect(() => {
     if (!open) {
-      setQuery('')
-      return
+      // Comme la planche : la recherche se vide une fois la feuille redescendue.
+      const vider = setTimeout(() => setQuery(''), 520)
+      return () => clearTimeout(vider)
     }
     // Focus différé après l'animation d'ouverture — évite le saut de viewport
-    // iOS Safari provoqué par autoFocus dans un portal.
-    const focusTimer = setTimeout(() => inputRef.current?.focus(), 250)
+    // iOS Safari provoqué par autoFocus.
+    const focusTimer = setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 250)
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
@@ -65,110 +67,99 @@ export default function ExercisePickerSheet({
   const recommended = slot ? results.filter((e) => e.tension_type === slot) : []
   const others = slot ? results.filter((e) => e.tension_type !== slot) : results
 
+  const cls = open ? 'fe-ouvert' : ''
+
   const renderRow = (exercise: Exercise) => (
     <button
       key={exercise.id}
       type="button"
+      className="fe-touche"
       onClick={() => {
         onSelect(exercise)
         onClose()
       }}
-      className="w-full flex items-center justify-between gap-3 bg-tx-1 rounded-12 px-4 py-4 text-left cursor-pointer active:scale-[0.98] transition-transform"
+      style={{ boxSizing: 'border-box', width: '100%', margin: 0, border: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 16, borderRadius: 12, background: '#1b1d1f', textAlign: 'left', fontFamily: 'inherit' }}
     >
-      <span className="min-w-0 flex items-center gap-2">
-        <span className="font-sans font-semibold text-base text-bg-1 truncate">{exercise.name}</span>
+      <span style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontWeight: 600, fontSize: 16, lineHeight: '24px', color: '#f1f4fb', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{exercise.name}</span>
         {exercise.tension_type && (
-          <span className="shrink-0 font-sans text-[10px] uppercase tracking-wide text-tx-3 border border-[#3d4149] rounded-md px-1.5 py-0.5">
+          <span style={{ boxSizing: 'border-box', flexShrink: 0, fontSize: 10, lineHeight: '15px', textTransform: 'uppercase', letterSpacing: '0.25px', color: '#989da6', border: '1px solid #3d4149', borderRadius: 6, padding: '2px 6px' }}>
             {TENSION_SHORT[exercise.tension_type]}
           </span>
         )}
       </span>
-      <span className="w-8 h-8 rounded-full bg-pr-1 flex items-center justify-center shrink-0">
-        <Plus size={16} className="text-tx-1" />
+      <span style={{ width: 32, height: 32, borderRadius: 9999, background: '#ffee8c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <IconePlus taille={16} trait="#1b1d1f" />
       </span>
     </button>
   )
 
-  if (!open) return null
+  const titreSection = (texte: string) => (
+    <span style={{ fontWeight: 600, fontSize: 12, lineHeight: '16px', textTransform: 'uppercase', letterSpacing: '0.3px', color: '#989da6' }}>{texte}</span>
+  )
 
-  return createPortal(
+  return (
     <div
-      className="fixed inset-0 z-[9999] flex items-end justify-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
+      aria-hidden={!open}
+      style={{ position: 'absolute', inset: 0, zIndex: 300, overflow: 'hidden', pointerEvents: 'none', fontFamily: 'Figtree, Inter, system-ui, sans-serif', lineHeight: 1.5, color: '#1b1d1f' }}
     >
       <button
         type="button"
-        aria-label="Fermer"
-        className="absolute inset-0 bg-black/40"
+        className={`fe-voile ${cls}`}
         onClick={onClose}
+        aria-label="Fermer"
+        tabIndex={open ? 0 : -1}
+        style={{ position: 'absolute', inset: 0, border: 0, padding: 0, background: 'rgba(0,0,0,0.4)' }}
       />
-      <div className="relative bg-[#1c1c1e] rounded-t-[24px] w-full max-w-[402px] flex flex-col max-h-[78vh] pb-[env(safe-area-inset-bottom,16px)]">
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-[#3d4149]" />
+      <div
+        className={`fe-feuille ${cls}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        style={{ boxSizing: 'border-box', position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', maxHeight: '78%', background: '#1c1c1e', borderRadius: '24px 24px 0 0', paddingBottom: 'max(16px, env(safe-area-inset-bottom, 0px))', pointerEvents: 'auto' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
+          <div style={{ width: 40, height: 4, borderRadius: 9999, background: '#3d4149' }} />
         </div>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-2 pb-3 shrink-0">
-          <h3 className="font-serif font-bold text-xl text-bg-1">{title}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="bg-[#3d4149] rounded-full p-2 active:scale-95 transition-transform"
-          >
-            <X size={18} className="text-bg-1" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 20px 12px', flexShrink: 0 }}>
+          <h3 style={{ margin: 0, fontFamily: "'PT Serif', Georgia, serif", fontWeight: 700, fontSize: 20, lineHeight: '28px', color: '#f1f4fb' }}>{title}</h3>
+          <button type="button" onClick={onClose} aria-label="Fermer" style={{ border: 0, background: '#3d4149', borderRadius: 9999, padding: 8, display: 'flex', cursor: 'pointer' }}>
+            <IconeX taille={18} trait="#f1f4fb" />
           </button>
         </div>
-
-        {/* Recherche */}
-        <div className="px-5 pb-3 shrink-0">
-          <div className="relative flex items-center gap-3 bg-[#3d4149] rounded-12 px-4 py-3.5">
-            <Search size={16} className="text-tx-3 shrink-0" />
+        <div style={{ padding: '0 20px 12px', flexShrink: 0 }}>
+          <label style={{ boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 12, background: '#3d4149', borderRadius: 12, padding: '14px 16px' }}>
+            <IconeRecherche taille={16} trait="#989da6" style={{ flexShrink: 0 }} />
             <input
               ref={inputRef}
+              className="fe-champ"
               type="text"
               placeholder="Rechercher un exercice"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-transparent text-base font-sans text-bg-1 placeholder-tx-3 focus:outline-none"
+              style={{ boxSizing: 'border-box', width: '100%', margin: 0, padding: 0, border: 0, background: 'transparent', fontFamily: 'inherit', fontSize: 16, lineHeight: '24px', color: '#f1f4fb', caretColor: '#f1f4fb' }}
             />
             {query && (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                aria-label="Effacer"
-                className="text-tx-3"
-              >
-                <X size={16} />
+              <button type="button" onClick={() => setQuery('')} aria-label="Effacer" style={{ border: 0, padding: 0, background: 'transparent', display: 'flex', cursor: 'pointer' }}>
+                <IconeX taille={16} trait="#989da6" />
               </button>
             )}
-          </div>
+          </label>
         </div>
-
-        {/* Liste */}
-        <div className="overflow-y-auto no-scrollbar px-5 pb-6 flex flex-col gap-2">
+        <div className="fe-liste" style={{ boxSizing: 'border-box', overflowY: 'auto', padding: '0 20px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {results.length === 0 ? (
-            <p className="text-center text-tx-3 font-sans text-sm py-10">
-              Aucun exercice ne correspond.
-            </p>
+            <p style={{ margin: 0, padding: '40px 0', textAlign: 'center', fontSize: 14, lineHeight: '20px', color: '#989da6' }}>Aucun exercice ne correspond.</p>
           ) : slot ? (
             <>
               {recommended.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  <span className="font-sans font-semibold text-xs uppercase text-tx-3 tracking-wide">
-                    Recommandés
-                  </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {titreSection('Recommandés')}
                   {recommended.map(renderRow)}
                 </div>
               )}
               {others.length > 0 && (
-                <div className="flex flex-col gap-2 mt-2">
-                  <span className="font-sans font-semibold text-xs uppercase text-tx-3 tracking-wide">
-                    Autres exercices
-                  </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                  {titreSection('Autres exercices')}
                   {others.map(renderRow)}
                 </div>
               )}
@@ -178,7 +169,6 @@ export default function ExercisePickerSheet({
           )}
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>
   )
 }

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { Check, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchWorkoutImages } from '@/lib/myPrograms'
+import { uploadWorkoutCover } from '@/lib/workoutCoverUpload'
+import { IconeAppareil, IconeCoche, IconeX } from '@/components/features/creer-seance/icones'
+import '@/components/features/creer-seance/creer-seance.css'
 import type { ImageLibraryCategory, WorkoutImage } from '@/types'
 
 interface ImagePickerSheetProps {
@@ -9,126 +10,137 @@ interface ImagePickerSheetProps {
   onClose: () => void
   /** Catégorie de la séance — filtre la galerie (generic en complément). */
   category?: ImageLibraryCategory
-  /** URL actuellement sélectionnée (coche). */
-  selectedUrl?: string | null
   onSelect: (url: string) => void
 }
 
 /**
- * Bottom sheet plein écran de choix d'image de couverture (workout_image_library).
- * Grille 3 colonnes filtrée par catégorie. Au clic, renvoie l'URL et se ferme.
+ * Feuille de choix d'image de couverture (workout_image_library) — planches F3 / G1.
+ * Posée dans la page (absolute, plein cadre). « Ta photo » en premier, puis la galerie
+ * de la catégorie en grille 3 colonnes ; les vignettes entrent en cascade.
+ * Au toucher : la coche apparaît, la feuille redescend et l'image remplit le haut de la page.
  */
-export default function ImagePickerSheet({
-  open,
-  onClose,
-  category,
-  selectedUrl,
-  onSelect,
-}: ImagePickerSheetProps) {
+export default function ImagePickerSheet({ open, onClose, category, onSelect }: ImagePickerSheetProps) {
   const [images, setImages] = useState<WorkoutImage[]>([])
-  const [loading, setLoading] = useState(false)
+  const [choisie, setChoisie] = useState<string | null>(null)
+  const [envoi, setEnvoi] = useState(false)
+  const fichierRef = useRef<HTMLInputElement>(null)
+  const minuteur = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Recharge la galerie à l'ouverture et à chaque changement de catégorie.
+  // Galerie chargée d'avance (et à chaque changement de catégorie) : les vignettes
+  // existent déjà quand la feuille monte, pour que leur entrée en cascade se voie.
   useEffect(() => {
-    if (!open) return
     let active = true
-    setLoading(true)
     fetchWorkoutImages(category)
       .then((imgs) => active && setImages(imgs))
       .catch((e) => console.error(e))
-      .finally(() => active && setLoading(false))
+    return () => {
+      active = false
+    }
+  }, [category])
+
+  useEffect(() => {
+    if (!open) return
+    setChoisie(null)
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', onKey)
-    return () => {
-      active = false
-      document.removeEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
+  useEffect(() => () => {
+    if (minuteur.current) clearTimeout(minuteur.current)
+  }, [])
+
+  function choisir(img: WorkoutImage) {
+    setChoisie(img.id)
+    minuteur.current = setTimeout(() => {
+      onSelect(img.image_url)
+      onClose()
+    }, 380)
+  }
+
+  async function envoyerPhoto(fichier: File | undefined) {
+    if (!fichier || envoi) return
+    try {
+      setEnvoi(true)
+      const url = await uploadWorkoutCover(fichier)
+      onSelect(url)
+      onClose()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setEnvoi(false)
+      if (fichierRef.current) fichierRef.current.value = ''
     }
-  }, [open, category, onClose])
+  }
 
-  if (!open) return null
+  const cls = open ? 'ip-ouvert' : ''
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[10000] flex items-end justify-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Choisir une image"
-    >
+  return (
+    <div aria-hidden={!open} style={{ position: 'absolute', inset: 0, zIndex: 200, overflow: 'hidden', pointerEvents: 'none', fontFamily: 'Figtree, Inter, system-ui, sans-serif', lineHeight: 1.5 }}>
       <button
         type="button"
-        aria-label="Fermer"
-        className="absolute inset-0 bg-black/50"
+        className={`ip-voile ${cls}`}
         onClick={onClose}
+        aria-label="Fermer"
+        tabIndex={open ? 0 : -1}
+        style={{ position: 'absolute', inset: 0, border: 0, padding: 0, background: 'rgba(0,0,0,0.5)' }}
       />
-      <div className="relative bg-[#1c1c1e] rounded-t-[24px] w-full max-w-[402px] flex flex-col max-h-[88vh] pb-[env(safe-area-inset-bottom,16px)]">
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-[#3d4149]" />
+      <div
+        className={`ip-picker ${cls}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Choisir une image"
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: '#1c1c1e', borderRadius: '24px 24px 0 0', paddingBottom: 'max(16px, env(safe-area-inset-bottom, 0px))', pointerEvents: open ? 'auto' : 'none' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+          <div style={{ width: 40, height: 4, borderRadius: 9999, background: '#3d4149' }} />
         </div>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-2 pb-4 shrink-0">
-          <h3 className="font-serif font-bold text-xl text-bg-1">Choisir une image</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="bg-[#3d4149] rounded-full p-2 active:scale-95 transition-transform"
-          >
-            <X size={18} className="text-bg-1" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 20px 16px' }}>
+          <h3 style={{ margin: 0, fontFamily: "'PT Serif', Georgia, serif", fontWeight: 700, fontSize: 20, lineHeight: '28px', color: '#f1f4fb' }}>Choisir une image</h3>
+          <button type="button" onClick={onClose} aria-label="Fermer" style={{ border: 0, background: '#3d4149', borderRadius: 9999, padding: 8, display: 'flex', cursor: 'pointer' }}>
+            <IconeX taille={18} trait="#f1f4fb" />
           </button>
         </div>
-
-        {/* Grille 3 colonnes */}
-        <div className="overflow-y-auto no-scrollbar px-5 pb-6">
-          {loading ? (
-            <div className="grid grid-cols-3 gap-3">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="aspect-square rounded-12 bg-[#3d4149] animate-pulse" />
-              ))}
-            </div>
-          ) : images.length === 0 ? (
-            <p className="text-center text-tx-3 font-sans text-sm py-10">
-              Aucune image disponible pour le moment.
-            </p>
-          ) : (
-            <div className="grid grid-cols-3 gap-3">
-              {images.map((img) => {
-                const isSelected = selectedUrl === img.image_url
-                return (
-                  <button
-                    key={img.id}
-                    type="button"
-                    onClick={() => {
-                      onSelect(img.image_url)
-                      onClose()
-                    }}
-                    aria-label={img.label ?? 'Image'}
-                    aria-pressed={isSelected}
-                    className="relative aspect-square rounded-12 overflow-hidden cursor-pointer active:scale-95 transition-transform"
-                  >
-                    <img
-                      src={img.image_url}
-                      alt={img.label ?? ''}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    {isSelected && (
-                      <span className="absolute inset-0 ring-2 ring-pr-1 rounded-12 flex items-center justify-center bg-black/30">
-                        <span className="w-8 h-8 rounded-full bg-pr-1 flex items-center justify-center">
-                          <Check size={18} strokeWidth={3} className="text-tx-1" />
-                        </span>
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          )}
+        <div style={{ padding: '0 20px 24px', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+          <button
+            type="button"
+            className="ip-tuile ip-touche"
+            onClick={() => fichierRef.current?.click()}
+            style={{ aspectRatio: '1', border: 0, borderRadius: 12, background: 'rgba(255,238,140,0.1)', boxShadow: 'inset 0 0 0 1.5px rgba(255,238,140,0.6)', color: '#ffee8c', fontFamily: 'inherit', fontWeight: 600, fontSize: 12, lineHeight: 'normal', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, transitionDelay: '.1s' }}
+          >
+            <IconeAppareil taille={26} trait="#ffee8c" epaisseur={1.8} />
+            Ta photo
+          </button>
+          {images.map((img, i) => (
+            <button
+              key={img.id}
+              type="button"
+              className="ip-tuile ip-touche"
+              onClick={() => choisir(img)}
+              aria-label={img.label ?? 'Image'}
+              style={{ position: 'relative', aspectRatio: '1', border: 0, padding: 0, borderRadius: 12, overflow: 'hidden', background: '#3d4149', transitionDelay: `${(0.14 + i * 0.035).toFixed(3)}s` }}
+            >
+              <img src={img.image_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              {choisie === img.id && (
+                <span style={{ position: 'absolute', inset: 0, borderRadius: 12, boxShadow: 'inset 0 0 0 2px #ffee8c', background: 'rgba(0,0,0,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="ip-pop" style={{ width: 32, height: 32, borderRadius: 9999, background: '#ffee8c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <IconeCoche taille={18} trait="#1b1d1f" epaisseur={3} />
+                  </span>
+                </span>
+              )}
+            </button>
+          ))}
         </div>
+        <input
+          ref={fichierRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => envoyerPhoto(e.target.files?.[0])}
+        />
       </div>
-    </div>,
-    document.body,
+    </div>
   )
 }

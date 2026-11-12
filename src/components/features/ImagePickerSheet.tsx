@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchWorkoutImages } from '@/lib/myPrograms'
-import { uploadWorkoutCover } from '@/lib/workoutCoverUpload'
+import { photosDisponibles, uploadWorkoutCover } from '@/lib/workoutCoverUpload'
 import { IconeAppareil, IconeCoche, IconeX } from '@/components/features/creer-seance/icones'
 import '@/components/features/creer-seance/creer-seance.css'
 import type { ImageLibraryCategory, WorkoutImage } from '@/types'
@@ -11,6 +11,8 @@ interface ImagePickerSheetProps {
   /** Catégorie de la séance — filtre la galerie (generic en complément). */
   category?: ImageLibraryCategory
   onSelect: (url: string) => void
+  /** Envoi de « Ta photo » impossible : message court à afficher. */
+  onErreur?: (message: string) => void
 }
 
 /**
@@ -19,10 +21,12 @@ interface ImagePickerSheetProps {
  * de la catégorie en grille 3 colonnes ; les vignettes entrent en cascade.
  * Au toucher : la coche apparaît, la feuille redescend et l'image remplit le haut de la page.
  */
-export default function ImagePickerSheet({ open, onClose, category, onSelect }: ImagePickerSheetProps) {
+export default function ImagePickerSheet({ open, onClose, category, onSelect, onErreur }: ImagePickerSheetProps) {
   const [images, setImages] = useState<WorkoutImage[]>([])
   const [choisie, setChoisie] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
+  // « Ta photo » seulement si le bucket workout-covers existe (migration pas encore appliquée).
+  const [photoPossible, setPhotoPossible] = useState(false)
   const fichierRef = useRef<HTMLInputElement>(null)
   const minuteur = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -37,6 +41,17 @@ export default function ImagePickerSheet({ open, onClose, category, onSelect }: 
       active = false
     }
   }, [category])
+
+  // Vérifié au montage (la tuile est là quand la feuille monte), puis à chaque ouverture.
+  useEffect(() => {
+    if (!open && photoPossible) return
+    let active = true
+    photosDisponibles().then((ok) => active && setPhotoPossible(ok))
+    return () => {
+      active = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -69,6 +84,7 @@ export default function ImagePickerSheet({ open, onClose, category, onSelect }: 
       onClose()
     } catch (e) {
       console.error(e)
+      onErreur?.("Envoi de la photo impossible")
     } finally {
       setEnvoi(false)
       if (fichierRef.current) fichierRef.current.value = ''
@@ -104,15 +120,18 @@ export default function ImagePickerSheet({ open, onClose, category, onSelect }: 
           </button>
         </div>
         <div style={{ padding: '0 20px 24px', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+          {photoPossible && (
           <button
             type="button"
             className="ip-tuile ip-touche"
+            disabled={envoi}
             onClick={() => fichierRef.current?.click()}
             style={{ aspectRatio: '1', border: 0, borderRadius: 12, background: 'rgba(255,238,140,0.1)', boxShadow: 'inset 0 0 0 1.5px rgba(255,238,140,0.6)', color: '#ffee8c', fontFamily: 'inherit', fontWeight: 600, fontSize: 12, lineHeight: 'normal', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, transitionDelay: '.1s' }}
           >
             <IconeAppareil taille={26} trait="#ffee8c" epaisseur={1.8} />
             Ta photo
           </button>
+          )}
           {images.map((img, i) => (
             <button
               key={img.id}
@@ -133,6 +152,7 @@ export default function ImagePickerSheet({ open, onClose, category, onSelect }: 
             </button>
           ))}
         </div>
+        {photoPossible && (
         <input
           ref={fichierRef}
           type="file"
@@ -140,6 +160,7 @@ export default function ImagePickerSheet({ open, onClose, category, onSelect }: 
           hidden
           onChange={(e) => envoyerPhoto(e.target.files?.[0])}
         />
+        )}
       </div>
     </div>
   )

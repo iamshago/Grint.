@@ -1,23 +1,15 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { supabase } from '@/lib/supabaseClient'
-import {
-  addProgramItem,
-  createUserWorkout,
-  fetchUserWorkout,
-  replaceWorkoutExercises,
-  updateUserWorkout,
-  fetchExerciseCatalog,
-  CATEGORY_FALLBACK_IMAGE,
-  type DraftExercise,
-} from '@/lib/myPrograms'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
+import type { DraftExercise } from '@/lib/myPrograms'
 import ExercisePickerSheet, { TENSION_SHORT } from '@/components/features/ExercisePickerSheet'
 import ImagePickerSheet from '@/components/features/ImagePickerSheet'
 import HeroSeance from './HeroSeance'
 import LigneEmplacement from './LigneEmplacement'
+import ListeModification from './ListeModification'
+import { useEditeurSeance, type CiblePlacement } from './useEditeurSeance'
 import { IconeCoche, IconeHaltere, IconeImagePlus, IconeRetour } from './icones'
 import { SLOT_ORDER, SLOT_LABELS } from '@/types'
-import type { Exercise, SlotType, WorkoutCategory } from '@/types'
+import type { Exercise, WorkoutCategory } from '@/types'
 import './creer-seance.css'
 
 // Le rose (BBL) est réservé à la séance « BBL » du catalogue (easter egg) :
@@ -26,32 +18,6 @@ const CATEGORY_OPTIONS: { value: WorkoutCategory; label: string }[] = [
   { value: 'upper', label: 'Haut du corps' },
   { value: 'lower', label: 'Bas du corps' },
 ]
-
-function makeDraft(exercise: Exercise, slot: SlotType | null): DraftExercise {
-  return {
-    uid: crypto.randomUUID(),
-    exercise_id: exercise.id,
-    exercise,
-    sets: 3,
-    reps: '10',
-    rest_seconds: 90,
-    slot_type: slot,
-    order_index: 0,
-  }
-}
-
-type PickerTarget =
-  | { kind: 'slot'; slot: SlotType }
-  | { kind: 'free-add' }
-  | { kind: 'free-replace'; index: number }
-
-type SlotMap = Record<SlotType, DraftExercise | null>
-const EMPTY_SLOTS: SlotMap = {
-  contraction: null,
-  stretch: null,
-  unilateral: null,
-  isolation: null,
-}
 
 const SERIF = "'PT Serif', Georgia, serif"
 const sousTitre = (d: DraftExercise) => `${d.sets} séries • ${d.reps} réps`
@@ -78,22 +44,12 @@ interface WorkoutEditorProps {
  * guides ; chacun ouvre la feuille d'exercices, le type de l'emplacement en premier.
  */
 export default function WorkoutEditor({ programId, workoutId, embedded = false, onExit, onSaved }: WorkoutEditorProps) {
-  const isEdit = Boolean(workoutId)
+  // Toute la logique (état, réglages, ajout / retrait / ordre, enregistrement) : useEditeurSeance.
+  const ed = useEditeurSeance({ programId, workoutId, onExit, onSaved })
+  const { name, category, imageUrl, slots, freeExos, catalog, loading, saving, blockError, toast, filledSlots, totalExos } = ed
 
-  const [name, setName] = useState('')
-  const [category, setCategory] = useState<WorkoutCategory>('upper')
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [imagePickerOpen, setImagePickerOpen] = useState(false)
-  const [slots, setSlots] = useState<SlotMap>(EMPTY_SLOTS)
-  const [freeExos, setFreeExos] = useState<DraftExercise[]>([])
-  const [catalog, setCatalog] = useState<Exercise[]>([])
-
-  const [loading, setLoading] = useState(isEdit)
-  const [saving, setSaving] = useState(false)
-  const [blockError, setBlockError] = useState('')
-  const [toast, setToast] = useState<string | null>(null)
-
-  const [picker, setPicker] = useState<PickerTarget | null>(null)
+  const [picker, setPicker] = useState<CiblePlacement | null>(null)
   // Dernier exercice placé : sa ligne rejoue l'entrée « pop ».
   const [dernier, setDernier] = useState<{ cle: string; tick: number } | null>(null)
 
@@ -101,178 +57,13 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
   // Jaune de la charte (boutons, icône) — rose pour une séance BBL (easter egg).
   const jaune = category === 'bbl' ? CATEGORY_ACCENT.bbl : '#ffee8c'
 
-  // Timer de sortie différée après le toast soft — annulé si on démonte avant.
-  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const placeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => () => {
-    if (navTimerRef.current) clearTimeout(navTimerRef.current)
     if (placeTimerRef.current) clearTimeout(placeTimerRef.current)
   }, [])
 
-  // Catalogue
-  useEffect(() => {
-    fetchExerciseCatalog()
-      .then(setCatalog)
-      .catch((e) => console.error(e))
-  }, [])
-
-  // Chargement (édition)
-  useEffect(() => {
-    if (!isEdit) return
-    let active = true
-    async function load() {
-      try {
-        const workout = await fetchUserWorkout(workoutId as string)
-        if (!workout) return onExit()
-        if (!active) return
-        setName(workout.name)
-        setCategory(workout.category)
-        setImageUrl(workout.image_url ?? null)
-        const nextSlots: SlotMap = { ...EMPTY_SLOTS }
-        const free: DraftExercise[] = []
-        for (const e of workout.user_workout_exercises ?? []) {
-          const draft: DraftExercise = {
-            uid: crypto.randomUUID(),
-            id: e.id,
-            exercise_id: e.exercise_id,
-            exercise: e.exercise,
-            sets: e.sets,
-            reps: e.reps,
-            rest_seconds: e.rest_seconds,
-            slot_type: e.slot_type,
-            order_index: e.order_index,
-          }
-          if (e.slot_type && SLOT_ORDER.includes(e.slot_type)) nextSlots[e.slot_type] = draft
-          else free.push(draft)
-        }
-        setSlots(nextSlots)
-        setFreeExos(free)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-    load()
-    return () => {
-      active = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEdit, workoutId, programId])
-
-  const filledSlots = useMemo(
-    () => SLOT_ORDER.filter((s) => slots[s]).length,
-    [slots],
-  )
-  const totalExos = filledSlots + freeExos.length
-
-  /** Place l'exercice choisi ; renvoie la clé de la ligne remplie. */
-  function handleSelect(target: PickerTarget, exercise: Exercise): string {
-    let cle: string
-    if (target.kind === 'slot') {
-      cle = target.slot
-      setSlots((prev) => {
-        const prevDraft = prev[target.slot]
-        return {
-          ...prev,
-          [target.slot]: {
-            ...(prevDraft ?? makeDraft(exercise, target.slot)),
-            exercise_id: exercise.id,
-            exercise,
-            slot_type: target.slot,
-          },
-        }
-      })
-    } else if (target.kind === 'free-add') {
-      const draft = makeDraft(exercise, null)
-      cle = draft.uid
-      setFreeExos((prev) => [...prev, draft])
-    } else {
-      const idx = target.index
-      cle = freeExos[idx]?.uid ?? String(idx)
-      setFreeExos((prev) =>
-        prev.map((d, i) =>
-          i === idx ? { ...d, exercise_id: exercise.id, exercise } : d,
-        ),
-      )
-    }
-    if (blockError) setBlockError('')
-    return cle
-  }
-
-  async function handleSave() {
-    if (!name.trim()) {
-      setBlockError('Donne un nom à ta séance')
-      return
-    }
-    if (totalExos === 0) {
-      setBlockError('Ajoute au moins un exercice')
-      return
-    }
-    try {
-      setSaving(true)
-      setBlockError('')
-
-      const ordered: DraftExercise[] = [
-        ...SLOT_ORDER.filter((s) => slots[s]).map((s) => ({
-          ...(slots[s] as DraftExercise),
-          slot_type: s,
-        })),
-        ...freeExos.map((d) => ({ ...d, slot_type: null })),
-      ]
-
-      // Aucune image choisie → repli par catégorie (temporaire, cf. brief).
-      const finalImageUrl = imageUrl ?? CATEGORY_FALLBACK_IMAGE[category]
-
-      let targetWorkoutId = workoutId as string
-      let createdNew = false
-      if (isEdit) {
-        await updateUserWorkout(targetWorkoutId, {
-          name: name.trim(),
-          category,
-          image_url: finalImageUrl,
-        })
-      } else {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-        if (!user) return
-        const workout = await createUserWorkout({
-          user_id: user.id,
-          name: name.trim(),
-          category,
-          image_url: finalImageUrl,
-        })
-        targetWorkoutId = workout.id
-        createdNew = true
-      }
-
-      await replaceWorkoutExercises(targetWorkoutId, ordered)
-
-      // Nouvelle séance dans un programme → créer le lien (table de liaison).
-      // Séance orpheline (pas de programId) → aucun lien, elle vit seule.
-      if (createdNew && programId) {
-        await addProgramItem(programId, { source: 'user', refId: targetWorkoutId })
-      }
-
-      const emptySlots = SLOT_ORDER.length - filledSlots
-      if (emptySlots > 0) {
-        setToast(
-          `Ta séance pourrait être plus équilibrée — tu as laissé ${emptySlots} slot${emptySlots > 1 ? 's' : ''} vide${emptySlots > 1 ? 's' : ''}`,
-        )
-        navTimerRef.current = setTimeout(() => onSaved(), 1600)
-      } else {
-        onSaved()
-      }
-    } catch (err) {
-      console.error(err)
-      setBlockError("Échec de l'enregistrement. Réessaie.")
-      setSaving(false)
-    }
-  }
-
-  // La feuille garde son titre et son tri pendant qu'elle redescend.
-  const pickerVu = useRef<PickerTarget | null>(null)
+  // Les feuilles gardent leur contenu pendant qu'elles redescendent.
+  const pickerVu = useRef<CiblePlacement | null>(null)
   if (picker) pickerVu.current = picker
   const feuille = picker ?? pickerVu.current
   const pickerTitle =
@@ -283,12 +74,13 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
     const cible = picker
     if (!cible) return
     placeTimerRef.current = setTimeout(() => {
-      const cle = handleSelect(cible, exercise)
+      const cle = ed.placer(cible, exercise)
       setDernier((d) => ({ cle, tick: (d?.tick ?? 0) + 1 }))
     }, 220)
   }
 
-  // Lignes : les 4 emplacements guides, puis les exercices libres d'une séance existante.
+  // Création (planches F3 / F4) : les 4 emplacements guides ; chacun ouvre la feuille d'exercices.
+  // (En modification, la liste est celle de la planche F5 : ListeModification.)
   let numero = 0
   const lignes = [
     ...SLOT_ORDER.map((slot) => {
@@ -303,7 +95,7 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
         ouvrir: () => setPicker({ kind: 'slot', slot }),
       }
     }),
-    ...freeExos.map((draft, index) => {
+    ...freeExos.map((draft) => {
       numero += 1
       return {
         cle: draft.uid,
@@ -311,7 +103,7 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
         titre: draft.exercise?.name ?? 'Exercice',
         sous: sousTitre(draft),
         slot: undefined,
-        ouvrir: () => setPicker({ kind: 'free-replace', index } as PickerTarget),
+        ouvrir: () => setPicker({ kind: 'free-replace', uid: draft.uid }),
       }
     }),
   ]
@@ -369,7 +161,7 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
                           key={opt.value}
                           type="button"
                           className="f3-touche"
-                          onClick={() => setCategory(opt.value)}
+                          onClick={() => ed.setCategory(opt.value)}
                           aria-pressed={actif}
                           style={{ boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', padding: '6px 12px', borderRadius: 8, border: `1px solid ${actif ? '#1b1d1f' : '#3d4149'}`, background: actif ? '#1b1d1f' : '#dde0e7', fontFamily: 'inherit' }}
                         >
@@ -384,10 +176,7 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
                       className="f3-nom"
                       type="text"
                       value={name}
-                      onChange={(e) => {
-                        setName(e.target.value)
-                        if (blockError) setBlockError('')
-                      }}
+                      onChange={(e) => ed.setName(e.target.value)}
                       placeholder="Nom de la séance"
                       aria-label="Nom de la séance"
                       style={{ boxSizing: 'border-box', width: '100%', margin: 0, padding: 0, border: 0, background: 'transparent', fontFamily: SERIF, fontWeight: 700, fontSize: 32, lineHeight: '48px', letterSpacing: '-0.96px', color: '#1b1d1f', caretColor: '#1b1d1f' }}
@@ -421,6 +210,9 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <h3 style={{ margin: 0, fontFamily: SERIF, fontWeight: 700, fontSize: 24, lineHeight: '32px', letterSpacing: '-0.72px', color: '#1b1d1f' }}>Exercices</h3>
+                {ed.isEdit ? (
+                  <ListeModification ed={ed} onChoisir={setPicker} dernier={dernier} />
+                ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {lignes.map((l) => {
                     const pop = dernier?.cle === l.cle
@@ -437,6 +229,7 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
                     )
                   })}
                 </div>
+                )}
               </div>
             </div>
           )}
@@ -451,7 +244,7 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
             )}
             <button
               type="button"
-              onClick={handleSave}
+              onClick={ed.enregistrer}
               disabled={saving}
               style={{ boxSizing: 'border-box', width: '100%', margin: 0, border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 16, borderRadius: 12, background: '#1b1d1f', color: jaune, boxShadow: '0px 0px 40px 0px rgba(31,32,33,0.4)', fontFamily: 'Figtree, Inter, system-ui, sans-serif', fontWeight: 600, fontSize: 16, lineHeight: '24px', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}
             >
@@ -467,7 +260,8 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
         open={imagePickerOpen}
         onClose={() => setImagePickerOpen(false)}
         category={category}
-        onSelect={setImageUrl}
+        onSelect={ed.setImageUrl}
+        onErreur={ed.montrerToast}
       />
 
       {/* Feuille d'exercices : ouverte par chaque emplacement, son type en premier */}
@@ -479,6 +273,7 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
         title={pickerTitle}
         slot={feuille?.kind === 'slot' ? feuille.slot : undefined}
       />
+
     </div>
   )
 }

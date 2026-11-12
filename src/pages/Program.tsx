@@ -797,6 +797,7 @@ export default function Program() {
               onClose={() => setApercuImagesOuvert(false)}
               category={previewWorkout.category}
               onSelect={choisirImageApercu}
+              onErreur={(m) => showToast(`${m}.`, 'error')}
             />
           )}
         </div>

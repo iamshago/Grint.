@@ -7,7 +7,8 @@ import { supabase } from './supabaseClient'
  * quelle dans `image_url` comme une image de la galerie.
  *
  * Le bucket et ses règles sont dans supabase/migrations/20261112_workout_covers_bucket.sql
- * (à appliquer avant la mise en ligne).
+ * (pas encore appliquée). Tant qu'il n'existe pas, `photosDisponibles()` répond non et la
+ * feuille d'images n'affiche pas « Ta photo ».
  */
 const BUCKET = 'workout-covers'
 const LARGEUR_MAX = 1200
@@ -37,4 +38,25 @@ export async function uploadWorkoutCover(fichier: File): Promise<string> {
     .upload(chemin, image, { contentType: 'image/jpeg', upsert: false })
   if (error) throw error
   return supabase.storage.from(BUCKET).getPublicUrl(chemin).data.publicUrl
+}
+
+let dispo: Promise<boolean> | null = null
+
+/**
+ * Le bucket `workout-covers` existe-t-il ? (lecture du bucket, permise par la migration ;
+ * sans elle, « Bucket not found »). Réponse gardée pour la session ; un non est redemandé
+ * à l'ouverture suivante, pour que « Ta photo » apparaisse dès la migration appliquée.
+ */
+export function photosDisponibles(): Promise<boolean> {
+  if (!dispo) {
+    dispo = Promise.resolve()
+      .then(() => supabase.storage.getBucket(BUCKET))
+      .then(({ data, error }) => Boolean(data) && !error)
+      .catch(() => false)
+      .then((ok) => {
+        if (!ok) dispo = null
+        return ok
+      })
+  }
+  return dispo
 }

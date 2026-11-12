@@ -39,6 +39,23 @@
 .f3-touche{cursor:pointer;transition:transform .15s}
 .f3-touche:active{transform:scale(.97)}
 
+/* --- F5 : Modifier la séance — le réglage s'ouvre sous l'exercice (grille 0fr → 1fr), un seul ouvert à la fois --- */
+.f5-touche{cursor:pointer;transition:transform .15s}
+.f5-touche:active{transform:scale(.97)}
+.f5-tiroir{display:grid;transition:grid-template-rows .45s cubic-bezier(.32,.72,0,1)}
+.f5-tiroir > div{overflow:hidden;min-height:0}
+.f5-reglages{transition:opacity .3s,transform .45s cubic-bezier(.32,.72,0,1)}
+.f5-ferme .f5-reglages{opacity:0;transform:translateY(-8px)}
+.f5-chevron{transition:transform .35s cubic-bezier(.32,.72,0,1)}
+.f5-rond{transition:background .25s,color .25s}
+/* Le chiffre saute quand il change (deux noms d'animation pour qu'elle reparte à chaque toucher) */
+.f5-vA{animation:f5-vA .35s cubic-bezier(.34,1.56,.64,1)}
+.f5-vB{animation:f5-vB .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes f5-vA{0%{transform:scale(.7)}60%{transform:scale(1.15)}100%{transform:none}}
+@keyframes f5-vB{0%{transform:scale(.7)}60%{transform:scale(1.15)}100%{transform:none}}
+/* Remise en ordre des exercices libres par appui long : pas de sélection ni de menu système */
+.f5-appui{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+
 /* --- Feuille d'images --- */
 .ip-voile{opacity:0;pointer-events:none;transition:opacity .25s}
 .ip-voile.ip-ouvert{opacity:1;pointer-events:auto}
@@ -64,7 +81,7 @@
 
 @media (prefers-reduced-motion:reduce){
   .f1-page,.f1-voile,.f1-fab,.f1-fab svg,.f1-feuille,.f1-action,.f1-editeur,
-  .f3-hero,.f3-ajout,.f3-touche,.ip-voile,.ip-picker,.ip-tuile,.ip-touche,
+  .f3-hero,.f3-ajout,.f3-touche,.f5-touche,.f5-tiroir,.f5-reglages,.f5-chevron,.f5-rond,.ip-voile,.ip-picker,.ip-tuile,.ip-touche,
   .fe-voile,.fe-feuille,.fe-touche{transition:none!important}
-  .f3-pop,.ip-pop{animation:none!important}
+  .f3-pop,.ip-pop,.f5-vA,.f5-vB{animation:none!important}
 }

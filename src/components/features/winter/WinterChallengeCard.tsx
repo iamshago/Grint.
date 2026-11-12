@@ -4,8 +4,9 @@ import type { Challenge, ChallengeProgress, ProfileSummary } from '@/types'
 import { resolveAvatarSrc } from '@/lib/avatars'
 import { formatShortDate } from '@/lib/formatRelativeTime'
 import { cn } from '@/lib/utils'
-import { challengeWeeks, daysUntil, placeOf } from '@/lib/winter'
+import { challengeWeeks, daysUntil, imageDeJour, placeOf } from '@/lib/winter'
 import WinterSnow from './WinterSnow'
+import FondJourNuit from './FondJourNuit'
 import WinterJoinRow from './WinterJoinRow'
 import WinterCardStats from './WinterCardStats'
 
@@ -22,6 +23,10 @@ interface WinterChallengeCardProps {
 
 const OVERLAY =
   'linear-gradient(0deg, rgba(13,16,36,.78) 0%, rgba(13,16,36,0) 52%), linear-gradient(90deg, rgba(13,16,36,.82) 0%, rgba(13,16,36,.5) 42%, rgba(13,16,36,0) 72%)'
+/** Le même voile en plein jour : même forme, bleu de jour au lieu du bleu nuit (texte blanc lisible
+ *  sur le ciel clair), plus un léger dégradé en haut pour la date. */
+const OVERLAY_JOUR =
+  'linear-gradient(0deg, rgba(24,48,112,.74) 0%, rgba(24,48,112,0) 56%), linear-gradient(90deg, rgba(24,48,112,.72) 0%, rgba(24,48,112,.4) 42%, rgba(24,48,112,0) 72%), linear-gradient(180deg, rgba(24,48,112,.3) 0%, rgba(24,48,112,0) 40%)'
 
 /**
  * Carte du défi Winter sur /community (maquettes G-CarteDefiWinter, D1 → D2).
@@ -49,6 +54,8 @@ export default function WinterChallengeCard({
   const others = ranking.filter((r) => r.user_id !== me?.id)
   const summit = challenge.summit_points ?? 0
   const myPts = ranking.find((r) => r.user_id === me?.id)?.pts ?? 0
+  const cover = challenge.cover_image_url
+  const coverJour = cover ? imageDeJour(cover) : null
 
   const handleJoin = async () => {
     setJoinedHere(true)
@@ -79,11 +86,18 @@ export default function WinterChallengeCard({
         justJoined && 'winter-fete',
       )}
     >
-      {challenge.cover_image_url && (
-        <img src={challenge.cover_image_url} alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover" />
+      {cover && coverJour ? (
+        // Easter egg : la carte suit l'heure, comme la montagne de la page défi
+        <FondJourNuit jour={coverJour} nuit={cover} voile={{ jour: OVERLAY_JOUR, nuit: OVERLAY }}>
+          <WinterSnow fall={175} />
+        </FondJourNuit>
+      ) : (
+        <>
+          {cover && <img src={cover} alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover" />}
+          <WinterSnow fall={175} />
+          <div aria-hidden="true" className="absolute inset-0" style={{ background: OVERLAY }} />
+        </>
       )}
-      <WinterSnow fall={175} />
-      <div aria-hidden="true" className="absolute inset-0" style={{ background: OVERLAY }} />
 
       <p className="absolute left-[16px] top-[16px] font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px] leading-[1.5] whitespace-nowrap">
         {challenge.name}

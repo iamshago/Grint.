@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type RefObject } from 'react'
 
 /** La nuit commence à 18 h et finit à 7 h, heure du téléphone. */
 export const NUIT_DEBUT = 18
@@ -54,4 +54,62 @@ export function useNuit(): boolean {
   }, [])
 
   return nuit
+}
+
+/** La dernière version de Winter vue sur ce téléphone (carte ou page, une seule mémoire pour les deux). */
+const CLE_VUE = 'grint-winter-moment'
+/** Le temps de voir l'ancienne version avant que la bascule commence. */
+const DELAI_BASCULE = 900
+
+function lireVue(): boolean | null {
+  try {
+    const v = window.localStorage.getItem(CLE_VUE)
+    return v === 'nuit' ? true : v === 'jour' ? false : null
+  } catch {
+    return null
+  }
+}
+
+function retenirVue(nuit: boolean) {
+  try {
+    window.localStorage.setItem(CLE_VUE, nuit ? 'nuit' : 'jour')
+  } catch {
+    // navigation privée : pas de mémoire, on montre simplement la bonne version
+  }
+}
+
+/**
+ * Jour ou nuit à afficher sur un élément Winter (carte ou montagne). Si la dernière version vue
+ * n'est pas celle de l'heure (vu de jour, revenu après 18 h ; ou l'inverse le matin), l'élément
+ * arrive dans l'ancienne version et la bascule se joue sous les yeux, une fois : dès qu'il est
+ * à l'écran et que ses images sont chargées (`pret`). Le premier élément Winter vu la consomme.
+ */
+export function useNuitVue(ref: RefObject<HTMLElement | null>, pret: boolean): boolean {
+  const nuit = useNuit()
+  const [affichee, setAffichee] = useState(() => lireVue() ?? estNuit())
+  const [aLEcran, setALEcran] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    // à moitié visible au moins (isIntersecting serait vrai dès le premier pixel)
+    const io = new IntersectionObserver((e) => setALEcran(e.some((x) => x.intersectionRatio >= 0.5)), { threshold: [0, 0.5] })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [ref])
+
+  useEffect(() => {
+    if (!aLEcran || !pret) return
+    if (affichee === nuit) {
+      retenirVue(nuit)
+      return
+    }
+    const t = window.setTimeout(() => {
+      setAffichee(nuit)
+      retenirVue(nuit)
+    }, DELAI_BASCULE)
+    return () => window.clearTimeout(t)
+  }, [aLEcran, pret, nuit, affichee])
+
+  return affichee
 }

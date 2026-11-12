@@ -12,9 +12,11 @@ import ExerciseRow from '@/components/features/ExerciseRow'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import IconButton from '@/components/ui/IconButton'
-import { CATEGORY_ACCENT, CATEGORY_COLORS } from '@/lib/categoryColors'
+import { CATEGORY_ACCENT } from '@/lib/categoryColors'
 
 import { useStreak } from '@/hooks/useStreak'
+import CarteStreakVivante from '@/components/features/streak/CarteStreakVivante'
+import { useJourAFeter } from '@/components/features/streak/useJourAFeter'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -51,7 +53,9 @@ export default function Home() {
 
   // Données streak & semaine (via hook partagé)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const { streakCount, weekDays } = useStreak(currentUserId)
+  const { streakCount, weekDays, loading: streakLoading, weekLoaded } = useStreak(currentUserId)
+  // La journée de la dernière séance se coche toute seule, une fois (carte streak vivante)
+  const { aFeter, dernier: dernierJour, marquerFete } = useJourAFeter(currentUserId, weekDays)
 
   const handleCarouselScroll = () => {
     const el = carouselRef.current
@@ -327,55 +331,18 @@ export default function Home() {
             </Button>
           </div>
 
-          {/* Card 2 — Streak semaine (Figma 405:1594) */}
-          <div className="bg-tx-1 rounded-[24px] snap-start shrink-0 px-4 py-6 flex gap-4" style={{ width: 'calc(100vw - 32px)', scrollSnapStop: 'always' }}>
-            {/* Flamme à gauche — taille fixe, jamais de shrink */}
-            <div className="shrink-0 w-[64px] h-[78px] min-w-[64px] self-center">
-              <img src="/assets/streak-flame.svg" alt="" className="w-[64px] h-[78px] drop-shadow-[0_0_12px_rgba(255,238,140,0.4)]" />
-            </div>
-            {/* Contenu à droite */}
-            <div className="flex-1 min-w-0 flex flex-col justify-between">
-              <div>
-                <p className="font-sans text-bg-1 leading-none mb-2">
-                  <span className="font-bold text-2xl">{streakCount} </span>
-                  <span className="text-xs text-[#989da6]">/ 52 semaines</span>
-                </p>
-                {/* Barre de progression */}
-                <div className="w-full h-3 rounded-lg bg-[rgba(77,80,87,0.5)]">
-                  <div
-                    className="h-3 rounded-lg bg-bg-1 shadow-[0px_0px_15.5px_5px_rgba(255,255,255,0.2)]"
-                    style={{ width: `${Math.round((streakCount / 52) * 100)}%` }}
-                  />
-                </div>
-              </div>
-              {/* Jours de la semaine — couleurs dynamiques par catégorie */}
-              <div className="flex items-center gap-3 mt-5">
-              {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day, i) => {
-                const cat = weekDays[i]?.category
-                const colors = cat ? CATEGORY_COLORS[cat] : null
-                return (
-                  <div key={day} className="flex flex-col items-center gap-1">
-                    <div
-                      className="w-4 h-4 rounded-full flex items-center justify-center"
-                      style={colors
-                        ? { backgroundColor: colors.bg, boxShadow: `0px 0px 24px 0px ${colors.glow}` }
-                        : { backgroundColor: 'rgba(156,163,176,0.3)' }
-                      }
-                    >
-                      {cat && <Check size={10} strokeWidth={3} className="text-tx-1" />}
-                    </div>
-                    <span
-                      className="font-sans font-semibold text-xs"
-                      style={{ color: colors ? colors.text : '#989da6' }}
-                    >
-                      {day}
-                    </span>
-                  </div>
-                )
-              })}
-              </div>
-            </div>
-          </div>
+          {/* Card 2 — Streak semaine : la flamme vivante (maquettes Main et A2 du canevas) */}
+          <CarteStreakVivante
+            compte={streakCount}
+            jours={weekDays.map((d) => d.category)}
+            pret={!!currentUserId && !streakLoading}
+            semaineConnue={!!currentUserId && weekLoaded}
+            aFeter={aFeter}
+            dernier={dernierJour}
+            onFete={marquerFete}
+            className="snap-start shrink-0"
+            style={{ width: 'calc(100vw - 32px)', scrollSnapStop: 'always' }}
+          />
 
           {/* Card 3 — Concept semaine (Figma 405:1595) — STATIQUE, jamais adaptatif */}
           <div className="bg-tx-1 rounded-[24px] overflow-hidden relative snap-start shrink-0 flex flex-col" style={{ width: 'calc(100vw - 32px)', scrollSnapStop: 'always' }}>

@@ -6,6 +6,8 @@ export { DAY_LABELS }
 
 export interface WeekDay {
   category: string | null
+  /** Heure de la dernière séance de ce jour (ISO), pour savoir laquelle est nouvelle. */
+  completedAt?: string | null
 }
 
 /**
@@ -24,6 +26,8 @@ export interface StreakData {
   streakCount: number
   weekDays: WeekDay[]
   loading: boolean
+  /** Les jours de la semaine sont connus (le compte peut encore charger). */
+  weekLoaded: boolean
 }
 
 /**
@@ -45,6 +49,15 @@ export function useStreak(userId: string | null | undefined): StreakData {
     Array.from({ length: 7 }, () => ({ category: null }))
   )
   const [loading, setLoading] = useState(true)
+  const [weekLoaded, setWeekLoaded] = useState(false)
+  // Nouvel utilisateur : « en chargement » dès ce rendu, sans attendre l'effet (sinon un rendu
+  // passe avec loading=false et les données vides).
+  const [chargePour, setChargePour] = useState(userId)
+  if (chargePour !== userId) {
+    setChargePour(userId)
+    setLoading(!!userId)
+    setWeekLoaded(false)
+  }
 
   useEffect(() => {
     if (!userId) {
@@ -87,12 +100,14 @@ export function useStreak(userId: string | null | undefined): StreakData {
         const dow = (d.getDay() + 6) % 7
         const cat = cw.category || cw.workouts?.category || null
         if (cat) {
-          days[dow] = { category: cat }
+          const avant = days[dow].completedAt
+          days[dow] = { category: cat, completedAt: avant && avant > cw.completed_at ? avant : cw.completed_at }
           if (cat === 'upper') upperCount++
           if (cat === 'lower' || cat === 'bbl') lowerCount++
         }
       })
       setWeekDays(days)
+      setWeekLoaded(true)
 
       // Calcul du streak : nombre TOTAL de semaines validées (upper ET lower)
       // sur la fenêtre glissante de 52 semaines. Cumulatif — un trou ne casse pas
@@ -135,7 +150,7 @@ export function useStreak(userId: string | null | undefined): StreakData {
     }
   }
 
-  return { streakCount, weekDays, loading }
+  return { streakCount, weekDays, loading, weekLoaded }
 }
 
 /**

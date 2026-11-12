@@ -1,7 +1,9 @@
 // @ts-nocheck
+import type { CSSProperties } from 'react'
 import { Play, Clock, Dumbbell, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CATEGORY_ACCENT, type WorkoutCategory } from '@/lib/categoryColors'
+import './seance-du-jour.css'
 
 interface WorkoutCardProps {
   title: string
@@ -13,6 +15,8 @@ interface WorkoutCardProps {
   isCompleted?: boolean
   /** Click sur la carte ou le bouton play — déclenche l'ouverture de la séance */
   onPlay?: () => void
+  /** Retour de séance (Accueil) : la coche remplace le bouton lecture sous les yeux, avec un ressort. */
+  celebrer?: boolean
   variant?: 'light' | 'dark'
   className?: string
 }
@@ -27,6 +31,7 @@ export default function WorkoutCard({
   category = 'upper',
   isCompleted = false,
   onPlay,
+  celebrer = false,
   variant = 'light',
   className,
 }: WorkoutCardProps) {
@@ -39,6 +44,8 @@ export default function WorkoutCard({
     playBg: accent,
     playIcon: '#1f2021',
   }
+  // La coche n'est fêtée que si la séance est bien finie
+  const fete = celebrer && isCompleted
 
   /** Si la carte est interactive, on rend un <button> pour avoir un seul handler
    *  qui s'applique à TOUT le clic (carte + zone du play). Évite les doubles handlers
@@ -59,8 +66,10 @@ export default function WorkoutCard({
         'relative rounded-[16px] overflow-hidden h-[168px] block w-full text-left',
         !imageUrl && 'bg-tx-1',
         onPlay && 'cursor-pointer active:scale-[0.98] transition-transform',
+        fete && 'sj-eclat',
         className,
       )}
+      style={fete ? ({ '--sj-lueur': `${accent}4D` } as CSSProperties) : undefined}
     >
       {/* Image de fond — utilise la version `<slug>-card.png` (allégée pour
        *  thumbnail), avec fallback automatique sur la base si elle n'existe
@@ -130,15 +139,18 @@ export default function WorkoutCard({
       {/* Indicateur play / coche — visuel uniquement (le clic est géré par le wrapper) */}
       {onPlay && (
         <div
-          className="absolute right-4 bottom-4 w-12 h-12 rounded-12 flex items-center justify-center pointer-events-none"
-          style={{ backgroundColor: styles.playBg }}
+          className={cn('absolute right-4 bottom-4 w-12 h-12 rounded-12 flex items-center justify-center pointer-events-none', fete && 'sj-bouton')}
+          style={{ backgroundColor: styles.playBg, ...(fete ? { '--sj-accent': accent } : {}) } as CSSProperties}
           aria-hidden="true"
         >
           {isCompleted ? (
-            <Check size={20} strokeWidth={3} style={{ color: styles.playIcon }} />
+            <Check size={20} strokeWidth={3} className={fete ? 'sj-coche' : undefined} style={{ color: styles.playIcon }} />
           ) : (
             <Play size={18} fill={styles.playIcon} style={{ color: styles.playIcon }} />
           )}
+          {/* Retour de séance : le triangle s'efface pendant que la coche arrive, une onde part du bouton */}
+          {fete && <Play size={18} fill={styles.playIcon} className="sj-sort" style={{ color: styles.playIcon }} />}
+          {fete && <i className="sj-onde" />}
         </div>
       )}
     </Wrapper>

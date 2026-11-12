@@ -45,6 +45,14 @@ export default function CarteStreakVivante({ compte, jours, pret, semaineConnue,
   aFeterRef.current = aFeter
   const onFeteRef = useRef(onFete)
   onFeteRef.current = onFete
+  // La barre ne s'anime qu'une fois le vrai compte affiché : en chargeant, le compte passe de 0 à 6 et
+  // la barre se remplissait sous les yeux juste avant la coche (retour de séance, carte à l'écran).
+  const [barreVivante, setBarreVivante] = useState(false)
+  useEffect(() => {
+    if (!pret) return
+    const r = requestAnimationFrame(() => setBarreVivante(true))
+    return () => cancelAnimationFrame(r)
+  }, [pret])
 
   // La carte est dans le carrousel : la journée ne se coche que quand on la voit.
   useEffect(() => {
@@ -103,7 +111,7 @@ export default function CarteStreakVivante({ compte, jours, pret, semaineConnue,
             <span className="sk-plus1" aria-hidden="true" style={{ position: 'absolute', left: 30, top: -10, fontSize: 12, fontWeight: 800, color: '#ffee8c' }}>+1</span>
           </p>
           <div style={{ width: '100%', height: 12, borderRadius: 8, background: 'rgba(77,80,87,0.5)' }}>
-            <div className="sk-barreFill" style={{ height: 12, borderRadius: 8, background: '#f1f4fb', boxShadow: '0px 0px 15.5px 5px rgba(255,255,255,0.2)', width: `${Math.round((affCompte / 52) * 100)}%`, transition: 'width 1s cubic-bezier(.22,1,.36,1) .45s' }}><i /></div>
+            <div className="sk-barreFill" style={{ height: 12, borderRadius: 8, background: '#f1f4fb', boxShadow: '0px 0px 15.5px 5px rgba(255,255,255,0.2)', width: `${Math.round((affCompte / 52) * 100)}%`, transition: barreVivante ? 'width 1s cubic-bezier(.22,1,.36,1) .45s' : 'none' }}><i /></div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 20 }}>

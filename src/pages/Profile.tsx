@@ -80,17 +80,18 @@ export default function Profile() {
 
   useEffect(() => {
     fetchProfileData()
-    // Re-fetch après retour AvatarPicker (l'avatar a pu changer en base)
+    // Re-fetch après retour AvatarPicker (l'avatar a pu changer en base). Sans repasser par « Chargement… » :
+    // la page reste en place et se met à jour (un jour de séance ajouté éclot dans le calendrier Fréquence).
     const handleFocus = () => {
-      fetchProfileData()
+      fetchProfileData(true)
     }
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
   }, [])
 
-  async function fetchProfileData() {
+  async function fetchProfileData(silencieux = false) {
     try {
-      setLoading(true)
+      if (!silencieux) setLoading(true)
 
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {

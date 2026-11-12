@@ -1,3 +1,4 @@
+import type { Ref } from 'react'
 import { cn } from '@/lib/utils'
 import { DOS_MEDAILLES, FACE_MEDAILLE, MEDAILLES_SVG, RELIEF_MEDAILLES, TRACES_MEDAILLES } from './medaillesSvg'
 import './medailles.css'
@@ -21,8 +22,12 @@ interface MedailleProps {
   relief?: 'plat' | '3d'
   /** nouveau : reflet ; arrivee : arrive en tournant ; vitrine : s'ouvre en tournant puis se balance. */
   anim?: AnimMedaille
-  /** Vitrine : « a » / « b » relance un tour (comme la prop tour de G-Medaille). */
-  tour?: '' | 'a' | 'b'
+  /** Vitrine : « a » / « b » relance un tour (comme la prop tour de G-Medaille) ; « fixe » : aucun tour (le doigt la tient). */
+  tour?: '' | 'a' | 'b' | 'fixe'
+  /** Vitrine : balancement au repos (par défaut) ; coupé pendant que le doigt la fait tourner. */
+  balance?: boolean
+  /** Vitrine : calque invisible entre le balancement et le tour, que le doigt fait pivoter (VitrineMedaille). */
+  pivotRef?: Ref<HTMLDivElement>
   /** Gravure du revers (prénom · date), en capitales. */
   gravure?: string
   taille: number
@@ -43,7 +48,7 @@ function melange(a: string, b: string, t: number): string {
 }
 
 /** Médaille Grint (G-Medaille) : le rendu de la maquette, à l'identique. */
-export default function Medaille({ modele, etat, relief = 'plat', anim = 'aucune', tour = '', gravure = '', taille, className }: MedailleProps) {
+export default function Medaille({ modele, etat, relief = 'plat', anim = 'aucune', tour = '', balance = true, pivotRef, gravure = '', taille, className }: MedailleProps) {
   const gagnee = etat !== 'verrouillee'
   const r3d = RELIEF_MEDAILLES[modele]
   const a3d = gagnee && relief === '3d' && !!r3d
@@ -73,7 +78,7 @@ export default function Medaille({ modele, etat, relief = 'plat', anim = 'aucune
   })
   const demi = (ep / 2 + 0.3).toFixed(2)
   let clsTour = ''
-  if (a === 'vitrine') clsTour = tour === 'a' ? 'gm-tour-a' : tour === 'b' ? 'gm-tour-b' : 'gm-tour-ouvre'
+  if (a === 'vitrine') clsTour = tour === 'a' ? 'gm-tour-a' : tour === 'b' ? 'gm-tour-b' : tour === 'fixe' ? '' : 'gm-tour-ouvre'
   if (a === 'arrivee') clsTour = 'gm-tour-arrivee'
   const dos = traces(DOS_MEDAILLES[modele] ?? '').replace(/__GRAVURE__/g, echappe(gravure))
   const couche = { position: 'absolute', inset: 0 } as const
@@ -81,7 +86,8 @@ export default function Medaille({ modele, etat, relief = 'plat', anim = 'aucune
   return (
     <span className={cn('relative block shrink-0', className)} style={{ width: taille, height: taille }}>
       <div style={{ position: 'relative', width: '100%', height: '100%', perspective: `${Math.round(taille * 4.5)}px`, fontFamily: 'Figtree, system-ui, sans-serif' }}>
-        <div className={a === 'vitrine' ? 'gm-balance' : ''} style={{ ...couche, transformStyle: 'preserve-3d' }}>
+        <div className={a === 'vitrine' && balance ? 'gm-balance' : ''} style={{ ...couche, transformStyle: 'preserve-3d' }}>
+          <div ref={pivotRef} style={{ ...couche, transformStyle: 'preserve-3d' }}>
           <div className={clsTour} style={{ ...couche, transformStyle: 'preserve-3d' }}>
             {tranches.map((t) => (
               <svg key={t.z} viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true" style={{ ...couche, overflow: 'visible', transform: `translateZ(${t.z}px)` }}>
@@ -97,6 +103,7 @@ export default function Medaille({ modele, etat, relief = 'plat', anim = 'aucune
               style={{ ...couche, transform: `rotateY(180deg) translateZ(${demi}px)`, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
               dangerouslySetInnerHTML={{ __html: dos }}
             />
+          </div>
           </div>
         </div>
       </div>

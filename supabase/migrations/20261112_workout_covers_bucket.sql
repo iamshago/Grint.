@@ -4,8 +4,8 @@
 -- La lecture passe par l'URL publique (bucket public) ; image_url de user_workouts garde
 -- cette URL comme pour une image de la galerie. Aucune table modifiée.
 -- L'app n'affiche « Ta photo » que si elle peut lire ce bucket (dernière règle ci-dessous) :
--- tant que ce fichier n'est pas appliqué, l'option reste masquée.
--- NON APPLIQUÉE (en attente du go de Florian) : à passer dans l'éditeur SQL Supabase (projet TrainingApp).
+-- sans ce bucket, l'option reste masquée.
+-- Appliquée le 12/11/2026 dans l'éditeur SQL Supabase (projet TrainingApp), sur le go de Florian.
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('workout-covers', 'workout-covers', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])

@@ -9,6 +9,14 @@ import {
 } from '@/lib/collection'
 import type { Challenge } from '@/types'
 
+interface UseCollectionOptions {
+  /**
+   * Suivre le point « Nouveau » (défaut : oui). Il est propre à soi-même : il se lit dans la mémoire
+   * des médailles déjà vues sur ce téléphone. La collection d'un ami se montre sans (false).
+   */
+  nouveau?: boolean
+}
+
 interface UseCollectionResult {
   medailles: MedailleCollection[]
   /** Défi Winter actif (série du défi), null s'il n'y en a pas */
@@ -24,18 +32,22 @@ const pct = (v: number, max: number) => Math.min(100, Math.round((v / Math.max(1
  * podium = top 3 à la fin du défi) ; Régularité = les semaines validées (règle de useStreak).
  * Les dates se déduisent des séances. « Nouveau » = gagnée depuis la dernière visite de la
  * Collection (localStorage), ou depuis lundi si elle n'a jamais été ouverte.
+ * Marche pour n'importe quel utilisateur (soi-même ou un ami) : tout se lit par son userId ;
+ * pour un ami, `{ nouveau: false }` (rien n'est lu ni écrit dans la mémoire des médailles vues).
  */
-export function useCollection(userId: string | null | undefined): UseCollectionResult {
+export function useCollection(userId: string | null | undefined, { nouveau: suivreNouveau = true }: UseCollectionOptions = {}): UseCollectionResult {
   const { challenge, loading: chLoading } = useActiveChallenge()
   const defi = isSummitChallenge(challenge) ? challenge : null
   const { progress, loading: prLoading, error: prError } = useChallengeProgress(defi?.id ?? null)
   const [seances, setSeances] = useState<SeanceCollection[] | null>(null)
   // Vues lues une fois par utilisateur : la page garde ses « nouveau » le temps de la visite
-  const vues = useMemo(() => (userId ? lireVues(userId) : null), [userId])
+  const vues = useMemo(() => (userId && suivreNouveau ? lireVues(userId) : null), [userId, suivreNouveau])
 
   useEffect(() => {
     if (!userId) return
     let actif = true
+    // d'un profil à l'autre (ami A puis ami B) : pas de médailles de l'ancien pendant le chargement
+    setSeances(null)
     supabase
       .from('completed_workouts')
       .select('completed_at, category, workouts(category)')
@@ -95,10 +107,10 @@ export function useCollection(userId: string | null | undefined): UseCollectionR
         progres = `${pts} / ${seuil}`
         barre = pct(pts, seuil)
       }
-      const nouveau = gagnee && (vues ? !vues.has(m.id) : !!date && date >= lundi)
+      const nouveau = suivreNouveau && gagnee && (vues ? !vues.has(m.id) : !!date && date >= lundi)
       return { ...m, gagnee, date, nouveau, progres, pct: barre }
     })
-  }, [seances, defi, progress, userId, vues])
+  }, [seances, defi, progress, userId, vues, suivreNouveau])
 
   const loading = !userId || chLoading || !seances || (!!defi && (prLoading || (!progress && !prError)))
   return { medailles, defi, loading }

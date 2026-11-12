@@ -1,17 +1,19 @@
 // @ts-nocheck
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Clock, Dumbbell } from 'lucide-react'
 import DarkLayout from '@/components/layout/DarkLayout'
 import StickyBackButton from '@/components/ui/StickyBackButton'
 import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 import FriendStatusButton from '@/components/features/FriendStatusButton'
+import CarteCollection from '@/components/features/collection/CarteCollection'
 import { supabase } from '@/lib/supabaseClient'
 import { resolveAvatarSrc } from '@/lib/avatars'
 import { firstNameOnly } from '@/lib/displayName'
 import { useStreak, DAY_LABELS } from '@/hooks/useStreak'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
 import { useFriendshipStatus } from '@/hooks/useFriendshipStatus'
+import { useCollection } from '@/hooks/useCollection'
 
 /** Formate une date en "20 FÉV" */
 function formatShortDate(dateStr: string): string {
@@ -24,6 +26,7 @@ function formatShortDate(dateStr: string): string {
 /** Page profil d'un ami — Figma 390:1107 */
 export default function FriendProfile() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
 
   // Profile
@@ -35,6 +38,9 @@ export default function FriendProfile() {
 
   // Streak (via hook partagé)
   const { streakCount, weekDays } = useStreak(id)
+
+  // Collection (médailles) de l'ami, en lecture seule : le point « Nouveau » est propre à soi-même
+  const collection = useCollection(id, { nouveau: false })
 
   // PR — un record max par exercice + le record en avant (highlightedPR)
   const [highlightedPR, setHighlightedPR] = useState<{ name: string; weight: number; date: string } | null>(null)
@@ -152,7 +158,7 @@ export default function FriendProfile() {
 
   const streakProgress = Math.min(streakCount / 52, 1)
 
-  if (loading) {
+  if (loading || collection.loading) {
     return (
       <DarkLayout hideTabBar className="flex items-center justify-center">
         Chargement...
@@ -326,6 +332,9 @@ export default function FriendProfile() {
             </p>
           </div>
         )}
+
+        {/* ---- COLLECTION (maquette E1, la même carte que sur ton profil, après le record) ---- */}
+        <CarteCollection medailles={collection.medailles.filter((m) => m.serie === 'regularite' || collection.defi)} onOuvrir={() => navigate(`/profile/friends/${id}/collection`)} />
 
         {/* ---- TOUS LES RECORDS (autres exercices que le highlighted) ---- */}
         {allPRs.length > 1 && (

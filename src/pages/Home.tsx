@@ -18,6 +18,14 @@ import { useStreak } from '@/hooks/useStreak'
 import CarteStreakVivante from '@/components/features/streak/CarteStreakVivante'
 import { useJourAFeter } from '@/components/features/streak/useJourAFeter'
 
+// Retour de séance (ms) : le carrousel glisse une fois la page arrivée (fondu de 250 ms) ; la carte
+// « Séance du jour » suit la coche du jour (onde 1 s, flamme 0,85 s, compte qui roule jusqu'à 1 s),
+// ou le glissement (~0,45 s) s'il n'y a rien à cocher, et n'attend jamais plus de 6 s.
+const APRES_ARRIVEE = 280
+const APRES_COCHE = 1100
+const APRES_GLISSEMENT = 700
+const ATTENTE_MAX = 6000
+
 export default function Home() {
   const navigate = useNavigate()
 
@@ -57,18 +65,31 @@ export default function Home() {
   // La journée de la dernière séance se coche toute seule, une fois (carte streak vivante)
   const { aFeter, dernier: dernierJour, marquerFete } = useJourAFeter(currentUserId, weekDays)
 
-  // Retour d'une séance (« Terminer » de Séance validée, état de navigation `depuisSeance`) :
-  // le carrousel glisse jusqu'à la carte streak, et la page remonte si le carrousel n'est pas
-  // à l'écran, pour que la journée qui se coche (carte vivante) se joue sous les yeux.
-  // Ouvert autrement, l'Accueil reste sur la carte 1. L'état est effacé aussitôt : un retour
-  // en arrière ou un rechargement ne refont pas le défilement.
+  // Retour d'une séance (« Terminer » de Séance validée, état de navigation `depuisSeance`), dans
+  // cet ordre, sans que rien ne se marche dessus :
+  // 1. le carrousel glisse jusqu'à la carte streak (la page remonte si le carrousel n'est pas à
+  //    l'écran), une fois la page arrivée (fondu de 250 ms) ET le streak chargé : la carte arrive
+  //    avec la semaine d'avant, pas avec « 0 / 52 » qui sauterait ensuite ;
+  // 2. la journée se coche sous les yeux (carte vivante, 1,4 s après son arrivée à l'écran) ;
+  // 3. puis la carte « Séance du jour » : le bouton lecture devient la coche (WorkoutCard `celebrer`).
+  // Ouvert autrement, l'Accueil reste sur la carte 1 et la carte séance s'affiche sans animation.
+  // L'état de navigation est effacé aussitôt : un retour en arrière ou un rechargement ne rejouent rien.
   const location = useLocation()
-  const depuisSeance = location.state?.depuisSeance === true
+  const [depuisSeance] = useState(() => location.state?.depuisSeance === true)
+  const [glissement, setGlissement] = useState<'attente' | 'fait' | null>(depuisSeance ? 'attente' : null)
+  const [carteJour, setCarteJour] = useState<'attente' | 'joue' | null>(depuisSeance ? 'attente' : null)
+  const [jourCoche, setJourCoche] = useState(false)
+  const arrivee = useRef(performance.now())
+  const carteJourRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (!depuisSeance) return
-    navigate(location.pathname + location.search, { replace: true, state: null })
-    // Après l'arrivée de la page (fondu de 250 ms)
+    if (location.state?.depuisSeance) navigate(location.pathname + location.search, { replace: true, state: null })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const streakPret = !!currentUserId && !streakLoading
+  useEffect(() => {
+    if (glissement !== 'attente' || !streakPret) return
     const t = setTimeout(() => {
+      setGlissement('fait')
       const el = carouselRef.current
       const carte = el?.children[1] as HTMLElement | undefined
       if (!el || !carte) return
@@ -77,9 +98,42 @@ export default function Home() {
         window.scrollTo({ top: Math.max(0, window.scrollY + r.top - 80), behavior: 'smooth' })
       }
       el.scrollTo({ left: el.scrollLeft + carte.getBoundingClientRect().left - r.left - 16, behavior: 'smooth' })
-    }, 280)
+    }, Math.max(0, APRES_ARRIVEE - (performance.now() - arrivee.current)))
     return () => clearTimeout(t)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [glissement, streakPret])
+
+  // La journée vient de se cocher sur la carte streak : on la fête une fois, et la carte séance suit
+  const feterJour = () => {
+    marquerFete()
+    setJourCoche(true)
+  }
+
+  // Carte « Séance du jour » : après la coche du jour (la flamme a jailli, le compte a roulé) ; s'il
+  // n'y a rien à cocher, après le glissement ; au plus tard 6 s après l'arrivée (carrousel balayé
+  // avant la coche…). Si la carte n'est pas entière au-dessus de la barre d'onglets, la page
+  // remonte d'abord un peu.
+  useEffect(() => {
+    if (carteJour !== 'attente') return
+    let delai = Math.max(0, ATTENTE_MAX - (performance.now() - arrivee.current))
+    if (jourCoche) delai = APRES_COCHE
+    else if (glissement === 'fait' && aFeter === null) delai = APRES_GLISSEMENT
+    let t2: ReturnType<typeof setTimeout> | undefined
+    const t = setTimeout(() => {
+      const r = carteJourRef.current?.getBoundingClientRect()
+      const bas = window.innerHeight - 110
+      if (r && r.bottom > bas) {
+        window.scrollTo({ top: window.scrollY + r.bottom - bas + 8, behavior: 'smooth' })
+        t2 = setTimeout(() => setCarteJour('joue'), 350)
+      } else setCarteJour('joue')
+    }, delai)
+    return () => { clearTimeout(t); clearTimeout(t2) }
+  }, [carteJour, jourCoche, glissement, aFeter])
+  // Une fois jouée, la carte redevient normale (changer de jour puis revenir ne rejoue rien)
+  useEffect(() => {
+    if (carteJour !== 'joue') return
+    const t = setTimeout(() => setCarteJour(null), 1600)
+    return () => clearTimeout(t)
+  }, [carteJour])
 
   const handleCarouselScroll = () => {
     const el = carouselRef.current
@@ -363,7 +417,7 @@ export default function Home() {
             semaineConnue={!!currentUserId && weekLoaded}
             aFeter={aFeter}
             dernier={dernierJour}
-            onFete={marquerFete}
+            onFete={feterJour}
             className="snap-start shrink-0"
             style={{ width: 'calc(100vw - 32px)', scrollSnapStop: 'always' }}
           />
@@ -420,7 +474,7 @@ export default function Home() {
         {loading ? (
           <div className="h-[180px] bg-surface rounded-16 animate-pulse" />
         ) : todaysWorkout ? (
-          <div>
+          <div ref={carteJourRef}>
             <WorkoutCard
               title={todaysWorkout.title}
               difficulty={todaysWorkout.difficulty}
@@ -428,7 +482,9 @@ export default function Home() {
               exerciseCount={todaysWorkout.workout_exercises?.length}
               imageUrl={todaysWorkout.image_url}
               category={todaysWorkout.category || 'upper'}
-              isCompleted={isCompleted}
+              // Retour de séance : la carte du jour attend son tour avec le bouton lecture, puis se coche
+              isCompleted={isCompleted && !(carteJour === 'attente' && selectedDay === todayDayOfWeek)}
+              celebrer={carteJour === 'joue' && selectedDay === todayDayOfWeek}
               onPlay={!isFuture ? launchWorkout : undefined}
             />
           </div>

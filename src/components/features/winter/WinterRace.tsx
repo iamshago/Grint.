@@ -76,7 +76,7 @@ export default function WinterRace({ lignes, summit }: WinterRaceProps) {
               summit={summit}
               moi={l.moi}
               evol={vue ? l.evol : null}
-              delai={150 + (l.rangAvant - 1) * 60}
+              delai={400 + (l.rangAvant - 1) * 80}
               onClick={l.moi ? undefined : () => navigate(`/profile/friends/${l.id}`)}
             />
           </div>

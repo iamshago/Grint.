@@ -4,11 +4,12 @@ import type { WeeklyMissions } from '@/hooks/useWeeklyMissions'
 import { resolveAvatarSrc } from '@/lib/avatars'
 import { firstNameOnly } from '@/lib/displayName'
 import { formatLongDate } from '@/lib/formatRelativeTime'
-import { daysUntil, mondayRanks, readVisit, saveVisit, sortRace } from '@/lib/winter'
+import { SEUIL_FOULE, daysUntil, mondayRanks, readVisit, saveVisit, sortRace } from '@/lib/winter'
 import WinterMountainCard from './WinterMountainCard'
 import WinterMissions from './WinterMissions'
 import WinterRace, { type LigneCourse } from './WinterRace'
 import WinterPlaceBar from './WinterPlaceBar'
+import Medaille, { SERIE_WINTER } from './Medaille'
 
 interface WinterChallengeViewProps {
   challenge: Challenge
@@ -92,6 +93,7 @@ export default function WinterChallengeView({ challenge, progress, me, friendIds
           top={topSemaine ? { nom: nomDe(topSemaine.profile), pts: topSemaine.ptsThisWeek ?? 0 } : null}
           inscrits={progress.participantCount}
           moiAvatar={moi && me ? resolveAvatarSrc(me) : null}
+          foule={progress.participantCount > SEUIL_FOULE}
           autres={race
             .filter((r) => r.user_id !== me?.id)
             .map((r) => ({
@@ -116,6 +118,26 @@ export default function WinterChallengeView({ challenge, progress, me, friendIds
       <div className="mx-[16px]">
         <WinterRace lignes={lignes} summit={summit} />
       </div>
+
+      {moi && (
+        <>
+          <div className="mx-[16px] mt-[28px] mb-[12px] flex items-baseline justify-between">
+            <h2 className={titre}>À gagner</h2>
+          </div>
+          <div className="mx-[16px] grid grid-cols-5 gap-[8px]">
+            {SERIE_WINTER.map(({ modele, seuil }) => {
+              const seuilPts = Math.min(seuil, summit)
+              const gagnee = mesPts >= seuilPts
+              const nouvelle = gagnee && seuil > 0 && ptsAvant < seuilPts
+              return (
+                <div key={modele} className="flex justify-center" style={{ opacity: gagnee ? 1 : 0.28, transition: 'opacity .4s' }}>
+                  <Medaille modele={modele} etat={gagnee ? 'gagnee' : 'verrouillee'} anim={nouvelle ? 'nouveau' : 'aucune'} taille={62} />
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
 
       {moi && me && (
         <WinterPlaceBar

@@ -8,8 +8,10 @@ interface WinterMountainSceneProps {
   milestones: number[]
   /** Toi : `pts` est la valeur affichée (elle change à l'arrivée, ton avatar glisse sur le chemin). */
   moi: { avatar: string; pts: number; prevPts: number } | null
-  /** Les autres : visage pour les amis et le premier, point pour les autres. */
+  /** Les autres participants (sans toi). */
   autres: Grimpeur[]
+  /** Avec du monde (C7) : visage pour les amis et le premier, en piles. Sinon (C5) : seul le premier a un visage. */
+  foule: boolean
 }
 
 const W = WINTER_MONTAGNE.largeur
@@ -21,7 +23,7 @@ const chemin = `path('${WINTER_MONTAGNE.trace}')`
  * Dessinée en 370 × 330 comme la maquette (le chemin et les grimpeurs posés dessus sont
  * en unités de la carte), puis mise à l'échelle de la largeur disponible.
  */
-export default function WinterMountainScene({ summit, milestones, moi, autres }: WinterMountainSceneProps) {
+export default function WinterMountainScene({ summit, milestones, moi, autres, foule }: WinterMountainSceneProps) {
   const boxRef = useRef<HTMLDivElement>(null)
   const [k, setK] = useState(1)
   const [ouvert, setOuvert] = useState<number | null>(null)
@@ -39,8 +41,10 @@ export default function WinterMountainScene({ summit, milestones, moi, autres }:
   const pct = (v: number) => (Math.min(v, summit) / summit) * 100
   const sur = (pos: number, extra: CSSProperties = {}): CSSProperties => ({ offsetPath: chemin, offsetDistance: `${pos}%`, ...extra })
 
-  // Les visages à 1 pt d'écart ou moins se regroupent en pile ; les autres sont des points.
-  const visages = autres.filter((a) => a.visage).sort((a, b) => b.pts - a.pts)
+  // C5 : le premier a son visage, les autres sont des points. C7 : les visages (amis, premier)
+  // à 1 pt d'écart ou moins se regroupent en pile ; les autres sont des points plus petits.
+  const tete = autres.find((a) => a.tete) ?? null
+  const visages = foule ? autres.filter((a) => a.visage).sort((a, b) => b.pts - a.pts) : []
   const groupes: Grimpeur[][] = []
   for (const p of visages) {
     const g = groupes[groupes.length - 1]
@@ -71,7 +75,10 @@ export default function WinterMountainScene({ summit, milestones, moi, autres }:
         </svg>
 
         {/* Les autres participants : des points sur le chemin */}
-        {autres.filter((a) => !a.visage).map((a) => (
+        {!foule && autres.filter((a) => a !== tete).map((a) => (
+          <span key={a.id} className="winter-sur" title={a.nom} style={sur(pct(a.pts), { width: 9, height: 9, zIndex: 2, borderRadius: '50%', background: '#f1f4fb', boxShadow: '0 0 0 2px rgba(13,16,36,.75)' })} />
+        ))}
+        {foule && autres.filter((a) => !a.visage).map((a) => (
           <span key={a.id} className="winter-sur" style={sur(pct(a.pts), { width: 7, height: 7, zIndex: 2, borderRadius: '50%', background: 'rgba(241,244,251,.8)', boxShadow: '0 0 0 1.5px rgba(13,16,36,.7)' })} />
         ))}
 
@@ -105,7 +112,14 @@ export default function WinterMountainScene({ summit, milestones, moi, autres }:
           </span>
         </span>
 
-        {/* Les amis (et le premier) : leur visage, en pile quand ils sont au même endroit */}
+        {/* C5 : le premier, en tête */}
+        {!foule && tete && (
+          <span className="winter-sur" style={sur(pct(tete.pts), { width: 24, height: 24, zIndex: 4 })}>
+            <img src={tete.avatar} alt={`${tete.nom}, en tête`} className="block size-[24px] rounded-full object-cover" style={{ boxShadow: '0 0 0 1.5px #f1f4fb, 0 4px 10px rgba(0,0,0,.35)' }} />
+          </span>
+        )}
+
+        {/* C7 : les amis (et le premier) avec leur visage, en pile quand ils sont au même endroit */}
         {groupes.map((g, gi) => (
           <span key={g[0].id} className="winter-sur" style={sur(pct(g[0].pts), { width: 26, height: 26, zIndex: ouvert === gi ? 8 : 4 })}>
             <WinterPile membres={g} ouvert={ouvert === gi} onToggle={() => setOuvert(ouvert === gi ? null : gi)} />

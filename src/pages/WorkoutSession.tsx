@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useEffect, useState, useRef } from 'react'
+import type { SeanceValideeState } from './SeanceValidee'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { fetchUserWorkout } from '@/lib/myPrograms'
@@ -141,7 +142,16 @@ export default function WorkoutSession() {
         await supabase.from('user_progress').insert(progressPayload)
       }
 
-      navigate('/')
+      // Séance enregistrée : écran « Séance validée » (flamme, semaine, carte, défi Winter)
+      const seance: SeanceValideeState = {
+        completedAt: now,
+        titre: workout.title,
+        dureeMin: workout.duration_min,
+        exercices: exercises.length,
+        calories: estimatedCalories,
+        categorie: workout.category || null,
+      }
+      navigate('/seance-validee', { replace: true, state: seance })
     } catch (err) {
       console.log('Réseau indisponible, sauvegarde locale...')
       const offlineQueue = JSON.parse(localStorage.getItem('offline_workouts') || '[]')

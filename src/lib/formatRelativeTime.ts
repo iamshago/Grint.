@@ -26,7 +26,7 @@ export function formatRelativeTime(input: string | Date, now: Date = new Date())
 }
 
 const SHORT_MONTHS = [
-  'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
+  'janv.', 'fév.', 'mars', 'avr.', 'mai', 'juin',
   'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
 ]
 

@@ -78,7 +78,7 @@ export default function WinterRaceRow({ rang, tete, nom, avatar, pts, summit, mo
         className={cn('absolute h-[8px] rounded-[8px] overflow-hidden', tete ? 'left-[80px] right-[104px] top-[56px] bg-[rgba(241,244,251,.18)]' : 'left-[72px] right-[104px] top-[48px] bg-surface')}
       >
         <div
-          className={cn('winter-piste h-full rounded-[8px]', tete ? 'bg-pr-1 shadow-[0_0_12px_rgba(255,238,140,.6)]' : 'bg-tx-1')}
+          className={cn('h-full rounded-[8px]', tete ? 'bg-pr-1 shadow-[0_0_12px_rgba(255,238,140,.6)]' : 'bg-tx-1')}
           style={{ width: `${pct}%` }}
         />
       </div>

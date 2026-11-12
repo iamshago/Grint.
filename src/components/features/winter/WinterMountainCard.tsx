@@ -18,11 +18,12 @@ interface WinterMountainCardProps {
   inscrits: number
   moiAvatar: string | null
   autres: Grimpeur[]
+  foule: boolean
 }
 
 /** Carte sombre de la page défi Winter : en tête ta place, tes points, le top de la semaine ; dessous la montagne (C5). */
 export default function WinterMountainCard({
-  challenge, daysToStart, place, pts, prevPts, top, inscrits, moiAvatar, autres,
+  challenge, daysToStart, place, pts, prevPts, top, inscrits, moiAvatar, autres, foule,
 }: WinterMountainCardProps) {
   const summit = challenge.summit_points ?? 24
   const avant = daysToStart !== null
@@ -71,6 +72,7 @@ export default function WinterMountainCard({
           milestones={challenge.milestones ?? []}
           moi={moiAvatar ? { avatar: moiAvatar, pts, prevPts } : null}
           autres={autres}
+          foule={foule}
         />
       </div>
     </div>

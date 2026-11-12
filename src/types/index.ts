@@ -234,6 +234,8 @@ export interface ChallengeRanking {
   ptsThisWeek?: number
   /** Heure de la dernière séance comptée (départage les ex æquo). */
   lastPointAt?: string | null
+  /** Heure de l'avant-dernière séance comptée (ta place juste avant ta dernière séance). */
+  prevPointAt?: string | null
 }
 
 export interface ChallengeProgress {

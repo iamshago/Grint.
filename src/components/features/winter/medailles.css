@@ -1,0 +1,18 @@
+/* Médailles Grint : CSS de G-Medaille (canevas), repris tel quel. */
+/* Médaille Grint : face en SVG (métal, émail, relief), tranche en CSS 3D (couches empilées sur Z), revers gravé. */
+.gm-reflet{transform:translateX(-120px)}
+.gm-nouveau .gm-reflet{animation:gmReflet 3.6s 1s cubic-bezier(.4,0,.2,1) infinite}
+.gm-vitrine .gm-reflet{animation:gmReflet 4.2s 1.5s cubic-bezier(.4,0,.2,1) infinite}
+.gm-arrivee .gm-reflet{animation:gmReflet 3.6s 1.7s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes gmReflet{0%{transform:translateX(-120px)}40%,100%{transform:translateX(120px)}}
+.gm-tour-ouvre{animation:gmOuvre 2.6s both}
+@keyframes gmOuvre{0%{transform:rotateY(-720deg);animation-timing-function:cubic-bezier(.25,.55,.5,1)}58%{transform:rotateY(-36deg);animation-timing-function:cubic-bezier(.3,0,.4,1)}80%{transform:rotateY(12deg);animation-timing-function:ease-in-out}100%{transform:rotateY(0deg)}}
+.gm-tour-a{animation:gmTourA 1.7s both}
+@keyframes gmTourA{0%{transform:rotateY(-360deg);animation-timing-function:cubic-bezier(.25,.55,.5,1)}62%{transform:rotateY(14deg);animation-timing-function:ease-in-out}100%{transform:rotateY(0deg)}}
+.gm-tour-b{animation:gmTourB 1.7s both}
+@keyframes gmTourB{0%{transform:rotateY(-360deg);animation-timing-function:cubic-bezier(.25,.55,.5,1)}62%{transform:rotateY(14deg);animation-timing-function:ease-in-out}100%{transform:rotateY(0deg)}}
+.gm-tour-arrivee{animation:gmArrivee 1.8s .45s both}
+@keyframes gmArrivee{0%{transform:rotateY(-540deg) scale(.55);animation-timing-function:cubic-bezier(.25,.55,.5,1)}60%{transform:rotateY(-24deg) scale(1.08);animation-timing-function:cubic-bezier(.3,0,.4,1)}82%{transform:rotateY(10deg) scale(1);animation-timing-function:ease-in-out}100%{transform:rotateY(0deg) scale(1)}}
+.gm-balance{animation:gmBalance 5s 2.6s ease-in-out infinite}
+@keyframes gmBalance{0%,100%{transform:rotateY(0deg) rotateX(0deg)}25%{transform:rotateY(24deg) rotateX(5deg)}75%{transform:rotateY(-24deg) rotateX(-4deg)}}
+@media (prefers-reduced-motion:reduce){.gm-reflet,.gm-tour-ouvre,.gm-tour-a,.gm-tour-b,.gm-tour-arrivee,.gm-balance{animation:none!important}}

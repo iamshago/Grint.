@@ -98,6 +98,7 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
       // (à égalité, celui qui y était avant reste devant).
       const weekPtsByUser: Record<string, number> = {}
       const lastPointByUser: Record<string, number> = {}
+      const prevPointByUser: Record<string, number> = {}
       // Bornes de la semaine collective courante (lundi 00:00 → dimanche 23:59:59 heure locale).
       const weekBounds = getCurrentLocalWeekBounds(now)
       const weekStartMs = new Date(weekBounds.startISO).getTime()
@@ -135,7 +136,12 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
             weeklyCompleted += 1
             weekPtsByUser[row.user_id] = (weekPtsByUser[row.user_id] ?? 0) + 1
           }
-          lastPointByUser[row.user_id] = Math.max(lastPointByUser[row.user_id] ?? 0, ts)
+          if (ts > (lastPointByUser[row.user_id] ?? 0)) {
+            if (lastPointByUser[row.user_id]) prevPointByUser[row.user_id] = lastPointByUser[row.user_id]
+            lastPointByUser[row.user_id] = ts
+          } else if (ts > (prevPointByUser[row.user_id] ?? 0)) {
+            prevPointByUser[row.user_id] = ts
+          }
         }
       }
 
@@ -166,6 +172,7 @@ export function useChallengeProgress(challengeId: string | null | undefined): Us
             sessionsPerWeek,
             ptsThisWeek: weekPtsByUser[p.user_id] ?? 0,
             lastPointAt: lastPointByUser[p.user_id] ? new Date(lastPointByUser[p.user_id]).toISOString() : null,
+            prevPointAt: prevPointByUser[p.user_id] ? new Date(prevPointByUser[p.user_id]).toISOString() : null,
           }
         })
         .sort((a, b) => b.pts - a.pts)

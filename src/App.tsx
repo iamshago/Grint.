@@ -22,6 +22,7 @@ const HIDE_TABBAR_ROUTES = [
   '/my-programs',
   '/workouts',
   '/seance-validee',
+  '/profile/collection',
 ]
 
 /**
@@ -76,6 +77,7 @@ import Community from './pages/Community'
 import ChallengeDetail from './pages/ChallengeDetail'
 import ChallengeJoin from './pages/ChallengeJoin'
 import SeanceValidee from './pages/SeanceValidee'
+import Collection from './pages/Collection'
 import MyPrograms from './pages/MyPrograms'
 import MyProgramEdit from './pages/MyProgramEdit'
 import MyProgramDetail from './pages/MyProgramDetail'
@@ -194,6 +196,7 @@ export default function App() {
           <Route path="/profile/friends" element={<Friends />} />
           <Route path="/profile/friends/:id" element={<FriendProfile />} />
           <Route path="/profile/history" element={<SessionHistory />} />
+          <Route path="/profile/collection" element={<Collection />} />
           <Route path="/stats" element={<Stats />} />
 
           {/* Fullscreen (pas de TabBar) */}

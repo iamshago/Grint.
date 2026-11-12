@@ -1,0 +1,67 @@
+/* Carte performance du Profil (maquette O3 v2, record en profil d'altitude) : CSS de la planche repris tel quel. */
+.o3-puces::-webkit-scrollbar{display:none}
+/* Le chiffre qui compte : un compteur CSS animé, au repos il vaut la valeur finale */
+@property --n{syntax:'<integer>';inherits:false;initial-value:0}
+.o3-n::before{content:counter(o3n)}
+/* États pressés : propriété scale, indépendante des animations (qui utilisent transform) */
+.o3-presse{transition:scale .15s cubic-bezier(.22,1,.36,1)}
+.o3-presse:active{scale:.95}
+.o3-point>span{transition:transform .15s cubic-bezier(.22,1,.36,1)}
+.o3-point:active>span{transform:scale(.8)}
+.o3-op{transition:scale .15s cubic-bezier(.22,1,.36,1)}
+.o3-ob:active+.o3-op{scale:.95}
+/* Chaque animation existe sous deux noms (A, B) : le nom change à chaque action, ce qui la rejoue.
+   Au repos, aucune classe d'animation : chaque élément est déjà dans son état final. */
+.o3-glisseA{animation:o3GlisseA .5s cubic-bezier(.32,.72,0,1) both}
+.o3-contreA{animation:o3ContreA .5s cubic-bezier(.32,.72,0,1) both}
+@keyframes o3ContreA{0%{transform:translateX(calc(var(--x0) * -1))}45%{transform:translateX(calc(var(--xm) * -1))}100%{transform:translateX(calc(var(--x1) * -1))}}
+@keyframes o3GlisseA{0%{transform:translateX(var(--x0));width:var(--w0)}45%{transform:translateX(var(--xm));width:var(--wm)}100%{transform:translateX(var(--x1));width:var(--w1)}}
+.o3-glisseB{animation:o3GlisseB .5s cubic-bezier(.32,.72,0,1) both}
+.o3-contreB{animation:o3ContreB .5s cubic-bezier(.32,.72,0,1) both}
+@keyframes o3ContreB{0%{transform:translateX(calc(var(--x0) * -1))}45%{transform:translateX(calc(var(--xm) * -1))}100%{transform:translateX(calc(var(--x1) * -1))}}
+@keyframes o3GlisseB{0%{transform:translateX(var(--x0));width:var(--w0)}45%{transform:translateX(var(--xm));width:var(--wm)}100%{transform:translateX(var(--x1));width:var(--w1)}}
+.o3-entreA{animation:o3EntreA .4s cubic-bezier(.22,1,.36,1) .12s both}
+@keyframes o3EntreA{from{opacity:0;translate:var(--sens) 0}to{opacity:1;translate:0 0}}
+.o3-entreB{animation:o3EntreB .4s cubic-bezier(.22,1,.36,1) .12s both}
+@keyframes o3EntreB{from{opacity:0;translate:var(--sens) 0}to{opacity:1;translate:0 0}}
+.o3-sortA{animation:o3SortA .13s cubic-bezier(.4,0,1,1) both}
+@keyframes o3SortA{from{opacity:1;visibility:visible;translate:0 0}to{opacity:0;visibility:hidden;translate:calc(var(--sens) * -1) 0}}
+.o3-sortB{animation:o3SortB .13s cubic-bezier(.4,0,1,1) both}
+@keyframes o3SortB{from{opacity:1;visibility:visible;translate:0 0}to{opacity:0;visibility:hidden;translate:calc(var(--sens) * -1) 0}}
+.o3-traceA{animation:o3TraceA 1.1s cubic-bezier(.22,1,.36,1) .15s both}
+@keyframes o3TraceA{from{stroke-dasharray:0 101}to{stroke-dasharray:100 100}}
+.o3-traceB{animation:o3TraceB 1.1s cubic-bezier(.22,1,.36,1) .15s both}
+@keyframes o3TraceB{from{stroke-dasharray:0 101}to{stroke-dasharray:100 100}}
+.o3-remplitA{animation:o3RemplitA 1.1s cubic-bezier(.22,1,.36,1) .15s both}
+@keyframes o3RemplitA{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.o3-remplitB{animation:o3RemplitB 1.1s cubic-bezier(.22,1,.36,1) .15s both}
+@keyframes o3RemplitB{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.o3-ondeA{animation:o3OndeA .95s linear both}
+@keyframes o3OndeA{0%{d:var(--d0)}12.5%{d:var(--d1)}25%{d:var(--d2)}37.5%{d:var(--d3)}50%{d:var(--d4)}62.5%{d:var(--d5)}75%{d:var(--d6)}87.5%{d:var(--d7)}100%{d:var(--d8)}}
+.o3-ondeB{animation:o3OndeB .95s linear both}
+@keyframes o3OndeB{0%{d:var(--d0)}12.5%{d:var(--d1)}25%{d:var(--d2)}37.5%{d:var(--d3)}50%{d:var(--d4)}62.5%{d:var(--d5)}75%{d:var(--d6)}87.5%{d:var(--d7)}100%{d:var(--d8)}}
+.o3-popA{animation:o3PopA .5s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes o3PopA{from{scale:.01}to{scale:1}}
+.o3-popB{animation:o3PopB .5s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes o3PopB{from{scale:.01}to{scale:1}}
+.o3-drapeauA{animation:o3DrapeauA .55s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes o3DrapeauA{from{transform:scaleY(0)}to{transform:none}}
+.o3-drapeauB{animation:o3DrapeauB .55s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes o3DrapeauB{from{transform:scaleY(0)}to{transform:none}}
+.o3-apparaitA{animation:o3ApparaitA .45s cubic-bezier(.22,1,.36,1) both}
+@keyframes o3ApparaitA{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.o3-apparaitB{animation:o3ApparaitB .45s cubic-bezier(.22,1,.36,1) both}
+@keyframes o3ApparaitB{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.o3-compteA{animation:o3CompteA .85s cubic-bezier(.22,1,.36,1) both}
+@keyframes o3CompteA{from{--n:var(--n0)}to{--n:var(--n1)}}
+.o3-compteB{animation:o3CompteB .85s cubic-bezier(.22,1,.36,1) both}
+@keyframes o3CompteB{from{--n:var(--n0)}to{--n:var(--n1)}}
+.o3-barreA{animation:o3BarreA .55s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes o3BarreA{from{transform:scaleY(0)}to{transform:none}}
+.o3-barreB{animation:o3BarreB .55s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes o3BarreB{from{transform:scaleY(0)}to{transform:none}}
+.o3-bulleA{animation:o3BulleA .42s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes o3BulleA{from{opacity:0;transform:translate(-50%,var(--ty)) scale(.4)}to{opacity:1;transform:translate(-50%,var(--ty)) scale(1)}}
+.o3-bulleB{animation:o3BulleB .42s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes o3BulleB{from{opacity:0;transform:translate(-50%,var(--ty)) scale(.4)}to{opacity:1;transform:translate(-50%,var(--ty)) scale(1)}}
+@media (prefers-reduced-motion:reduce){.o3-glisseA,.o3-glisseB,.o3-contreA,.o3-contreB,.o3-entreA,.o3-entreB,.o3-sortA,.o3-sortB,.o3-traceA,.o3-traceB,.o3-remplitA,.o3-remplitB,.o3-ondeA,.o3-ondeB,.o3-popA,.o3-popB,.o3-drapeauA,.o3-drapeauB,.o3-apparaitA,.o3-apparaitB,.o3-compteA,.o3-compteB,.o3-barreA,.o3-barreB,.o3-bulleA,.o3-bulleB{animation:none!important}.o3-presse,.o3-point>span,.o3-op{transition:none!important}.o3-presse:active,.o3-ob:active+.o3-op{scale:none}.o3-point:active>span{transform:none}}

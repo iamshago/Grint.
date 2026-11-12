@@ -2,16 +2,20 @@
 import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '@/lib/supabaseClient'
-import { Pencil, Check, X, LogOut, Trash2, ChevronRight, ChevronLeft, Clock, Dumbbell, Flame as FlameIcon } from 'lucide-react'
+import { Pencil, Check, X, LogOut, Trash2, Clock, Dumbbell, Flame as FlameIcon } from 'lucide-react'
 import SessionCard from '@/components/features/SessionCard'
 import DarkLayout from '@/components/layout/DarkLayout'
 import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 import { useNavigate } from 'react-router-dom'
 import { useAccent } from '@/lib/AccentContext'
-import { CATEGORY_ACCENT, CATEGORY_COLORS } from '@/lib/categoryColors'
+import { CATEGORY_ACCENT } from '@/lib/categoryColors'
 import { AVATARS, resolveAvatarSrc } from '@/lib/avatars'
 import { firstNameOnly } from '@/lib/displayName'
 import { useStreak, DAY_LABELS } from '@/hooks/useStreak'
+import { useCollection } from '@/hooks/useCollection'
+import CarteCollection from '@/components/features/collection/CarteCollection'
+import CartePerformance from '@/components/features/profile/CartePerformance'
+import { MOIS, type ExoRecord } from '@/components/features/profile/crete'
 
 /**
  * Clé de jour 'YYYY-MM-DD' en fuseau LOCAL (pas UTC).
@@ -50,12 +54,11 @@ export default function Profile() {
   // PR PICKER
   const [showPRPicker, setShowPRPicker] = useState(false)
 
-  // PR HISTORY (pour le graphique d'évolution)
-  const [prHistory, setPrHistory] = useState<{ weight: number; date: string }[]>([])
-  const [selectedPointIdx, setSelectedPointIdx] = useState<number | null>(null)
+  // HISTORIQUE DES RECORDS (carte performance, record en profil d'altitude) : poids max de chaque séance
+  const [exosRecords, setExosRecords] = useState<ExoRecord[]>([])
 
-  // PERF TAB
-  const [perfTab, setPerfTab] = useState<'frequency' | 'pr' | 'calories'>('frequency')
+  // COLLECTION (médailles)
+  const collection = useCollection(currentUserId)
 
   // CALORIES par jour (semaine en cours)
   const [weekCalories, setWeekCalories] = useState<number[]>([0, 0, 0, 0, 0, 0, 0])
@@ -200,6 +203,23 @@ export default function Profile() {
         })
         const prList = Object.values(maxPerExo).sort((a, b) => b.weight - a.weight)
         setAllPRs(prList)
+
+        // Historique par exercice : une séance par jour (heure locale), son poids max
+        const parExo: Record<string, Record<string, { j: number; v: number; date: string }>> = {}
+        logs.forEach((log) => {
+          const exName = log.exercise?.name
+          if (!exName || !(log.weight_used > 0)) return
+          const d = new Date(log.created_at)
+          const jour = localDayKey(d)
+          const jours = (parExo[exName] = parExo[exName] || {})
+          if (!jours[jour] || log.weight_used > jours[jour].v) {
+            jours[jour] = { j: Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5, v: log.weight_used, date: `${d.getDate()} ${MOIS[d.getMonth()]}` }
+          }
+        })
+        setExosRecords(prList.filter((pr) => parExo[pr.name]).map((pr) => ({
+          nom: pr.name,
+          seances: Object.values(parExo[pr.name]).sort((a, b) => a.j - b.j),
+        })))
         const savedPRName = localStorage.getItem('highlightedPR')
         setHighlightedPR(prList.find((pr) => pr.name === savedPRName) || prList[0])
       }
@@ -287,63 +307,6 @@ export default function Profile() {
     }
   }
 
-  /** Charger l'historique de poids pour un exercice donné */
-  async function fetchPRHistory(exerciseName: string) {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Trouver l'exercise_id par nom
-      const { data: exercises } = await supabase
-        .from('exercises')
-        .select('id')
-        .eq('name', exerciseName)
-        .limit(1)
-
-      if (!exercises || exercises.length === 0) {
-        setPrHistory([])
-        setSelectedPointIdx(null)
-        return
-      }
-
-      const exId = exercises[0].id
-
-      // Récupérer tous les logs triés par date
-      const { data: logs } = await supabase
-        .from('user_progress')
-        .select('weight_used, created_at')
-        .eq('user_id', user.id)
-        .eq('exercise_id', exId)
-        .order('created_at', { ascending: true })
-
-      if (!logs || logs.length === 0) {
-        setPrHistory([])
-        setSelectedPointIdx(null)
-        return
-      }
-
-      // Garder le max weight par jour (une entrée par séance)
-      const byDay: Record<string, { weight: number; date: string }> = {}
-      logs.forEach((log) => {
-        const day = new Date(log.created_at).toISOString().split('T')[0]
-        if (!byDay[day] || log.weight_used > byDay[day].weight) {
-          byDay[day] = { weight: log.weight_used, date: log.created_at }
-        }
-      })
-      const history = Object.values(byDay).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      setPrHistory(history)
-
-      // Sélectionner le point max (= PR actuel)
-      let maxIdx = 0
-      history.forEach((h, i) => { if (h.weight >= history[maxIdx].weight) maxIdx = i })
-      setSelectedPointIdx(maxIdx)
-    } catch (err) {
-      console.error('fetchPRHistory error:', err)
-      setPrHistory([])
-      setSelectedPointIdx(null)
-    }
-  }
-
   const handleSaveName = async () => {
     // Règle métier : on ne stocke que le prénom (cf. BRIEF display-name-first-name-only).
     // firstNameOnly côté client évite le flicker "Marie Dupont" → "Marie" entre
@@ -397,7 +360,7 @@ export default function Profile() {
   /** Barre de progression du streak */
   const streakProgress = Math.min(streakCount / 52, 1)
 
-  if (loading) {
+  if (loading || (currentUserId && collection.loading)) {
     return (
       <DarkLayout className="flex items-center justify-center">
         Chargement...
@@ -652,78 +615,22 @@ export default function Profile() {
           )}
         </div>
 
-        {/* ---- CONTAINER PERF ---- */}
-        <div
-          className="rounded-[16px] overflow-hidden relative"
-          style={{ background: 'linear-gradient(to bottom, #1b1d1f, #0c0c0c)', minHeight: '354px' }}
-        >
-          {/* Tabs filtres — scroll horizontal */}
-          <div className="flex gap-[8px] items-center px-[16px] pt-[16px] overflow-x-auto no-scrollbar">
-            <PerfTab label="Fréquence" active={perfTab === 'frequency'} onClick={() => setPerfTab('frequency')} />
-            <PerfTab label="Record personnel" active={perfTab === 'pr'} onClick={() => setPerfTab('pr')} />
-            <PerfTab label="Calories" active={perfTab === 'calories'} onClick={() => setPerfTab('calories')} />
-          </div>
+        {/* ---- COLLECTION (maquette E1) ---- */}
+        <CarteCollection medailles={collection.medailles.filter((m) => m.serie === 'regularite' || collection.defi)} onOuvrir={() => navigate('/profile/collection')} />
 
-          {/* ===== CONTENU DYNAMIQUE ===== */}
-          <div className="px-[16px] pt-[16px] pb-[16px]">
-
-            {/* --- TAB: Record personnel --- */}
-            {perfTab === 'pr' && (
-              <PRChartTab
-                allPRs={allPRs}
-                highlightedPR={highlightedPR}
-                prHistory={prHistory}
-                selectedPointIdx={selectedPointIdx}
-                onSelectExercise={(pr) => {
-                  setHighlightedPR(pr)
-                  localStorage.setItem('highlightedPR', pr.name)
-                  fetchPRHistory(pr.name)
-                }}
-                onSelectPoint={(idx) => setSelectedPointIdx(idx)}
-              />
-            )}
-
-            {/* --- TAB: Calories --- */}
-            {perfTab === 'calories' && (
-              <>
-                <p className="text-bg-1 leading-none mb-[4px]">
-                  <span className="font-serif font-bold text-[48px]">{totalWeekCalories}</span>
-                  <span className="font-sans font-normal text-[16px] text-tx-3"> </span>
-                  <span className="font-sans font-semibold text-[12px] text-[#ffee8c]">Kcal</span>
-                </p>
-                <p className="font-sans text-[12px] text-tx-3 mb-[16px]">Dépense sur 7 jours</p>
-
-                {/* Barres */}
-                <div className="h-[150px] flex items-end justify-between px-[4px]">
-                  {weekCalories.map((cal, i) => {
-                    const maxCal = Math.max(...weekCalories, 1)
-                    const h = Math.max((cal / maxCal) * 100, cal > 0 ? 8 : 0)
-                    return (
-                      <div key={i} className="flex flex-col items-center gap-[8px] flex-1">
-                        <div
-                          className="w-[12px] rounded-t-[16px]"
-                          style={{ height: `${h}%`, backgroundColor: '#ffee8c', minHeight: cal > 0 ? 12 : 0 }}
-                        />
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Labels jours */}
-                <div className="flex justify-between px-[4px] mt-[8px]">
-                  {DAY_LABELS.map((d) => (
-                    <span key={d} className="font-sans font-semibold text-[12px] text-bg-1 text-center flex-1">{d}</span>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* --- TAB: Fréquence (calendrier mensuel) --- */}
-            {perfTab === 'frequency' && (
-              <FrequencyCalendar workoutDays={workoutDays} />
-            )}
-          </div>
-        </div>
+        {/* ---- CARTE PERFORMANCE (maquette O3 v2 : le record en profil d'altitude) ---- */}
+        <CartePerformance
+          workoutDays={workoutDays}
+          calories={weekCalories}
+          exos={exosRecords}
+          exoActif={highlightedPR?.name ?? null}
+          onChoisirExo={(nom) => {
+            const pr = allPRs.find((p) => p.name === nom)
+            if (!pr) return
+            setHighlightedPR(pr)
+            localStorage.setItem('highlightedPR', pr.name)
+          }}
+        />
 
         {/* ---- DERNIÈRE SÉANCE ---- */}
         <div className="flex items-center justify-between">
@@ -817,25 +724,6 @@ export default function Profile() {
         document.body
       )}
     </>
-  )
-}
-
-/** Composant tab filtre pour le container Perf */
-function PerfTab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-[6px] px-[16px] py-[12px] rounded-full shrink-0 transition-colors"
-      style={{ backgroundColor: active ? '#ffee8c' : '#3d4149' }}
-      aria-label={label}
-    >
-      <span
-        className="font-sans font-semibold text-[12px] whitespace-nowrap"
-        style={{ color: active ? '#1b1d1f' : '#f1f4fb' }}
-      >
-        {label}
-      </span>
-    </button>
   )
 }
 
@@ -993,182 +881,6 @@ function UsernameEditPopup({
   )
 }
 
-/** Onglet Record Personnel — graphique d'évolution style Figma 374:1769 */
-function PRChartTab({
-  allPRs,
-  highlightedPR,
-  prHistory,
-  selectedPointIdx,
-  onSelectExercise,
-  onSelectPoint,
-}: {
-  allPRs: { name: string; weight: number; date: string }[]
-  highlightedPR: { name: string; weight: number; date: string } | null
-  prHistory: { weight: number; date: string }[]
-  selectedPointIdx: number | null
-  onSelectExercise: (pr: { name: string; weight: number; date: string }) => void
-  onSelectPoint: (idx: number) => void
-}) {
-  // Données affichées : soit l'historique réel, soit le PR seul en un point
-  const displayData = prHistory.length > 0
-    ? prHistory
-    : highlightedPR
-      ? [{ weight: highlightedPR.weight, date: highlightedPR.date }]
-      : []
-
-  const activeIdx = selectedPointIdx ?? (displayData.length - 1)
-  const activePoint = displayData[activeIdx] || null
-
-  // Le poids affiché
-  const displayWeight = activePoint?.weight ?? highlightedPR?.weight ?? 0
-  const displayDate = activePoint?.date ?? highlightedPR?.date ?? ''
-
-  // SVG chart dimensions
-  const W = 338
-  const H = 120
-  const PAD_X = 16
-  const PAD_Y = 12
-
-  // Calculer les coordonnées des points
-  const points = displayData.map((d, i) => {
-    const x = displayData.length === 1
-      ? W / 2
-      : PAD_X + (i / (displayData.length - 1)) * (W - 2 * PAD_X)
-    return { ...d, x, idx: i }
-  })
-
-  // Min / max pour l'échelle Y
-  const weights = displayData.map(d => d.weight)
-  const minW = Math.min(...weights) * 0.85
-  const maxW = Math.max(...weights) * 1.1 || 1
-
-  const yScale = (w: number) => {
-    if (maxW === minW) return H / 2
-    return H - PAD_Y - ((w - minW) / (maxW - minW)) * (H - 2 * PAD_Y)
-  }
-
-  const pointsWithY = points.map(p => ({ ...p, y: yScale(p.weight) }))
-
-  // Construire le path SVG
-  const linePath = pointsWithY.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
-  const areaPath = linePath + ` L ${pointsWithY[pointsWithY.length - 1]?.x ?? W} ${H} L ${pointsWithY[0]?.x ?? 0} ${H} Z`
-
-  const selectedPt = pointsWithY[activeIdx] || null
-
-  return (
-    <>
-      {/* Poids en grand */}
-      <p className="text-bg-1 leading-none mb-[4px]">
-        <span className="font-serif font-bold text-[48px]">{displayWeight}</span>
-        <span className="font-sans font-normal text-[16px] text-tx-3"> </span>
-        <span className="font-sans font-semibold text-[12px] text-[#ffee8c]">kg</span>
-      </p>
-      <p className="font-sans text-[12px] text-tx-3 mb-[12px]">Record de la séance</p>
-
-      {/* Pills exercices — scrollable horizontalement. Aucun fallback hardcodé :
-       *  si pas de PR, le bloc reste vide et le message d'état vide s'affiche
-       *  sous le graphique. */}
-      {allPRs.length > 0 && (
-        <div className="flex gap-[8px] overflow-x-auto no-scrollbar mb-[16px]">
-          {allPRs.map((pr) => (
-            <button
-              key={pr.name}
-              className="px-[12px] py-[6px] rounded-[8px] font-sans font-semibold text-[12px] uppercase whitespace-nowrap shrink-0"
-              style={{
-                backgroundColor: pr.name === highlightedPR?.name ? 'rgba(255,238,140,0.25)' : '#3d4149',
-                border: pr.name === highlightedPR?.name ? '1px solid #ffee8c' : '1px solid transparent',
-                color: pr.name === highlightedPR?.name ? '#ffee8c' : '#989da6',
-              }}
-              onClick={() => onSelectExercise(pr)}
-            >
-              {pr.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Graphique SVG — courbe d'évolution */}
-      {displayData.length > 1 ? (
-        <div className="relative" style={{ width: W, height: H + 40 }}>
-          <svg width={W} height={H} className="overflow-visible">
-            <defs>
-              <linearGradient id="prGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ffee8c" stopOpacity="0.35" />
-                <stop offset="100%" stopColor="#ffee8c" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-
-            {/* Gradient fill sous la courbe */}
-            <path d={areaPath} fill="url(#prGradient)" />
-
-            {/* Ligne de la courbe */}
-            <path d={linePath} fill="none" stroke="#ffee8c" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-
-            {/* Ligne pointillée verticale du point sélectionné */}
-            {selectedPt && (
-              <line
-                x1={selectedPt.x} y1={selectedPt.y + 6}
-                x2={selectedPt.x} y2={H + 20}
-                stroke="#ffee8c" strokeWidth="1" strokeDasharray="3 3" opacity="0.5"
-              />
-            )}
-
-            {/* Points — cercles */}
-            {pointsWithY.map((p, i) => (
-              <g key={i} onClick={() => onSelectPoint(i)} className="cursor-pointer">
-                <circle cx={p.x} cy={p.y} r="10" fill="transparent" /> {/* Zone cliquable agrandie */}
-                <circle
-                  cx={p.x} cy={p.y} r="4"
-                  fill={i === activeIdx ? '#ffee8c' : 'transparent'}
-                  stroke={i === activeIdx ? '#ffee8c' : '#989da6'}
-                  strokeWidth={i === activeIdx ? 0 : 1.5}
-                />
-                {/* Glow autour du point sélectionné */}
-                {i === activeIdx && (
-                  <circle cx={p.x} cy={p.y} r="7" fill="none" stroke="rgba(255,238,140,0.3)" strokeWidth="2" />
-                )}
-              </g>
-            ))}
-          </svg>
-
-          {/* Date sous le graphique */}
-          {displayDate && (
-            <p
-              className="absolute font-sans font-semibold text-[12px] text-bg-1 text-center whitespace-nowrap"
-              style={{
-                top: H + 24,
-                left: selectedPt ? selectedPt.x : W / 2,
-                transform: 'translateX(-50%)',
-              }}
-            >
-              {new Date(displayDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
-          )}
-        </div>
-      ) : displayData.length === 1 ? (
-        /* Un seul point — afficher un point centré */
-        <div className="relative" style={{ width: W, height: H + 40 }}>
-          <svg width={W} height={H} className="overflow-visible">
-            <circle cx={W / 2} cy={H / 2} r="5" fill="#ffee8c" />
-            <circle cx={W / 2} cy={H / 2} r="9" fill="none" stroke="rgba(255,238,140,0.3)" strokeWidth="2" />
-            <line x1={W / 2} y1={H / 2 + 8} x2={W / 2} y2={H + 20} stroke="#ffee8c" strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
-          </svg>
-          {displayDate && (
-            <p className="absolute font-sans font-semibold text-[12px] text-bg-1 text-center whitespace-nowrap" style={{ top: H + 24, left: '50%', transform: 'translateX(-50%)' }}>
-              {new Date(displayDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
-          )}
-        </div>
-      ) : (
-        /* Aucune donnée */
-        <div className="flex items-center justify-center h-[160px]">
-          <p className="text-tx-3 text-[14px]">Aucune donnée pour le moment</p>
-        </div>
-      )}
-    </>
-  )
-}
-
 /** Modal de sélection du Record Personnel */
 function PRPickerModal({
   allPRs,
@@ -1284,115 +996,6 @@ function PRPickerModal({
           Valider
         </button>
       </div>
-    </div>
-  )
-}
-
-/**
- * Calendrier mensuel pour l'onglet Fréquence — avec navigation par mois.
- * Chaque jour où une séance a été faite affiche un rond plein coloré selon la
- * catégorie (jaune upper / bleu lower / rose bbl). Le jour courant n'a aucun
- * traitement spécial : il n'a un rond que s'il y a eu une séance ce jour-là.
- */
-function FrequencyCalendar({ workoutDays }: { workoutDays: Record<string, string> }) {
-  const today = new Date()
-  const [monthOffset, setMonthOffset] = useState(0)
-
-  const displayDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1)
-  const year = displayDate.getFullYear()
-  const month = displayDate.getMonth()
-  const isCurrentMonth = monthOffset === 0
-
-  // Nom du mois abrégé
-  const monthLabel = displayDate.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })
-
-  // Jours du mois
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  const daysInMonth = lastDay.getDate()
-  // Décalage : lundi = 0
-  const startOffset = (firstDay.getDay() + 6) % 7
-
-  const dayHeaders = ['lu', 'ma', 'me', 'je', 've', 'sa', 'di']
-
-  // Construire la grille
-  const cells: (number | null)[] = []
-  for (let i = 0; i < startOffset; i++) cells.push(null)
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
-
-  // Remplir les semaines complètes
-  while (cells.length % 7 !== 0) cells.push(null)
-
-  /** Catégorie de la séance faite ce jour-là (null si aucune) */
-  const categoryForDay = (day: number): string | null => {
-    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    return workoutDays[key] || null
-  }
-
-  return (
-    <div className="flex flex-col gap-[2px] items-center">
-      {/* Navigation mois */}
-      <div className="flex items-center justify-between w-full mb-[8px]">
-        <button
-          onClick={() => setMonthOffset((o) => o - 1)}
-          className="w-[36px] h-[36px] rounded-full flex items-center justify-center active:scale-95 transition-transform"
-          style={{ backgroundColor: '#3d4149' }}
-          aria-label="Mois précédent"
-        >
-          <ChevronLeft size={16} className="text-bg-1" />
-        </button>
-        <span className="font-sans font-semibold text-[14px] text-bg-1 capitalize">
-          {monthLabel}
-        </span>
-        <button
-          onClick={() => setMonthOffset((o) => Math.min(o + 1, 0))}
-          disabled={isCurrentMonth}
-          className="w-[36px] h-[36px] rounded-full flex items-center justify-center active:scale-95 transition-transform"
-          style={{ backgroundColor: isCurrentMonth ? '#2c2c2e' : '#3d4149', opacity: isCurrentMonth ? 0.4 : 1 }}
-          aria-label="Mois suivant"
-        >
-          <ChevronRight size={16} className="text-bg-1" />
-        </button>
-      </div>
-
-      {/* Headers jours */}
-      <div className="flex w-full">
-        {dayHeaders.map((d) => (
-          <div key={d} className="flex-1 h-[40px] flex items-center justify-center">
-            <span className="font-sans font-medium text-[16px] text-bg-1">{d}</span>
-          </div>
-        ))}
-      </div>
-      {/* Lignes de dates */}
-      {Array.from({ length: cells.length / 7 }, (_, row) => (
-        <div key={row} className="flex w-full">
-          {cells.slice(row * 7, row * 7 + 7).map((day, col) => {
-            const cat = day !== null ? categoryForDay(day) : null
-            const colors = cat ? CATEGORY_COLORS[cat as keyof typeof CATEGORY_COLORS] : null
-            return (
-              <div key={col} className="flex-1 h-[40px] flex items-center justify-center">
-                {day !== null ? (
-                  <div
-                    className="w-[40px] h-[40px] flex items-center justify-center"
-                    style={{
-                      backgroundColor: colors ? colors.bg : 'transparent',
-                      borderRadius: colors ? '50px' : '2px',
-                      boxShadow: colors ? `0px 0px 16px 0px ${colors.glow}` : 'none',
-                    }}
-                  >
-                    <span
-                      className="font-sans font-medium text-[16px]"
-                      style={{ color: colors ? '#1b1d1f' : '#989da6' }}
-                    >
-                      {day}
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-            )
-          })}
-        </div>
-      ))}
     </div>
   )
 }

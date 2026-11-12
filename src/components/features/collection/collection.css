@@ -1,0 +1,16 @@
+/* Page Collection (maquette E4 « Collection · mix »), CSS de la planche repris tel quel, classes préfixées col-. */
+/* À l'ouverture : la nouvelle médaille arrive en tournant, puis le compteur passe de n-1 à n. */
+.col-compte{transform:translateY(-40px);animation:colCompte .55s 2.1s cubic-bezier(.34,1.56,.64,1) backwards}
+@keyframes colCompte{from{transform:none}to{transform:translateY(-40px)}}
+.col-medaille{transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.col-medaille:active{transform:scale(.95)}
+/* Au toucher : la médaille s'ouvre en grand et tourne. */
+.col-voile{animation:colVoile .35s ease-out both}
+@keyframes colVoile{from{opacity:0}to{opacity:1}}
+.col-surgit{animation:colSurgit .6s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes colSurgit{from{transform:scale(.35);opacity:0}to{transform:none;opacity:1}}
+.col-monte{animation:colMonte .5s .35s cubic-bezier(.22,1,.36,1) both}
+@keyframes colMonte{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+.col-barre{animation:colBarre 1s .5s cubic-bezier(.22,1,.36,1) both}
+@keyframes colBarre{from{transform:scaleX(0)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.col-compte,.col-voile,.col-surgit,.col-monte,.col-barre{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important}}

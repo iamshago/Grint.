@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { Challenge, ChallengeProgress, ProfileSummary } from '@/types'
 import type { WeeklyMissions } from '@/hooks/useWeeklyMissions'
 import { resolveAvatarSrc } from '@/lib/avatars'
@@ -123,6 +124,7 @@ export default function WinterChallengeView({ challenge, progress, me, friendIds
         <>
           <div className="mx-[16px] mt-[28px] mb-[12px] flex items-baseline justify-between">
             <h2 className={titre}>À gagner</h2>
+            <Link to="/profile/collection" style={{ fontSize: 14, fontWeight: 600, color: '#1b1d1f', textDecoration: 'underline' }}>Collection</Link>
           </div>
           <div className="mx-[16px] grid grid-cols-5 gap-[8px]">
             {SERIE_WINTER.map(({ modele, seuil }) => {

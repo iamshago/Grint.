@@ -20,6 +20,17 @@ export const CATEGORY_ACCENT: Record<string, string> = {
 }
 
 /**
+ * Teintes claires de l'accent pour le lecteur (maquette H1) : `serie` = segment de
+ * la série en cours, `validee` = fond du bouton « Série validée ». Les valeurs bleues
+ * sont celles de la maquette ; jaune et rose prennent le même dosage de blanc (≈ 37 % / 25 %).
+ */
+export const CATEGORY_ACCENT_CLAIR: Record<string, { serie: string; validee: string }> = {
+  upper: { serie: '#fff4b7', validee: '#fff2a9' },
+  lower: { serie: '#8fb0ff', validee: '#7d9fff' },
+  bbl: { serie: '#ff9dcf', validee: '#ff8ac6' },
+}
+
+/**
  * Couleurs complètes (bg / glow / text) par catégorie — checkboxes jours du
  * streak. Les glows upper/lower sont des valeurs DA historiques indépendantes
  * du bg (cf. CLAUDE.md), à ne pas dériver ; le glow bbl suit l'accent #ff63b3.

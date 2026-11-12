@@ -4,9 +4,13 @@ import type { SeanceValideeState } from './SeanceValidee'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { fetchUserWorkout } from '@/lib/myPrograms'
-import { Play, Pause, Check, SkipForward, Timer, ChevronLeft, X, List, ArrowRight } from 'lucide-react'
+import { Play, Pause, Check, SkipForward, Timer, ChevronLeft, X, List } from 'lucide-react'
 import ExerciseRow from '@/components/features/ExerciseRow'
-import { CATEGORY_ACCENT } from '@/lib/categoryColors'
+import Molette from '@/components/features/lecteur/Molette'
+import VueSaisie from '@/components/features/lecteur/VueSaisie'
+import VueRepos from '@/components/features/lecteur/VueRepos'
+import '@/components/features/lecteur/lecteur.css'
+import { CATEGORY_ACCENT, CATEGORY_ACCENT_CLAIR } from '@/lib/categoryColors'
 
 export default function WorkoutSession() {
   const { id } = useParams()
@@ -309,6 +313,12 @@ const ExerciseSelectionHub = ({ workout, exercises, accentColor, onFinish, onClo
   const [videoModal, setVideoModal] = useState({ isOpen: false, url: null, title: '' })
 
   const isBBL = workout?.title?.toUpperCase().includes('BBL')
+  // Teintes claires de l'accent (segment en cours, bouton « Série validée ») — maquette H1
+  const teintes = CATEGORY_ACCENT_CLAIR[workout?.category || 'upper'] || CATEGORY_ACCENT_CLAIR.upper
+  // « Valider ma série » : la coche se trace 700 ms avant l'enregistrement et le repos (H1)
+  const [serieValidee, setSerieValidee] = useState(false)
+  const attenteValidation = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => { if (attenteValidation.current) clearTimeout(attenteValidation.current) }, [])
 
   // Dernier poids utilisé par exercice dans la session en cours
   const [sessionWeights, setSessionWeights] = useState<Record<string, number>>({})
@@ -447,6 +457,18 @@ const ExerciseSelectionHub = ({ workout, exercises, accentColor, onFinish, onClo
     }
 
     setView('input')
+  }
+
+  // Bouton « Valider ma série » : coche + reflet, puis validateSet (inchangé) après 700 ms.
+  // validateSet est celle du rendu du clic : poids et reps de ce moment-là.
+  const handleValiderSerie = () => {
+    if (serieValidee) return
+    setSerieValidee(true)
+    attenteValidation.current = setTimeout(() => {
+      attenteValidation.current = null
+      setSerieValidee(false)
+      validateSet()
+    }, 700)
   }
 
   // Passer le repos
@@ -597,8 +619,10 @@ const ExerciseSelectionHub = ({ workout, exercises, accentColor, onFinish, onClo
     )
   }
 
-  // ─── VUE SAISIE (Input poids/reps) — Figma 235:705 ────
-  if (view === 'input' && activeExoIndex !== null) {
+  // ─── VUES SAISIE + REPOS (maquette H1) ────────────────
+  // Les deux vues restent montées : « Valider ma série » coche, puis le repos glisse
+  // par-dessus ; « Passer le repos » (ou la fin du chrono) ramène la saisie.
+  if ((view === 'input' || view === 'rest') && activeExoIndex !== null) {
     const exo = exercises[activeExoIndex]
     const targetRepsStr = exo.reps || '10'
     const isRange = targetRepsStr.includes('-')
@@ -618,214 +642,63 @@ const ExerciseSelectionHub = ({ workout, exercises, accentColor, onFinish, onClo
     const motivationalMsg = motivationalMessages[activeExoIndex % motivationalMessages.length]
       .replace('{max}', String(targetMax))
 
-    /* Figma positions (from top of 874px frame, incl 62px status bar):
-       header=72, badge=188, name=230, objective=283,
-       weight=326, reps=491, pill=648, CTA=766
-       We offset by -62px since we don't render the status bar,
-       then add our own top padding (~56px for pt-14).
-       Net offset from container top: figmaTop - 62 + 10 */
-    return (
-      <div className="flex-1 relative h-full overflow-hidden">
-        {/* Header — Figma top=72 → ~20px from our container */}
-        <div className="absolute top-2 left-[16px] right-[16px] flex items-center z-10">
-          <button
-            onClick={onClose}
-            className="w-10 h-10 bg-tx-1 rounded-[24px] flex items-center justify-center shadow-[0px_0px_40px_0px_rgba(31,32,33,0.4)] active:scale-95 transition-transform"
-            aria-label="Annuler la séance"
-          >
-            <X size={16} className="text-bg-1" />
-          </button>
-          <h1 className="flex-1 text-center font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px]">
-            {workout.title}
-          </h1>
-          <button
-            onClick={() => { setPrevView(view as 'list' | 'input' | 'rest'); setView('recap') }}
-            className="w-10 h-10 bg-tx-1 rounded-[24px] flex items-center justify-center shadow-[0px_0px_40px_0px_rgba(31,32,33,0.4)] active:scale-95 transition-transform"
-            aria-label="Récapitulatif"
-          >
-            <List size={16} className="text-bg-1" />
-          </button>
-        </div>
-
-        {/* Badge — Figma: top=188, rounded-8, px-12 py-6, bg accent/25%, border accent */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-[128px]">
-          <span
-            className="inline-flex px-3 py-1.5 rounded-[8px] text-[12px] font-sans font-semibold uppercase whitespace-nowrap"
-            style={{
-              backgroundColor: `${accentColor}40`,
-              border: `1px solid ${accentColor}`,
-              color: accentColor,
-            }}
-          >
-            série {currentSet} sur {exo.sets}
-          </span>
-        </div>
-
-        {/* Exercise name — Figma: top=230, 32px PT Serif Bold, tracking -0.96px */}
-        <h2 className="absolute left-1/2 -translate-x-1/2 top-[170px] font-serif font-bold text-[32px] text-bg-1 text-center whitespace-nowrap tracking-[-0.96px]">
-          {exo.exercise?.name}
-        </h2>
-
-        {/* Objective — Figma: top=283, 16px Figtree */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-[223px] flex items-center gap-1 whitespace-nowrap">
-          <span className="font-sans font-normal text-[16px] text-tx-3">Objectif ciblé :</span>
-          <span className="font-sans font-bold text-[16px]" style={{ color: accentColor }}>
-            {exo.reps} reps
-          </span>
-        </div>
-
-        {/* Weight container — Figma: left=32, w=338, h=141, rounded-24, top=326 → 274 */}
-        <div className="absolute left-[32px] right-[32px] h-[141px] bg-tx-1 rounded-[24px] overflow-hidden top-[266px]">
-          <p className="text-center text-tx-3 text-[12px] font-sans font-semibold uppercase mt-6">
-            Poids (kg)
-          </p>
-          <HorizontalPicker
-            value={weight}
-            onChange={setWeight}
-            min={0}
-            max={500}
-            stepKey={stepKey}
-          />
-        </div>
-
-        {/* Reps container — Figma: top=491 → 439, 24px gap from weight */}
-        <div className="absolute left-[32px] right-[32px] h-[141px] bg-tx-1 rounded-[24px] overflow-hidden top-[431px]">
-          <p className="text-center text-tx-3 text-[12px] font-sans font-semibold uppercase mt-6">
-            Reps
-          </p>
-          <HorizontalPicker
-            value={reps}
-            onChange={setReps}
-            min={0}
-            max={50}
-            stepKey={stepKey}
-          />
-        </div>
-
-        {/* Motivational pill — 16px below reps container bottom (439+141+16=596) */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-[588px] flex items-center justify-center">
-          {isRange && reps >= targetMax && (
-            <div
-              className="px-4 py-3 rounded-[24px] text-[12px] font-sans font-semibold text-center whitespace-nowrap"
-              style={{
-                backgroundColor: `${accentColor}40`,
-                color: accentColor,
-              }}
-            >
-              {motivationalMsg}
-            </div>
-          )}
-        </div>
-
-        {/* CTA — bottom 56px */}
-        <div className="absolute left-[24px] right-[24px] cta-position-safe">
-          <button
-            onClick={validateSet}
-            className="w-full flex items-center justify-center gap-3 p-4 rounded-[12px] active:scale-[0.97] transition-transform font-sans font-semibold text-[16px] cursor-pointer"
-            style={{
-              backgroundColor: accentColor,
-              color: '#1b1d1f',
-              boxShadow: `0px 0px 20px 0px ${accentColor}4D`,
-            }}
-          >
-            <Check size={16} strokeWidth={2.5} /> Valider ma série
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // ─── VUE REPOS (Timer) ────────────────────────────────
-  if (view === 'rest' && activeExoIndex !== null) {
-    const exo = exercises[activeExoIndex]
-    const nextExoName = exo.exercise?.name || 'Exercice suivant'
-    const mins = Math.floor(restTimeLeft / 60)
-    const secs = restTimeLeft % 60
-
-    /* Prochain exercice à afficher sous le timer */
-    const nextExoData = exo
-    const nextVideoUrl = nextExoData?.exercise?.video_url
-    const nextVideoName = nextExoData?.exercise?.name || ''
+    const nomExo = exo.exercise?.name || ''
+    const videoUrl = exo.exercise?.video_url
+    // Hors repos, la vue repos (cachée) affiche la durée pleine, comme la maquette
+    const totalRepos = exo.rest_seconds || 90
+    const ouvrirRecap = () => { setPrevView(view as 'list' | 'input' | 'rest'); setView('recap') }
 
     return (
       <div className="flex-1 relative h-full overflow-hidden">
-        {/* Header — X / Titre / List (même pattern que input) */}
-        <div className="absolute top-2 left-[16px] right-[16px] flex items-center z-10">
-          <button
-            onClick={onClose}
-            className="w-10 h-10 bg-tx-1 rounded-[24px] flex items-center justify-center shadow-[0px_0px_40px_0px_rgba(31,32,33,0.4)] active:scale-95 transition-transform"
-            aria-label="Annuler la séance"
-          >
-            <X size={16} className="text-bg-1" />
-          </button>
-          <h1 className="flex-1 text-center font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px]">
-            {workout.title}
-          </h1>
-          <button
-            onClick={() => { setPrevView(view as 'list' | 'input' | 'rest'); setView('recap') }}
-            className="w-10 h-10 bg-tx-1 rounded-[24px] flex items-center justify-center shadow-[0px_0px_40px_0px_rgba(31,32,33,0.4)] active:scale-95 transition-transform"
-            aria-label="Récapitulatif"
-          >
-            <List size={16} className="text-bg-1" />
-          </button>
-        </div>
+        <VueSaisie
+          classe={view === 'input' ? '' : 'ls-cache-gauche'}
+          titre={workout.title}
+          nom={nomExo}
+          objectif={exo.reps}
+          serie={currentSet}
+          totalSeries={exo.sets}
+          validee={serieValidee}
+          accent={accentColor}
+          teinteSerie={teintes.serie}
+          teinteValidee={teintes.validee}
+          onValider={handleValiderSerie}
+          onFermer={onClose}
+          onRecap={ouvrirRecap}
+        >
+          <Molette libelle="Poids (kg)" top={266} value={weight} onChange={setWeight} min={0} max={500} stepKey={stepKey} />
+          <Molette libelle="Reps" top={431} value={reps} onChange={setReps} min={0} max={50} stepKey={stepKey} />
 
-        {/* Halo — lueur animée derrière le timer */}
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full blur-[100px] opacity-10 animate-pulse -mt-[70px]"
-          style={{ backgroundColor: accentColor }}
+          {/* Motivational pill — 16px below reps container bottom (439+141+16=596) */}
+          <div className="absolute left-1/2 -translate-x-1/2 top-[588px] flex items-center justify-center">
+            {isRange && reps >= targetMax && (
+              <div
+                className="px-4 py-3 rounded-[24px] text-[12px] font-sans font-semibold text-center whitespace-nowrap"
+                style={{
+                  backgroundColor: `${accentColor}40`,
+                  color: accentColor,
+                }}
+              >
+                {motivationalMsg}
+              </div>
+            )}
+          </div>
+        </VueSaisie>
+
+        <VueRepos
+          classe={view === 'rest' ? '' : 'ls-cache-droite'}
+          actif={view === 'rest'}
+          titre={workout.title}
+          nom={nomExo || 'Exercice suivant'}
+          reste={view === 'rest' ? restTimeLeft : totalRepos}
+          total={totalRepos}
+          accent={accentColor}
+          onVideo={videoUrl && videoUrl.length > 5 ? () => setVideoModal({ isOpen: true, url: videoUrl, title: nomExo }) : undefined}
+          onPasser={skipRest}
+          // Retour à la vue input — le timer continue (targetEndTime persiste)
+          onRetour={() => setView('input')}
+          onFermer={onClose}
+          onRecap={ouvrirRecap}
         />
-
-        {/* Timer — Figma: 116px Figtree Bold, slightly above center */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -mt-[70px]">
-          <p className="font-sans font-bold text-[116px] leading-none tabular-nums tracking-[-3.48px] text-bg-1 text-center">
-            {mins}:{secs < 10 ? '0' : ''}{secs}
-          </p>
-        </div>
-
-        {/* Instruction container — 45px sous le timer */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-1/2 mt-[35px] flex flex-col items-center">
-          {/* "Prépare-toi pour" → 4px → nom exercice → 12px → pill */}
-          <p className="font-sans font-normal text-[12px] text-tx-3">
-            Prépare-toi pour
-          </p>
-          <p className="font-serif font-bold text-[20px] text-bg-1 tracking-[-0.6px] mt-[4px]">
-            {nextExoName}
-          </p>
-          {nextVideoUrl && nextVideoUrl.length > 5 && (
-            <button
-              onClick={() => setVideoModal({ isOpen: true, url: nextVideoUrl, title: nextVideoName })}
-              className="flex items-center gap-1.5 px-4 py-3 rounded-[24px] active:scale-95 transition-transform cursor-pointer mt-[12px]"
-              style={{ backgroundColor: `${accentColor}40` }}
-            >
-              <Play size={12} fill={accentColor} stroke={accentColor} />
-              <span className="font-sans font-semibold text-[12px] whitespace-nowrap" style={{ color: accentColor }}>
-                Comment l'exécuter ?
-              </span>
-            </button>
-          )}
-        </div>
-
-        {/* Actions — bottom 56px : Retour + Passer le repos */}
-        <div className="absolute left-[24px] right-[24px] flex items-center gap-3 cta-position-safe">
-          <button
-            onClick={() => {
-              // Retour à la vue input — le timer continue (targetEndTime persiste)
-              setView('input')
-            }}
-            className="shrink-0 w-[56px] h-[56px] rounded-[12px] bg-tx-1 flex items-center justify-center active:scale-95 transition-transform"
-            aria-label="Retour"
-          >
-            <ChevronLeft size={16} className="text-bg-1" />
-          </button>
-          <button
-            onClick={skipRest}
-            className="flex-1 bg-tx-1 p-4 rounded-[12px] active:scale-95 transition-transform flex items-center justify-center gap-3 cursor-pointer"
-          >
-            <span className="font-sans font-semibold text-[16px] text-bg-1">Passer le repos</span>
-            <ArrowRight size={16} className="text-bg-1" />
-          </button>
-        </div>
 
         {/* Modale vidéo (réutilisée) */}
         {videoModal.isOpen && (
@@ -996,75 +869,6 @@ const ExerciseSelectionHub = ({ workout, exercises, accentColor, onFinish, onClo
   }
 
   return null
-}
-
-// ═══════════════════════════════════════════════════
-// Molette horizontale (réutilisée de l'ancien code)
-// ═══════════════════════════════════════════════════
-
-const HorizontalPicker = ({ value, onChange, min, max, stepKey }) => {
-  const scrollRef = useRef(null)
-  const itemWidth = 80
-  const items = Array.from({ length: max - min + 1 }, (_, i) => min + i)
-  const isManualScroll = useRef(false)
-  const scrollTimeout = useRef(null)
-
-  useEffect(() => {
-    if (scrollRef.current && !isManualScroll.current) {
-      scrollRef.current.scrollLeft = (value - min) * itemWidth
-    }
-  }, [value, min, stepKey])
-
-  const handleScroll = (e) => {
-    isManualScroll.current = true
-    if (scrollTimeout.current) clearTimeout(scrollTimeout.current)
-    scrollTimeout.current = setTimeout(() => {
-      isManualScroll.current = false
-    }, 150)
-    const scrollLeft = e.target.scrollLeft
-    const index = Math.round(scrollLeft / itemWidth)
-    const newValue = min + index
-    if (newValue !== value && newValue >= min && newValue <= max) onChange(newValue)
-  }
-
-  return (
-    <div
-      className="relative w-full h-20 overflow-hidden"
-      style={{
-        maskImage:
-          'linear-gradient(to right, transparent, black 40%, black 60%, transparent)',
-      }}
-    >
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="absolute inset-0 flex overflow-x-auto overflow-y-hidden touch-pan-x snap-x snap-mandatory no-scrollbar items-center"
-        style={{
-          paddingLeft: 'calc(50% - 40px)',
-          paddingRight: 'calc(50% - 40px)',
-        }}
-      >
-        {items.map((num) => (
-          <div
-            key={num}
-            className={`shrink-0 w-20 h-20 flex items-center justify-center snap-center transition-all duration-300 cursor-grab active:cursor-grabbing ${
-              value === num ? 'scale-110 opacity-100' : 'scale-90 opacity-30'
-            }`}
-          >
-            <span
-              className={`transition-colors ${
-                value === num
-                  ? 'text-5xl font-bold text-white'
-                  : 'text-3xl font-bold text-gray-500'
-              }`}
-            >
-              {num}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
 }
 
 // ═══════════════════════════════════════════════════

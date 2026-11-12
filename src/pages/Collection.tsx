@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import DarkLayout from '@/components/layout/DarkLayout'
 import TopFadeOverlay from '@/components/ui/TopFadeOverlay'
 import Medaille from '@/components/features/winter/Medaille'
 import VitrineMedaille from '@/components/features/collection/VitrineMedaille'
 import { useCurrentUserProfile } from '@/hooks/useCurrentUserProfile'
+import { supabase } from '@/lib/supabaseClient'
 import { useCollection } from '@/hooks/useCollection'
 import { firstNameOnly } from '@/lib/displayName'
 import { dateCourte, enregistrerVues, type MedailleCollection } from '@/lib/collection'
+import type { ProfileSummary } from '@/types'
 import '@/components/features/collection/collection.css'
 
 const serif = "'PT Serif', Georgia, serif"
@@ -17,24 +19,46 @@ const titreSection = { margin: 0, fontFamily: serif, fontWeight: 700, fontSize: 
  * Page Collection (maquette E4 « Collection · mix », retenue) : le compte, la série du défi
  * Winter et la Régularité. À l'ouverture, la nouvelle médaille arrive en tournant puis le
  * compteur monte ; toucher une médaille l'ouvre en grand (VitrineMedaille).
+ * Aussi la collection d'un ami (/profile/friends/:id/collection), la même page en lecture seule :
+ * pas de point « Nouveau » (il est propre à soi-même), rien n'est retenu ; son prénom au revers.
  */
 export default function Collection() {
   const navigate = useNavigate()
-  const { profile } = useCurrentUserProfile()
-  const { medailles, defi, loading } = useCollection(profile?.id)
+  const { id: amiId } = useParams<{ id: string }>()
+  const { profile: moi } = useCurrentUserProfile()
+  const [ami, setAmi] = useState<ProfileSummary | null>(null)
+  const profile = amiId ? (ami?.id === amiId ? ami : null) : moi
+  const { medailles, defi, loading } = useCollection(amiId ?? moi?.id, { nouveau: !amiId })
   const [choisie, setChoisie] = useState<MedailleCollection | null>(null)
 
-  // Ce qui est gagné est maintenant vu (les « nouveau » restent affichés pendant cette visite)
+  // L'ami : son profil, pour son prénom gravé au revers
   useEffect(() => {
-    if (!loading && profile?.id) enregistrerVues(profile.id, medailles.filter((m) => m.gagnee).map((m) => m.id))
-  }, [loading, profile?.id, medailles])
+    if (!amiId) return
+    let actif = true
+    supabase
+      .from('profiles')
+      .select('id, display_name, avatar_id, avatar_url, username')
+      .eq('id', amiId)
+      .maybeSingle()
+      .then(({ data }: { data: ProfileSummary | null }) => {
+        if (actif) setAmi(data ?? { id: amiId, display_name: null, avatar_id: null, avatar_url: null, username: null })
+      })
+    return () => {
+      actif = false
+    }
+  }, [amiId])
+
+  // Ce qui est gagné est maintenant vu (les « nouveau » restent affichés pendant cette visite) ; pas chez un ami
+  useEffect(() => {
+    if (!amiId && !loading && moi?.id) enregistrerVues(moi.id, medailles.filter((m) => m.gagnee).map((m) => m.id))
+  }, [amiId, loading, moi?.id, medailles])
 
   const retour = () => {
     if ((window.history.state?.idx ?? 0) > 0) navigate(-1)
-    else navigate('/profile')
+    else navigate(amiId ? `/profile/friends/${amiId}` : '/profile')
   }
 
-  if (loading) return <DarkLayout hideTabBar>{null}</DarkLayout>
+  if (loading || !profile) return <DarkLayout hideTabBar>{null}</DarkLayout>
 
   const series = [
     ...(defi ? [{ titre: defi.name, liste: medailles.filter((m) => m.serie === 'winter') }] : []),

@@ -25,6 +25,7 @@ const HIDE_TABBAR_ROUTES = [
   '/seance-validee',
   '/profile/collection',
 ]
+const COLLECTION_AMI = /^\/profile\/friends\/[^/]+\/collection/
 
 /**
  * iOS Safari (hors-PWA) : au mount de l'app, déclencher un micro-scroll pour
@@ -58,7 +59,8 @@ function PersistentTabBar() {
   const location = useLocation()
   const path = location.pathname
   const hiddenByPrefix = HIDE_TABBAR_ROUTES.some((r) => path.startsWith(r))
-  if (hiddenByPrefix) return null
+  // La collection d'un ami (/profile/friends/:id/collection) : la même page que /profile/collection
+  if (hiddenByPrefix || COLLECTION_AMI.test(path)) return null
   return <TabBar />
 }
 
@@ -198,6 +200,7 @@ export default function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/friends" element={<Friends />} />
           <Route path="/profile/friends/:id" element={<FriendProfile />} />
+          <Route path="/profile/friends/:id/collection" element={<Collection />} />
           <Route path="/profile/history" element={<SessionHistory />} />
           <Route path="/profile/collection" element={<Collection />} />
           <Route path="/stats" element={<Stats />} />

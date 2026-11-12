@@ -1,6 +1,7 @@
 import { WINTER_MONTAGNE } from '@/lib/winter'
 import { cn } from '@/lib/utils'
 import WinterSnow, { FLOCONS_TETE } from './WinterSnow'
+import FondJourNuit from './FondJourNuit'
 
 interface WinterRaceRowProps {
   rang: number
@@ -17,6 +18,10 @@ interface WinterRaceRowProps {
   delai: number
   onClick?: () => void
 }
+
+const VOILE_TETE = 'linear-gradient(90deg, rgba(13,16,36,.95) 0%, rgba(13,16,36,.8) 32%, rgba(13,16,36,0) 56%)'
+/** Le même voile en plein jour : même forme, bleu de jour au lieu du bleu nuit (comme la carte Winter). */
+const VOILE_TETE_JOUR = 'linear-gradient(90deg, rgba(24,48,112,.92) 0%, rgba(24,48,112,.76) 32%, rgba(24,48,112,0) 56%)'
 
 /**
  * Une ligne de la course (G-LigneCourse) : la ligne du classement de l'app, avec une piste
@@ -37,11 +42,13 @@ export default function WinterRaceRow({ rang, tete, nom, avatar, pts, summit, mo
       )}
     >
       {tete && (
-        <>
-          <img src={WINTER_MONTAGNE.tete} alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover" />
-          <div aria-hidden="true" className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(13,16,36,.95) 0%, rgba(13,16,36,.8) 32%, rgba(13,16,36,0) 56%)' }} />
-          <WinterSnow flocons={FLOCONS_TETE} fall={100} />
-        </>
+        // suit l'heure comme la montagne et la carte Winter
+        <FondJourNuit
+          jour={WINTER_MONTAGNE.teteJour}
+          nuit={WINTER_MONTAGNE.tete}
+          voile={{ jour: VOILE_TETE_JOUR, nuit: VOILE_TETE }}
+          dessus={<WinterSnow flocons={FLOCONS_TETE} fall={100} />}
+        />
       )}
 
       <div

@@ -8,6 +8,8 @@ interface FondJourNuitProps {
   children?: ReactNode
   /** Voile par-dessus l'image (dégradés CSS), un pour chaque moment ; il bascule avec l'image. */
   voile?: { jour: string; nuit: string }
+  /** Posé au-dessus du voile (la neige de la carte du premier). */
+  dessus?: ReactNode
 }
 
 const FONDU = 'opacity 2.4s ease-in-out'
@@ -16,7 +18,7 @@ const FONDU = 'opacity 2.4s ease-in-out'
  * Fond d'une scène Winter qui suit l'heure : l'image de jour dessous, la nuit par-dessus en fondu.
  * La bascule attend que les deux images soient prêtes, sinon le fondu partirait sur du vide.
  */
-export default function FondJourNuit({ jour, nuit, children, voile }: FondJourNuitProps) {
+export default function FondJourNuit({ jour, nuit, children, voile, dessus }: FondJourNuitProps) {
   const boite = useRef<HTMLDivElement>(null)
   const imJour = useRef<HTMLImageElement>(null)
   const imNuit = useRef<HTMLImageElement>(null)
@@ -52,6 +54,7 @@ export default function FondJourNuit({ jour, nuit, children, voile }: FondJourNu
           <div className="absolute inset-0" style={{ background: voile.nuit, opacity: estNuit ? 1 : 0, transition: FONDU }} />
         </>
       )}
+      {dessus}
     </div>
   )
 }

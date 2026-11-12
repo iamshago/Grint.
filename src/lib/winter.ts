@@ -14,6 +14,7 @@ export const WINTER_MONTAGNE = {
   carte: '/assets/challenges/winter-carte.jpg',
   carteJour: '/assets/challenges/winter-carte-jour.jpg',
   tete: '/assets/challenges/winter-tete.jpg',
+  teteJour: '/assets/challenges/winter-tete-jour.jpg',
   largeur: 370,
   hauteur: 330,
   trace:
@@ -24,6 +25,7 @@ export const WINTER_MONTAGNE = {
 export function imageDeJour(src: string): string | null {
   if (src === WINTER_MONTAGNE.image) return WINTER_MONTAGNE.imageJour
   if (src === WINTER_MONTAGNE.carte) return WINTER_MONTAGNE.carteJour
+  if (src === WINTER_MONTAGNE.tete) return WINTER_MONTAGNE.teteJour
   return null
 }
 

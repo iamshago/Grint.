@@ -76,13 +76,16 @@ function retenirVue(nuit: boolean) {
   } catch {
     // navigation privée : pas de mémoire, on montre simplement la bonne version
   }
+  // les autres éléments Winter déjà montés (plus bas sur la page) suivent sans rejouer
+  window.dispatchEvent(new CustomEvent<boolean>(CLE_VUE, { detail: nuit }))
 }
 
 /**
  * Jour ou nuit à afficher sur un élément Winter (carte ou montagne). Si la dernière version vue
  * n'est pas celle de l'heure (vu de jour, revenu après 18 h ; ou l'inverse le matin), l'élément
  * arrive dans l'ancienne version et la bascule se joue sous les yeux, une fois : dès qu'il est
- * à l'écran et que ses images sont chargées (`pret`). Le premier élément Winter vu la consomme.
+ * à l'écran et que ses images sont chargées (`pret`). Le premier élément Winter vu la consomme :
+ * les autres, déjà montés ou montés ensuite, passent directement à la nouvelle version.
  */
 export function useNuitVue(ref: RefObject<HTMLElement | null>, pret: boolean): boolean {
   const nuit = useNuit()
@@ -97,6 +100,12 @@ export function useNuitVue(ref: RefObject<HTMLElement | null>, pret: boolean): b
     io.observe(el)
     return () => io.disconnect()
   }, [ref])
+
+  useEffect(() => {
+    const suivre = (e: Event) => setAffichee((e as CustomEvent<boolean>).detail)
+    window.addEventListener(CLE_VUE, suivre)
+    return () => window.removeEventListener(CLE_VUE, suivre)
+  }, [])
 
   useEffect(() => {
     if (!aLEcran || !pret) return

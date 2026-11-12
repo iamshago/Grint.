@@ -1,0 +1,87 @@
+/* Créer une séance — CSS repris tel quel des planches du canevas (classes préfixées) :
+   f1- = F1-Plus-feuille (le + qui monte du bas, la page qui recule, l'éditeur qui monte)
+   f3- = F3/F4-Nouvelle-seance (la séance créée dans la page qu'elle deviendra), aussi G1-Image-seance
+   ip- = feuille d'images (ImagePickerSheet, « Ta photo » en premier)
+   fe- = feuille d'exercices (G-FeuilleExercices = ExercisePickerSheet) */
+
+/* --- F1 : la page Programmer recule quand l'éditeur monte (comme une fiche iPhone) --- */
+.f1-page{transform-origin:50% 0;transition:transform .5s cubic-bezier(.32,.72,0,1),border-radius .5s,filter .5s}
+.f1-page.f1-fige{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1;overflow:hidden;min-height:0}
+.f1-page.f1-recule{transform:scale(.93) translateY(14px);border-radius:18px;overflow:hidden;filter:brightness(.7)}
+.f1-voile{opacity:0;pointer-events:none;transition:opacity .28s ease}
+.f1-voile.f1-vu{opacity:1;pointer-events:auto}
+.f1-fab{transition:transform .45s cubic-bezier(.34,1.56,.64,1),background .3s,opacity .2s}
+.f1-fab svg{transition:transform .45s cubic-bezier(.34,1.56,.64,1)}
+.f1-fab.f1-ouvert{transform:translateY(-224px) scale(.86);background:#2c2e31!important}
+.f1-fab.f1-ouvert svg{transform:rotate(135deg)}
+.f1-fab.f1-cache{opacity:0;pointer-events:none}
+.f1-fab:active{transform:scale(.92)}
+.f1-feuille{transform:translateY(105%);transition:transform .5s cubic-bezier(.32,.72,0,1)}
+.f1-feuille.f1-vu{transform:none}
+.f1-action{opacity:0;transform:translateY(18px);transition:transform .45s cubic-bezier(.22,1,.36,1),opacity .3s,background .15s}
+.f1-vu .f1-action{opacity:1;transform:none}
+.f1-vu .f1-action:nth-child(2){transition-delay:.08s}
+.f1-vu .f1-action:nth-child(3){transition-delay:.13s}
+.f1-action:active{transform:scale(.97)!important;background:#e2e6ef!important}
+.f1-editeur{transform:translateY(102%);transition:transform .55s cubic-bezier(.32,.72,0,1)}
+.f1-editeur.f1-vu{transform:none}
+
+/* --- F3 / F4 / G1 : la séance dans la charte --- */
+.f3-defile{scrollbar-width:none}.f3-defile::-webkit-scrollbar{display:none}
+.f3-nom::placeholder{color:#9ca3b0;opacity:1}
+.f3-nom:focus{outline:none}
+.f3-hero{opacity:0;transform:scale(1.08);transition:opacity .5s,transform 1.2s cubic-bezier(.22,1,.36,1)}
+.f3-hero.f3-pleine{opacity:1;transform:none}
+.f3-ajout{transition:opacity .3s,transform .3s cubic-bezier(.22,1,.36,1)}
+.f3-ajout.f3-cache{opacity:0;transform:translateX(-50%) scale(.8)!important;pointer-events:none}
+.f3-pop{animation:f3-pop .45s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes f3-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.04);opacity:1}100%{transform:none}}
+.f3-touche{cursor:pointer;transition:transform .15s}
+.f3-touche:active{transform:scale(.97)}
+
+/* --- F5 : Modifier la séance — le réglage s'ouvre sous l'exercice (grille 0fr → 1fr), un seul ouvert à la fois --- */
+.f5-touche{cursor:pointer;transition:transform .15s}
+.f5-touche:active{transform:scale(.97)}
+.f5-tiroir{display:grid;transition:grid-template-rows .45s cubic-bezier(.32,.72,0,1)}
+.f5-tiroir > div{overflow:hidden;min-height:0}
+.f5-reglages{transition:opacity .3s,transform .45s cubic-bezier(.32,.72,0,1)}
+.f5-ferme .f5-reglages{opacity:0;transform:translateY(-8px)}
+.f5-chevron{transition:transform .35s cubic-bezier(.32,.72,0,1)}
+.f5-rond{transition:background .25s,color .25s}
+/* Le chiffre saute quand il change (deux noms d'animation pour qu'elle reparte à chaque toucher) */
+.f5-vA{animation:f5-vA .35s cubic-bezier(.34,1.56,.64,1)}
+.f5-vB{animation:f5-vB .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes f5-vA{0%{transform:scale(.7)}60%{transform:scale(1.15)}100%{transform:none}}
+@keyframes f5-vB{0%{transform:scale(.7)}60%{transform:scale(1.15)}100%{transform:none}}
+/* Remise en ordre des exercices libres par appui long : pas de sélection ni de menu système */
+.f5-appui{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+
+/* --- Feuille d'images --- */
+.ip-voile{opacity:0;pointer-events:none;transition:opacity .25s}
+.ip-voile.ip-ouvert{opacity:1;pointer-events:auto}
+/* visibility : la feuille fermée ne prend pas le focus clavier (invisible à l'œil, comme fe-feuille) */
+.ip-picker{transform:translateY(105%);visibility:hidden;transition:transform .5s cubic-bezier(.32,.72,0,1),visibility 0s .5s}
+.ip-picker.ip-ouvert{transform:none;visibility:visible;transition:transform .5s cubic-bezier(.32,.72,0,1),visibility 0s}
+.ip-tuile{opacity:0;transform:scale(.9);transition:opacity .3s,transform .4s cubic-bezier(.34,1.56,.64,1)}
+.ip-ouvert .ip-tuile{opacity:1;transform:none}
+.ip-pop{animation:f3-pop .45s cubic-bezier(.34,1.56,.64,1) both}
+.ip-touche{cursor:pointer;transition:transform .15s}
+.ip-touche:active{transform:scale(.97)}
+
+/* --- Feuille d'exercices --- */
+.fe-voile{opacity:0;pointer-events:none;transition:opacity .25s}
+.fe-voile.fe-ouvert{opacity:1;pointer-events:auto}
+.fe-feuille{transform:translateY(105%);visibility:hidden;transition:transform .5s cubic-bezier(.32,.72,0,1),visibility 0s .5s}
+.fe-feuille.fe-ouvert{transform:none;visibility:visible;transition:transform .5s cubic-bezier(.32,.72,0,1),visibility 0s}
+.fe-liste{scrollbar-width:none}.fe-liste::-webkit-scrollbar{display:none}
+.fe-champ::placeholder{color:#989da6;opacity:1}
+.fe-champ:focus{outline:none}
+.fe-touche{cursor:pointer;transition:transform .15s}
+.fe-touche:active{transform:scale(.98)}
+
+@media (prefers-reduced-motion:reduce){
+  .f1-page,.f1-voile,.f1-fab,.f1-fab svg,.f1-feuille,.f1-action,.f1-editeur,
+  .f3-hero,.f3-ajout,.f3-touche,.f5-touche,.f5-tiroir,.f5-reglages,.f5-chevron,.f5-rond,.ip-voile,.ip-picker,.ip-tuile,.ip-touche,
+  .fe-voile,.fe-feuille,.fe-touche{transition:none!important}
+  .f3-pop,.ip-pop,.f5-vA,.f5-vB{animation:none!important}
+}

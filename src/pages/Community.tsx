@@ -3,16 +3,31 @@ import LightLayout from '@/components/layout/LightLayout'
 import ChallengeCard from '@/components/features/ChallengeCard'
 import FeedPostCard from '@/components/features/FeedPostCard'
 import ReactionsModal from '@/components/features/ReactionsModal'
+import WinterChallengeCard from '@/components/features/winter/WinterChallengeCard'
 import { useActiveChallenge } from '@/hooks/useActiveChallenge'
 import { useChallengeProgress } from '@/hooks/useChallengeProgress'
+import { useChallengeParticipation } from '@/hooks/useChallengeParticipation'
+import { useCurrentUserProfile } from '@/hooks/useCurrentUserProfile'
+import { useWeeklyMissions } from '@/hooks/useWeeklyMissions'
+import { isSummitChallenge } from '@/lib/winter'
 import { useFeed, togglePostReaction } from '@/hooks/useFeed'
 import { supabase } from '@/lib/supabaseClient'
 import type { Post, ProfileSummary, ReactionEmoji } from '@/types'
 
 /** Page Communauté V2 — UN défi unique + feed PR auto. */
 export default function Community() {
-  const { challenge, isParticipant } = useActiveChallenge()
-  const { progress } = useChallengeProgress(challenge?.id ?? null)
+  const { challenge, isParticipant, refresh: refreshChallenge } = useActiveChallenge()
+  const { progress, refresh: refreshProgress } = useChallengeProgress(challenge?.id ?? null)
+  const { join } = useChallengeParticipation(challenge?.id ?? null)
+  const { profile: me } = useCurrentUserProfile()
+  const winter = isSummitChallenge(challenge)
+  // Missions comptées comme les points : à partir de max(départ, inscription)
+  const myJoinedAt = progress?.ranking.find((r) => r.user_id === me?.id)?.joined_at ?? null
+  const missionsFrom =
+    challenge && myJoinedAt
+      ? new Date(Math.max(new Date(challenge.starts_at).getTime(), new Date(myJoinedAt).getTime())).toISOString()
+      : null
+  const { missions } = useWeeklyMissions(me?.id ?? null, missionsFrom, winter && isParticipant)
   const { posts, currentUserId, refresh: refreshFeed } = useFeed()
 
   // Profils des participants pour les avatars overlap
@@ -96,12 +111,27 @@ export default function Community() {
               Défis
             </h2>
             <div className="mt-[19px] px-[16px]">
-              <ChallengeCard
-                challenge={challenge}
-                isParticipant={isParticipant}
-                progress={progress}
-                participantProfiles={participantProfiles}
-              />
+              {winter ? (
+                <WinterChallengeCard
+                  challenge={challenge}
+                  isParticipant={isParticipant}
+                  progress={progress}
+                  me={me}
+                  missionsDone={missions.done}
+                  missionsTotal={missions.total}
+                  onJoin={async () => {
+                    await join()
+                    await Promise.all([refreshChallenge(), refreshProgress()])
+                  }}
+                />
+              ) : (
+                <ChallengeCard
+                  challenge={challenge}
+                  isParticipant={isParticipant}
+                  progress={progress}
+                  participantProfiles={participantProfiles}
+                />
+              )}
             </div>
           </>
         )}

@@ -1,0 +1,64 @@
+/* Défi Winter : animations reprises de la maquette G-CarteDefiWinter (canevas Grint). */
+
+/* Neige qui tombe dans la carte */
+.winter-flocon {
+  position: absolute;
+  top: -6px;
+  border-radius: 50%;
+  background: #fff;
+  animation: winter-tombe linear infinite;
+}
+@keyframes winter-tombe {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: var(--o); }
+  90% { opacity: var(--o); }
+  100% { transform: translate(var(--dx), var(--dy, 175px)); opacity: 0; }
+}
+
+/* Inscription : ton avatar entre dans la pile */
+.winter-arrive {
+  animation: winter-arrive 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes winter-arrive {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.25); }
+  100% { transform: none; }
+}
+
+/* Inscription : éclats qui partent du bouton */
+.winter-eclats i { position: absolute; opacity: 0; }
+.winter-fete .winter-eclats i {
+  animation: winter-eclat 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes winter-eclat {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3) rotate(0); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(1) rotate(var(--r)); }
+}
+
+/* Puis la pile et le bouton laissent place à ta place, tes points, tes missions */
+.winter-part {
+  animation: winter-part 0.45s cubic-bezier(0.55, 0, 0.75, 0.2) 1.9s forwards;
+  pointer-events: none;
+}
+@keyframes winter-part {
+  to { opacity: 0; transform: translateY(8px); }
+}
+.winter-suivi {
+  animation: winter-suivi 0.55s cubic-bezier(0.22, 1, 0.36, 1) 2.2s backwards;
+}
+@keyframes winter-suivi {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .winter-flocon,
+  .winter-arrive,
+  .winter-fete .winter-eclats i,
+  .winter-part,
+  .winter-suivi {
+    animation: none !important;
+  }
+  .winter-flocon { display: none; }
+}

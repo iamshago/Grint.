@@ -143,8 +143,11 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
         </button>
       )}
 
-      <div className="f3-defile" style={{ position: 'absolute', inset: 0, overflowY: 'auto', pointerEvents: 'none' }}>
-        <div style={{ height: 258, flexShrink: 0 }} />
+      {/* Le conteneur qui défile doit recevoir les touchers : avec pointer-events: none, Safari
+          iOS ne le fait pas défiler (la séance restait figée sur iPhone). La zone transparente du
+          haut, au-dessus de l'image, ouvre le choix de l'image comme le bouton « Image » derrière. */}
+      <div className="f3-defile" data-editeur-defile style={{ position: 'absolute', inset: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
+        <div aria-hidden="true" onClick={() => setImagePickerOpen(true)} style={{ height: 258, flexShrink: 0 }} />
         <div style={{ boxSizing: 'border-box', position: 'relative', minHeight: 'calc(100% - 258px)', background: '#f1f4fb', borderRadius: '24px 24px 0 0', boxShadow: '0px 0px 13px 0px rgba(0,0,0,0.1)', padding: '12px 16px 120px', pointerEvents: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
             <div style={{ width: 40, height: 4, borderRadius: 9999, background: '#dde0e7' }} />

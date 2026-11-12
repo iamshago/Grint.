@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type TouchEvent } from 'react'
 import WorkoutEditor from './WorkoutEditor'
 import { IconeDossierPlus, IconeHaltere, IconePlus } from './icones'
 import './creer-seance.css'
@@ -75,6 +75,48 @@ export default function PlusFeuille({ etape, onEtape, onCreerProgramme, onSeance
   }, [etape, onEtape])
 
   const fermer = () => onEtape('ferme')
+
+  // Tirer la fiche vers le bas pour la fermer, quand la séance est en haut de son défilement.
+  const ficheRef = useRef<HTMLDivElement>(null)
+  const glisse = useRef<{ y0: number; dy: number; actif: boolean } | null>(null)
+  const defileEnHaut = () => {
+    const d = ficheRef.current?.querySelector('[data-editeur-defile]') as HTMLElement | null
+    return !d || d.scrollTop <= 0
+  }
+  const glisserDebut = (e: TouchEvent) => {
+    glisse.current = { y0: e.touches[0].clientY, dy: 0, actif: defileEnHaut() }
+  }
+  const glisserSuite = (e: TouchEvent) => {
+    const g = glisse.current
+    const fiche = ficheRef.current
+    if (!g || !fiche) return
+    const dy = e.touches[0].clientY - g.y0
+    if (!g.actif) {
+      // Le geste a commencé en pleine liste : on ne prend la main que si on est revenu en haut.
+      if (dy > 0 && defileEnHaut()) { g.actif = true; g.y0 = e.touches[0].clientY }
+      return
+    }
+    g.dy = Math.max(0, dy)
+    if (g.dy > 0) {
+      fiche.style.transition = 'none'
+      fiche.style.transform = `translateY(${g.dy}px)`
+    }
+  }
+  const glisserFin = () => {
+    const g = glisse.current
+    const fiche = ficheRef.current
+    glisse.current = null
+    if (!g || !fiche) return
+    if (g.dy > 110) {
+      // La fiche file vers le bas depuis là où le doigt l'a laissée, puis se ferme.
+      fiche.style.transition = 'transform .4s cubic-bezier(.32,.72,0,1)'
+      fiche.style.transform = 'translateY(102%)'
+      fermer()
+      return
+    }
+    fiche.style.transition = ''
+    fiche.style.transform = ''
+  }
   const feuilleVue = etape === 'feuille'
   const clsFab = etape === 'feuille' ? 'f1-ouvert' : etape === 'editeur' ? 'f1-cache' : ''
 
@@ -139,8 +181,21 @@ export default function PlusFeuille({ etape, onEtape, onCreerProgramme, onSeance
       </div>
 
       {editeurMonte && (
+        // Toucher au-dessus de la fiche la referme, comme une fiche iOS.
         <div
+          aria-hidden="true"
+          onClick={fermer}
+          style={{ position: 'fixed', left: 0, right: 0, top: 0, height: 'calc(env(safe-area-inset-top, 0px) + 46px)', zIndex: 59 }}
+        />
+      )}
+      {editeurMonte && (
+        <div
+          ref={ficheRef}
           className={`f1-editeur ${editeurVu ? 'f1-vu' : ''}`}
+          onTouchStart={glisserDebut}
+          onTouchMove={glisserSuite}
+          onTouchEnd={glisserFin}
+          onTouchCancel={glisserFin}
           style={{ position: 'fixed', left: 0, right: 0, top: 'calc(env(safe-area-inset-top, 0px) + 46px)', bottom: 0, zIndex: 60, borderRadius: '22px 22px 0 0', overflow: 'hidden', boxShadow: '0 -10px 40px rgba(0,0,0,.35)', background: '#f1f4fb' }}
         >
           <WorkoutEditor embedded onExit={fermer} onSaved={onSeanceEnregistree} />

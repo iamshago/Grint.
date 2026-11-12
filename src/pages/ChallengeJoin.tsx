@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { useChallengeParticipation } from '@/hooks/useChallengeParticipation'
 import { CHALLENGE_SELECT, type Challenge } from '@/types'
+import WinterSnow, { FLOCONS_MONTAGNE } from '@/components/features/winter/WinterSnow'
+import { isSummitChallenge } from '@/lib/winter'
 
 /** Page Rejoindre — full-bleed, photo hero + carte sticky en bas. */
 export default function ChallengeJoin() {
@@ -70,6 +72,8 @@ export default function ChallengeJoin() {
         alt=""
         className="absolute inset-0 size-full object-cover"
       />
+      {/* Winter : la neige tombe sur la montagne, comme sur la carte et la page du défi */}
+      {isSummitChallenge(challenge) && <WinterSnow flocons={FLOCONS_MONTAGNE} fall={900} />}
       {/* Voile sombre top pour la lisibilité du back button */}
       <div className="absolute inset-x-0 top-0 h-[200px] bg-gradient-to-b from-black/50 to-transparent pointer-events-none" />
 

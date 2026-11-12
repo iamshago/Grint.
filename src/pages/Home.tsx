@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabaseClient'
 import { Play, Clock, Dumbbell, Check, ChevronLeft, X, CalendarPlus } from 'lucide-react'
 
@@ -56,6 +56,30 @@ export default function Home() {
   const { streakCount, weekDays, loading: streakLoading, weekLoaded } = useStreak(currentUserId)
   // La journée de la dernière séance se coche toute seule, une fois (carte streak vivante)
   const { aFeter, dernier: dernierJour, marquerFete } = useJourAFeter(currentUserId, weekDays)
+
+  // Retour d'une séance (« Terminer » de Séance validée, état de navigation `depuisSeance`) :
+  // le carrousel glisse jusqu'à la carte streak, et la page remonte si le carrousel n'est pas
+  // à l'écran, pour que la journée qui se coche (carte vivante) se joue sous les yeux.
+  // Ouvert autrement, l'Accueil reste sur la carte 1. L'état est effacé aussitôt : un retour
+  // en arrière ou un rechargement ne refont pas le défilement.
+  const location = useLocation()
+  const depuisSeance = location.state?.depuisSeance === true
+  useEffect(() => {
+    if (!depuisSeance) return
+    navigate(location.pathname + location.search, { replace: true, state: null })
+    // Après l'arrivée de la page (fondu de 250 ms)
+    const t = setTimeout(() => {
+      const el = carouselRef.current
+      const carte = el?.children[1] as HTMLElement | undefined
+      if (!el || !carte) return
+      const r = el.getBoundingClientRect()
+      if (r.top < 0 || r.bottom > window.innerHeight - 110) {
+        window.scrollTo({ top: Math.max(0, window.scrollY + r.top - 80), behavior: 'smooth' })
+      }
+      el.scrollTo({ left: el.scrollLeft + carte.getBoundingClientRect().left - r.left - 16, behavior: 'smooth' })
+    }, 280)
+    return () => clearTimeout(t)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCarouselScroll = () => {
     const el = carouselRef.current

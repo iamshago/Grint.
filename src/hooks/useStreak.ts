@@ -116,31 +116,32 @@ export function useStreak(userId: string | null | undefined): StreakData {
       let streak = 0
       if (upperCount > 0 && lowerCount > 0) streak++
 
-      for (let w = 1; w <= 51; w++) {
-        const wMon = new Date(monday)
-        wMon.setDate(monday.getDate() - 7 * w)
-        const wSun = new Date(wMon)
-        wSun.setDate(wMon.getDate() + 6)
-        wSun.setHours(23, 59, 59, 999)
+      // Les 51 semaines passées en une seule requête (avant : une requête par semaine, l'une
+      // après l'autre, plusieurs secondes avant que le compte arrive), rangées par lundi.
+      const debut = new Date(monday)
+      debut.setDate(monday.getDate() - 7 * 51)
+      const { data: passees } = await supabase
+        .from('completed_workouts')
+        .select('completed_at, category, workouts(category)')
+        .eq('user_id', uid)
+        .gte('completed_at', debut.toISOString())
+        .lt('completed_at', monday.toISOString())
 
-        const { data: pastWeek } = await supabase
-          .from('completed_workouts')
-          .select('category, workouts(category)')
-          .eq('user_id', uid)
-          .gte('completed_at', wMon.toISOString())
-          .lte('completed_at', wSun.toISOString())
-
-        let hasUpper = false
-        let hasLower = false
-        const pastRows = (pastWeek ?? []) as unknown as CompletedCategoryRow[]
-        pastRows.forEach((cw) => {
-          const c = cw.category || cw.workouts?.category
-          if (c === 'upper') hasUpper = true
-          if (c === 'lower' || c === 'bbl') hasLower = true
-        })
-
-        if (hasUpper && hasLower) streak++
-      }
+      const semaines = new Map<number, { haut: boolean; bas: boolean }>()
+      const pastRows = (passees ?? []) as unknown as CompletedCategoryRow[]
+      pastRows.forEach((cw) => {
+        const c = cw.category || cw.workouts?.category
+        const lundi = new Date(cw.completed_at)
+        lundi.setHours(0, 0, 0, 0)
+        lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7))
+        const sem = semaines.get(lundi.getTime()) ?? { haut: false, bas: false }
+        if (c === 'upper') sem.haut = true
+        if (c === 'lower' || c === 'bbl') sem.bas = true
+        semaines.set(lundi.getTime(), sem)
+      })
+      semaines.forEach((sem) => {
+        if (sem.haut && sem.bas) streak++
+      })
 
       setStreakCount(streak)
     } catch (e) {

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient'
 import ThemeProvider from '@/components/layout/ThemeProvider'
 import { AccentProvider } from '@/lib/AccentContext'
 import TabBar from '@/components/layout/TabBar'
+import TransitionPage from '@/components/layout/TransitionPage'
 
 /**
  * Routes où le TabBar ne doit PAS s'afficher.
@@ -171,6 +172,8 @@ export default function App() {
     <Router>
       <AccentProvider>
       <ThemeProvider>
+        {/* Changement de page : fondu + léger glissement (la barre d'onglets reste en dehors) */}
+        <TransitionPage>
         <Routes>
           {/* Light mode */}
           <Route path="/home" element={<Home />} />
@@ -210,6 +213,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/home" replace />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
+        </TransitionPage>
         <PersistentTabBar />
       </ThemeProvider>
       </AccentProvider>

@@ -58,7 +58,8 @@ export default function SeanceValidee() {
   const valide = (liste: Array<string | null>) => liste.includes('upper') && liste.some((c) => c === 'lower' || c === 'bbl')
   const avantSeance = jours.map((c, i) => (i === aujourdhui ? null : c))
   const boost = valide(jours) && !valide(avantSeance)
-  const terminer = () => navigate('/home', { replace: true })
+  // L'Accueil s'ouvre sur la carte streak : la séance qui vient d'entrer dans la semaine s'y coche sous les yeux
+  const terminer = () => navigate('/home', { replace: true, state: { depuisSeance: true } })
 
   return (
     <div

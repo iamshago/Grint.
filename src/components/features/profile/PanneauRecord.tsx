@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, type CSSProperties } from 'react'
 import { CX, T, W, chemins, fmt, geo, minuteur, ondeImages, r1, type ExoRecord } from './crete'
-import { animerOndeSansCss, type PanneauProps } from './panneaux'
+import { SAIT_D, animerOndeSansCss, attributsPanneau, type PanneauProps } from './panneaux'
 
 interface PanneauRecordProps {
   panneau: PanneauProps
@@ -41,11 +41,11 @@ export default function PanneauRecord(p: PanneauRecordProps) {
   const images = useMemo(() => (enOnde && GA ? ondeImages(GA.noeuds, G.noeuds, C) : null), [enOnde, GA, G, C])
   const cssOnde = (q: 'trace' | 'sous' | 'longue') =>
     images ? vars(Object.fromEntries(images[q].map((d, f) => ['--d' + f, `path('${d}')`]))) : {}
-  const refs = useRef<Record<string, SVGPathElement | null>>({})
+  const refs = useRef<Record<string, SVGElement | null>>({})
   useLayoutEffect(() => {
     if (!images) return
     return animerOndeSansCss([
-      [refs.current.clip, images.sous], [refs.current.sous1, images.sous], [refs.current.sous2, images.sous],
+      [refs.current.clip, images.sous], [refs.current.sous1, images.sous], [refs.current.decoupe, images.sous, 'clip'],
       [refs.current.longue, images.longue], [refs.current.trace1, images.trace], [refs.current.trace2, images.trace],
     ])
   }, [images, sc])
@@ -93,6 +93,8 @@ export default function PanneauRecord(p: PanneauRecordProps) {
   const cl = {
     trace: enDessin ? 'o3-trace' + sc : enOnde ? 'o3-onde' + sc : '',
     onde: enOnde ? 'o3-onde' + sc : '',
+    // découpe de la poussière : en CSS là où l'onde est en CSS, sinon menée image par image avec le reste (animerOndeSansCss)
+    decoupe: enOnde && SAIT_D ? 'o3-decoupe' + sc : '',
     remplit: enDessin ? 'o3-remplit' + sc : '',
     drapeau: enDessin || enOnde ? 'o3-drapeau' + sc : '',
     apparait: enDessin || enOnde ? 'o3-apparait' + sc : '',
@@ -106,12 +108,14 @@ export default function PanneauRecord(p: PanneauRecordProps) {
   const chiffre = { fontFamily: "'PT Serif', Georgia, serif", fontWeight: 700, fontSize: 32, letterSpacing: '-0.96px', color: pan.chiffre }
 
   return (
-    <div className={p.panneau.cls} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, visibility: p.panneau.vis, opacity: p.panneau.op, pointerEvents: p.panneau.clic, ...vars({ '--sens': p.panneau.sens }) }}>
+    // Calque permanent (will-change) : sinon Safari crée un calque au début de chaque glissé d'onglet et le
+    // détruit à la fin, et repeint à chaque fois la crête avec ses filtres (deux images de 150 ms).
+    <div {...attributsPanneau(p.panneau, { willChange: 'transform, opacity' })}>
       <div className="o3-puces" style={{ display: 'flex', gap: 8, padding: '16px 16px 0 16px', overflowX: 'auto', scrollbarWidth: 'none' }}>
         {p.exos.map((e) => {
           const actif = e.nom === ex.nom
           return (
-            <button key={e.nom} type="button" className={actif ? '' : 'o3-presse'} onClick={() => { if (!actif) p.onChoisirExo(e.nom) }} style={{ flexShrink: 0, margin: 0, padding: '6px 12px', borderRadius: 8, border: `1px solid ${actif ? '#ffee8c' : 'transparent'}`, backgroundColor: actif ? 'rgba(255,238,140,0.25)' : '#3d4149', color: actif ? '#ffee8c' : '#989da6', fontFamily: 'Figtree, system-ui, sans-serif', fontWeight: 600, fontSize: 12, lineHeight: '18px', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer' }}>{e.nom}</button>
+            <button key={e.nom} type="button" tabIndex={p.panneau.actif ? undefined : -1} className={actif ? '' : 'o3-presse'} onClick={() => { if (!actif) p.onChoisirExo(e.nom) }} style={{ flexShrink: 0, margin: 0, padding: '6px 12px', borderRadius: 8, border: `1px solid ${actif ? '#ffee8c' : 'transparent'}`, backgroundColor: actif ? 'rgba(255,238,140,0.25)' : '#3d4149', color: actif ? '#ffee8c' : '#989da6', fontFamily: 'Figtree, system-ui, sans-serif', fontWeight: 600, fontSize: 12, lineHeight: '18px', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer' }}>{e.nom}</button>
           )
         })}
       </div>
@@ -121,8 +125,12 @@ export default function PanneauRecord(p: PanneauRecordProps) {
           <defs>
             <linearGradient id="o3Degrade" gradientUnits="userSpaceOnUse" x1="0" y1="84" x2="0" y2="238"><stop offset="0" stopColor="#ffee8c" stopOpacity=".26" /><stop offset="1" stopColor="#ffee8c" stopOpacity="0" /></linearGradient>
             <linearGradient id="o3Poussiere" gradientUnits="userSpaceOnUse" x1="0" y1="84" x2="0" y2="238"><stop offset="0" stopColor="#ffee8c" stopOpacity=".42" /><stop offset="1" stopColor="#ffee8c" stopOpacity="0" /></linearGradient>
-            {/* Pointillé de G-PaysageWinter : un dégradé de transparence devient une poussière de points */}
-            <filter id="o3Points" filterUnits="userSpaceOnUse" x="0" y="0" width="370" height="330" colorInterpolationFilters="sRGB">
+            {/* Pointillé de G-PaysageWinter : un dégradé de transparence devient une poussière de points.
+                Régions des filtres resserrées sur ce qui se voit (même rendu au pixel près, moins de pixels à calculer) :
+                le panneau à encoche, opaque, couvre tout sous y = 238 ; la crête ne monte jamais au-dessus de y = 84 (YS).
+                Les points gardent leur origine en 0,0 (Safari tire le bruit à partir de l'origine de la région) ;
+                le flou garde 3 écarts-types (36) de marge autour de la zone des points. */}
+            <filter id="o3Points" filterUnits="userSpaceOnUse" x="0" y="0" width="370" height="242" colorInterpolationFilters="sRGB">
               <feTurbulence type="fractalNoise" baseFrequency="1.15" numOctaves={1} seed={7} result="n" />
               <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1.6 0 0 0 -0.3" result="na" />
               <feComposite in="SourceAlpha" in2="na" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0.5" result="d" />
@@ -131,15 +139,21 @@ export default function PanneauRecord(p: PanneauRecordProps) {
               <feColorMatrix in="c" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 30 0" />
             </filter>
             <filter id="o3Flou" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="3" /></filter>
-            <filter id="o3FlouLarge" filterUnits="userSpaceOnUse" x="-60" y="-60" width="490" height="450"><feGaussianBlur stdDeviation="12" /></filter>
+            <filter id="o3FlouLarge" filterUnits="userSpaceOnUse" x="-40" y="40" width="450" height="240"><feGaussianBlur stdDeviation="12" /></filter>
             <filter id="o3Halo" filterUnits="userSpaceOnUse" x="-40" y="150" width="450" height="230"><feGaussianBlur stdDeviation="9" /></filter>
             <clipPath id="o3Sous"><path ref={(el) => { refs.current.clip = el }} className={cl.onde} d={C.sous} style={cssOnde('sous')} /></clipPath>
           </defs>
 
           {/* la crête remplie : dégradé doux, poussière de points, points serrés le long de l'arête */}
-          <g className={cl.remplit}>
+          {/* clip-path neutre au repos (inset 0) : le remplissage se dessine en animant ce clip-path ; le faire passer de
+              « none » à un inset et retour jetait le cache des filtres de tout le groupe dans Safari (100 ms). */}
+          <g className={cl.remplit} style={{ clipPath: 'inset(0 0 0 0)' }}>
             <path ref={(el) => { refs.current.sous1 = el }} className={cl.onde} d={C.sous} fill="url(#o3Degrade)" style={cssOnde('sous')} />
-            <path ref={(el) => { refs.current.sous2 = el }} className={cl.onde} d={C.sous} fill="url(#o3Poussiere)" filter="url(#o3Points)" opacity=".55" style={cssOnde('sous')} />
+            {/* La poussière ne dépend pas de la forme (seuil du dégradé contre un bruit fixe) : on la calcule une fois
+                sur toute la zone et la crête la découpe (clip-path CSS, pas un <clipPath> : changer un style garde le
+                cache du filtre dans Safari, changer le tracé d'un <clipPath> le jette). Même rendu, mais son filtre
+                n'est plus recalculé quand la crête ondule. */}
+            <g ref={(el) => { refs.current.decoupe = el }} className={cl.decoupe} style={{ clipPath: `path('${C.sous}')`, ...cssOnde('sous') }}><rect x="0" y="0" width="370" height="330" fill="url(#o3Poussiere)" filter="url(#o3Points)" opacity=".55" /></g>
             <g clipPath="url(#o3Sous)">
               <g filter="url(#o3Points)" opacity=".9">
                 <path ref={(el) => { refs.current.longue = el }} className={cl.onde} d={C.longue} fill="none" stroke="#ffee8c" strokeWidth="44" strokeOpacity=".62" strokeLinejoin="round" filter="url(#o3FlouLarge)" style={cssOnde('longue')} />
@@ -178,7 +192,7 @@ export default function PanneauRecord(p: PanneauRecordProps) {
 
         {/* chaque nouveau record : un point sur la crête */}
         {records.map((q) => (
-          <button key={q.i} type="button" className="o3-point" onClick={q.choisir} aria-label={q.aria} style={{ position: 'absolute', left: q.x, top: q.y, width: 32, height: 32, margin: '-16px 0 0 -16px', padding: 0, border: 0, borderRadius: '50%', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}>
+          <button key={q.i} type="button" tabIndex={p.panneau.actif ? undefined : -1} className="o3-point" onClick={q.choisir} aria-label={q.aria} style={{ position: 'absolute', left: q.x, top: q.y, width: 32, height: 32, margin: '-16px 0 0 -16px', padding: 0, border: 0, borderRadius: '50%', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}>
             <span className={q.cls} style={{ display: 'block', width: q.t, height: q.t, borderRadius: '50%', background: '#ffee8c', boxShadow: q.ombre, animationDelay: `${q.delai}s` }} />
           </button>
         ))}

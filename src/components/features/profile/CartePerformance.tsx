@@ -61,8 +61,10 @@ export default function CartePerformance({ workoutDays, calories, exos, exoActif
   // Largeur dispo : la carte est dessinée en 370 px et mise à l'échelle sur les écrans plus étroits
   const boite = useRef<HTMLDivElement>(null)
   const [echelle, setEchelle] = useState(1)
-  // À l'ouverture, la crête se dessine (une fois) quand la carte arrive à l'écran
+  // À l'ouverture, la crête se dessine (une fois) quand la carte arrive à l'écran ; ouverte sur « Fréquence »
+  // (aucun record), ce sont les jours faits du mois qui éclosent
   const dessinee = useRef(false)
+  const [apparitionF, setApparitionF] = useState(0)
   useLayoutEffect(() => {
     const el = boite.current
     if (!el) return
@@ -71,14 +73,17 @@ export default function CartePerformance({ workoutDays, calories, exos, exoActif
     const ro = new ResizeObserver(mesure)
     ro.observe(el)
     let io: IntersectionObserver | null = null
-    if (debut === 'record') {
-      const lancer = () => { if (!dessinee.current) { dessinee.current = true; jouer(['crete'], { jeu: 1, mode: 'dessin' }) } }
-      const r = el.getBoundingClientRect()
-      if (r.top < window.innerHeight - 0.2 * r.height && r.bottom > 0) lancer()
-      else {
-        io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { lancer(); io?.disconnect() } }, { threshold: 0.2 })
-        io.observe(el)
-      }
+    const lancer = () => {
+      if (dessinee.current) return
+      dessinee.current = true
+      if (debut === 'record') jouer(['crete'], { jeu: 1, mode: 'dessin' })
+      else setApparitionF(1)
+    }
+    const r = el.getBoundingClientRect()
+    if (r.top < window.innerHeight - 0.2 * r.height && r.bottom > 0) lancer()
+    else {
+      io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { lancer(); io?.disconnect() } }, { threshold: 0.2 })
+      io.observe(el)
     }
     return () => { ro.disconnect(); io?.disconnect() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,7 +99,7 @@ export default function CartePerformance({ workoutDays, calories, exos, exoActif
   const panneau = (k: Onglet): PanneauProps => {
     const actif = k === og
     return {
-      vis: actif ? 'visible' : 'hidden', op: actif ? 1 : 0, clic: actif ? 'auto' : 'none',
+      actif,
       sens: (io > iav ? 36 : -36) + 'px',
       cls: animO ? (actif ? 'o3-entre' + so : k === ogAv ? 'o3-sort' + so : '') : '',
     }
@@ -129,7 +134,7 @@ export default function CartePerformance({ workoutDays, calories, exos, exoActif
         </div>
 
         <div style={{ position: 'absolute', top: 58, left: 0, right: 0, height: 378 }}>
-          <PanneauFrequence panneau={panneau('frequence')} workoutDays={workoutDays} arrivee={animO && og === 'frequence'} so={so} />
+          <PanneauFrequence panneau={panneau('frequence')} workoutDays={workoutDays} arrivee={animO && og === 'frequence'} so={so} apparition={apparitionF} />
           {exos.length > 0 ? (
             <PanneauRecord
               panneau={panneau('record')}
@@ -149,7 +154,7 @@ export default function CartePerformance({ workoutDays, calories, exos, exoActif
             />
           ) : (
             // Aucun record : le message de l'app (état absent de la planche)
-            <div style={{ position: 'absolute', inset: 0, display: panneau('record').vis === 'visible' ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, display: og === 'record' ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center' }}>
               <p style={{ margin: 0, fontSize: 14, color: '#989da6' }}>Aucune donnée pour le moment</p>
             </div>
           )}

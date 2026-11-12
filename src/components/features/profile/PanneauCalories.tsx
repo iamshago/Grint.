@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { DAY_LABELS } from '@/hooks/useStreak'
-import type { PanneauProps } from './panneaux'
+import { attributsPanneau, type PanneauProps } from './panneaux'
 
 interface PanneauCaloriesProps {
   panneau: PanneauProps
@@ -17,7 +17,7 @@ export default function PanneauCalories({ panneau, calories, arrivee, so }: Pann
   const max = Math.max(...calories, 1)
 
   return (
-    <div className={panneau.cls} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, padding: 16, visibility: panneau.vis, opacity: panneau.op, pointerEvents: panneau.clic, ...({ '--sens': panneau.sens } as CSSProperties) }}>
+    <div {...attributsPanneau(panneau, { padding: 16 })}>
       <p style={{ margin: '0 0 4px', lineHeight: 1, color: '#f1f4fb' }}>
         <span style={{ fontFamily: "'PT Serif', Georgia, serif", fontWeight: 700, fontSize: 48 }}>
           <span className={'o3-n' + (arrivee ? ' o3-compte' + so : '')} style={{ ...({ '--n': String(total), '--n0': '0', '--n1': String(total) } as CSSProperties), counterReset: 'o3n var(--n)', animationDelay: '.1s' }} />

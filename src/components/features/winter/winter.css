@@ -109,8 +109,55 @@
 .winter-piste { transform-origin: left; animation: winter-piste 1.1s cubic-bezier(0.22, 1, 0.36, 1) both; }
 @keyframes winter-piste { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
+/* ---------- Barre « ta place » : l'appel quand ta place a bougé ----------
+   Rien d'ajouté sur la carte : elle respire, s'entoure de la lueur jaune et un balayage lumineux
+   (lc-balaye de G-LigneCourse) la traverse au sommet de chaque respiration. Part 1,8 s après
+   l'arrivée (une fois le « +1 pt » posé), s'arrête au toucher ou quand la course se joue.
+   Place gagnée : boucle de 2,8 s. Place perdue : plus sobre, 3,6 s, lueur plus faible, ni balayage ni respiration. */
+.winter-appel { animation: winter-appel 2.8s ease-in-out 1.8s infinite; }
+@keyframes winter-appel {
+  0%, 100% { transform: none; box-shadow: 0 8px 24px rgba(31,32,33,.32), 0 0 0 0 rgba(255,238,140,0), 0 0 0 0 rgba(255,238,140,0); }
+  50% { transform: scale(1.02); box-shadow: 0 8px 24px rgba(31,32,33,.32), 0 0 0 2px rgba(255,238,140,.9), 0 0 28px 0 rgba(255,238,140,.45); }
+}
+.winter-appel .winter-appel-avatar { animation: winter-appel-avatar 2.8s ease-in-out 1.8s infinite; }
+@keyframes winter-appel-avatar {
+  0%, 100% { box-shadow: 0 0 0 2px #ffee8c, 0 0 0 0 rgba(255,238,140,0); }
+  50% { box-shadow: 0 0 0 2px #ffee8c, 0 0 18px 0 rgba(255,238,140,.6); }
+}
+.winter-balaye {
+  position: absolute; top: 0; bottom: 0; width: 30%; left: -35%; opacity: 0;
+  background: linear-gradient(100deg, rgba(255,238,140,0), rgba(255,246,194,.55), rgba(255,238,140,0));
+}
+.winter-appel .winter-balaye { opacity: 1; animation: winter-appel-balaye 2.8s cubic-bezier(0.22, 1, 0.36, 1) 1.8s infinite backwards; }
+@keyframes winter-appel-balaye { 0%, 25% { left: -35%; } 70%, 100% { left: 110%; } }
+.winter-appel-doux { animation: winter-appel-doux 3.6s ease-in-out 1.8s infinite; }
+@keyframes winter-appel-doux {
+  0%, 100% { box-shadow: 0 8px 24px rgba(31,32,33,.32), 0 0 0 0 rgba(255,238,140,0), 0 0 0 0 rgba(255,238,140,0); }
+  50% { box-shadow: 0 8px 24px rgba(31,32,33,.32), 0 0 0 1.5px rgba(255,238,140,.7), 0 0 20px 0 rgba(255,238,140,.25); }
+}
+.winter-appel-doux .winter-appel-avatar { animation: winter-appel-avatar-doux 3.6s ease-in-out 1.8s infinite; }
+@keyframes winter-appel-avatar-doux {
+  0%, 100% { box-shadow: 0 0 0 2px #ffee8c, 0 0 0 0 rgba(255,238,140,0); }
+  50% { box-shadow: 0 0 0 2px #ffee8c, 0 0 14px 0 rgba(255,238,140,.4); }
+}
+/* Révélation d'une place gagnée : les étoiles de la carte du premier (lc-etoiles) partent de ton avatar
+   quand le chiffre saute (même délai que winter-rang) */
+.winter-etoiles i {
+  position: absolute; width: 8px; height: 8px; margin: -4px; background: #ffee8c; opacity: 0;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: winter-etoile 1s cubic-bezier(0.22, 1, 0.36, 1) 1.1s;
+}
+@keyframes winter-etoile {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(1) rotate(90deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .winter-moi, .winter-fait, .winter-ligne, .winter-mission, .winter-membre { transition: none !important; }
   .winter-atteint, .winter-saute, .winter-lueur, .winter-coche, .winter-evol, .winter-gain,
-  .winter-rang, .winter-rang-bas, .winter-fleche, .winter-piste { animation: none !important; }
+  .winter-rang, .winter-rang-bas, .winter-fleche, .winter-piste,
+  .winter-appel, .winter-appel .winter-appel-avatar, .winter-appel .winter-balaye, .winter-appel-doux,
+  .winter-appel-doux .winter-appel-avatar,
+  .winter-etoiles i { animation: none !important; }
 }

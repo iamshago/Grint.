@@ -86,10 +86,13 @@ export function daysUntil(iso: string, now: Date = new Date()): number {
   return Math.max(0, Math.round((a.getTime() - b.getTime()) / DAY_MS))
 }
 
-/** Ce qu'on retient de ta dernière visite de la page défi, pour animer l'arrivée. */
+/** Ce qu'on retient de ta dernière visite de la page défi, pour animer l'arrivée.
+ *  Enregistrée une fois la course jouée sous tes yeux, pas à l'arrivée sur la page. */
 export interface WinterVisit {
   ranks: Record<string, number>
   pts: number
+  /** Points de chacun à cette visite (pour l'écart affiché sur « ta place » avant la révélation). */
+  ptsDe?: Record<string, number>
 }
 
 const visitKey = (challengeId: string) => `winter-visite:${challengeId}`

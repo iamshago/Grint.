@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { Challenge, ChallengeProgress, ProfileSummary } from '@/types'
+import type { Challenge, ChallengeProgress, ChallengeRanking, ProfileSummary } from '@/types'
 import type { WeeklyMissions } from '@/hooks/useWeeklyMissions'
 import { resolveAvatarSrc } from '@/lib/avatars'
 import { firstNameOnly } from '@/lib/displayName'
@@ -8,7 +8,7 @@ import { formatLongDate } from '@/lib/formatRelativeTime'
 import { SEUIL_FOULE, daysUntil, mondayRanks, readVisit, saveVisit, sortRace } from '@/lib/winter'
 import WinterMountainCard from './WinterMountainCard'
 import WinterMissions from './WinterMissions'
-import WinterRace, { type LigneCourse } from './WinterRace'
+import WinterRace, { type LigneCourse, type WinterRaceHandle } from './WinterRace'
 import WinterPlaceBar from './WinterPlaceBar'
 import Medaille, { SERIE_WINTER } from './Medaille'
 
@@ -22,11 +22,49 @@ interface WinterChallengeViewProps {
 
 const titre = 'font-serif font-bold text-[24px] leading-[32px] tracking-[-0.025em] text-tx-1'
 const nomDe = (p?: ProfileSummary) => firstNameOnly(p?.display_name) || p?.username || '—'
+const ecartTexte = (devant: ChallengeRanking | null, pts: number) =>
+  devant ? `à ${pts} pt${pts > 1 ? 's' : ''} de ${nomDe(devant.profile)}` : 'en tête'
+
+/** Après le défilement jusqu'à ta ligne, un temps avant que la course glisse (ms). */
+const BATTEMENT = 200
+/** Glissement d'une ligne fini (transition de 0,8 s après 0,35 s) : la visite s'enregistre là (ms). */
+const FIN_COURSE = 1200
+
+/** Défile en douceur jusqu'à `y` ; se résout quand la page est posée. */
+function defilerVers(y: number): Promise<void> {
+  return new Promise((resolve) => {
+    const cible = Math.max(0, Math.min(y, document.documentElement.scrollHeight - window.innerHeight))
+    if (Math.abs(cible - window.scrollY) < 2) {
+      resolve()
+      return
+    }
+    let calme = 0
+    const fin = () => {
+      window.removeEventListener('scroll', bouge)
+      window.clearTimeout(calme)
+      window.clearTimeout(garde)
+      resolve()
+    }
+    const bouge = () => {
+      window.clearTimeout(calme)
+      calme = window.setTimeout(fin, 140)
+    }
+    const garde = window.setTimeout(fin, 1600)
+    window.addEventListener('scroll', bouge, { passive: true })
+    calme = window.setTimeout(fin, 200)
+    const doux = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: cible, behavior: doux ? 'smooth' : 'auto' })
+  })
+}
 
 /**
  * Page du défi Winter (maquettes C5 / C7) : la montagne, les missions de la semaine, la course
  * et la barre « ta place ». À l'arrivée, tout part de ta dernière visite (de lundi la première
- * fois) puis glisse vers maintenant : ton avatar monte le chemin, ta ligne change de place.
+ * fois) : ton avatar monte le chemin, tes points changent. Ta place, elle, reste celle d'avant
+ * tant que la course ne l'a pas montrée : si elle a bougé, la barre « ta place » appelle le doigt ;
+ * la toucher fait descendre jusqu'à ta ligne, puis la course glisse et la barre révèle ta place.
+ * La course se joue aussi toute seule si tu descends jusqu'à elle. La visite ne s'enregistre
+ * qu'une fois la course jouée.
  */
 export default function WinterChallengeView({ challenge, progress, me, friendIds, missions }: WinterChallengeViewProps) {
   const summit = challenge.summit_points ?? 24
@@ -35,8 +73,9 @@ export default function WinterChallengeView({ challenge, progress, me, friendIds
   const rang = useMemo(() => Object.fromEntries(race.map((r, i) => [r.user_id, i + 1])), [race])
   const lundi = useMemo(() => mondayRanks(progress.ranking), [progress.ranking])
 
-  // Dernière visite, lue une seule fois avant d'être remplacée par celle-ci
+  // Dernière visite, lue une seule fois (elle n'est remplacée qu'une fois la course jouée)
   const [visite] = useState(() => readVisit(challenge.id))
+  // Points et montagne : ils changent à l'arrivée, comme avant
   const [phase, setPhase] = useState<'avant' | 'maintenant'>('avant')
   useEffect(() => {
     const t = window.setTimeout(() => setPhase('maintenant'), 1200)
@@ -47,17 +86,83 @@ export default function WinterChallengeView({ challenge, progress, me, friendIds
   const mesPts = moi?.pts ?? 0
   const ptsAvant = visite ? Math.min(visite.pts, mesPts) : mesPts - (moi?.ptsThisWeek ?? 0)
 
-  useEffect(() => {
-    if (moi) saveVisit(challenge.id, { ranks: rang, pts: mesPts })
-  }, [challenge.id, rang, mesPts, moi])
-
   // Place de départ de chaque ligne : celle de ta dernière visite (ou de lundi), les nouveaux à leur place
   const avant = visite?.ranks ?? lundi
-  const rangAvant = Object.fromEntries(
+  const rangAvant: Record<string, number> = Object.fromEntries(
     [...race]
       .sort((a, b) => (avant[a.user_id] ?? rang[a.user_id] + 0.5) - (avant[b.user_id] ?? rang[b.user_id] + 0.5))
       .map((r, i) => [r.user_id, i + 1]),
   )
+  const maPlaceAvant = moi ? rangAvant[moi.user_id] : 0
+  const maPlaceMaint = moi ? rang[moi.user_id] : 0
+  /** Ta place a bougé depuis ta dernière visite (de lundi la première fois). */
+  const sens: 'monte' | 'descend' | null =
+    !moi || notStarted || maPlaceAvant === maPlaceMaint ? null : maPlaceAvant > maPlaceMaint ? 'monte' : 'descend'
+
+  // --- La course : jouée toute seule quand elle arrive à l'écran, ou après le défilement si tu touches « ta place »
+  const course = useRef<WinterRaceHandle>(null)
+  const barre = useRef<HTMLButtonElement>(null)
+  const [jouee, setJouee] = useState(false)
+  const [touchee, setTouchee] = useState(false)
+  const joueeRef = useRef(false)
+  const guidage = useRef(false)
+  const auto = useRef(0)
+  const battement = useRef(0)
+  useEffect(
+    () => () => {
+      window.clearTimeout(auto.current)
+      window.clearTimeout(battement.current)
+    },
+    [],
+  )
+  const jouer = useCallback(() => {
+    if (joueeRef.current) return
+    joueeRef.current = true
+    setJouee(true)
+  }, [])
+  const onVue = useCallback(() => {
+    if (guidage.current || joueeRef.current) return
+    auto.current = window.setTimeout(jouer, 1000)
+  }, [jouer])
+
+  /** Défile jusqu'à ta ligne : sa place d'avant et sa place d'arrivée entre l'entête et la barre du bas. */
+  const allerAMaLigne = async () => {
+    const l = course.current?.maLigne()
+    if (!l) return
+    const haut = (document.querySelector('header')?.getBoundingClientRect().bottom ?? 0) + 12
+    const bas = (barre.current?.getBoundingClientRect().top ?? window.innerHeight) - 12
+    const zone = bas - haut
+    const etendue = l.bas - l.haut
+    // tout tient : centré ; sinon on garde la place d'arrivée à l'écran
+    const y = etendue <= zone ? l.haut - haut - (zone - etendue) / 2 : l.monte ? l.haut - haut : l.bas - bas
+    await defilerVers(y)
+  }
+
+  const toucherCarte = async () => {
+    if (guidage.current) return
+    if (joueeRef.current) {
+      void allerAMaLigne()
+      return
+    }
+    guidage.current = true
+    setTouchee(true)
+    window.clearTimeout(auto.current)
+    await allerAMaLigne()
+    battement.current = window.setTimeout(() => {
+      guidage.current = false
+      jouer()
+    }, BATTEMENT)
+  }
+
+  // La dernière place vue ne s'enregistre qu'une fois la course jouée
+  useEffect(() => {
+    if (!jouee || !moi) return
+    const t = window.setTimeout(
+      () => saveVisit(challenge.id, { ranks: rang, pts: mesPts, ptsDe: Object.fromEntries(race.map((r) => [r.user_id, r.pts])) }),
+      FIN_COURSE,
+    )
+    return () => window.clearTimeout(t)
+  }, [jouee, moi, challenge.id, rang, mesPts, race])
 
   const lignes: LigneCourse[] = race.map((r) => ({
     id: r.user_id,
@@ -67,20 +172,26 @@ export default function WinterChallengeView({ challenge, progress, me, friendIds
     moi: r.user_id === me?.id,
     rang: rang[r.user_id],
     rangAvant: rangAvant[r.user_id],
-    evol: notStarted ? null : (lundi[r.user_id] ?? rang[r.user_id]) - rang[r.user_id],
+    rangLundi: notStarted ? null : (lundi[r.user_id] ?? rang[r.user_id]),
+    depuisVisite: sens && r.user_id === me?.id ? maPlaceAvant - maPlaceMaint : undefined,
   }))
 
   const maintenant = phase === 'maintenant'
-  const maPlace = moi ? (maintenant ? rang[moi.user_id] : rangAvant[moi.user_id]) : null
+  // Ta place : celle d'avant tant que la course ne l'a pas montrée
+  const maPlace = moi ? (jouee ? maPlaceMaint : maPlaceAvant) : null
   const ptsAffiches = maintenant ? mesPts : ptsAvant
   const daysToStart = notStarted ? daysUntil(challenge.starts_at) : null
   const topSemaine = race.reduce<(typeof race)[number] | null>((t, r) => ((r.ptsThisWeek ?? 0) > (t?.ptsThisWeek ?? 0) ? r : t), null)
-  const devant = moi && rang[moi.user_id] > 1 ? race[rang[moi.user_id] - 2] : null
+  const devant = moi && maPlaceMaint > 1 ? race[maPlaceMaint - 2] : null
+  // Avant la révélation, l'écart est celui de ta dernière visite (points de chacun à ce moment-là)
+  const ptsVisiteDe = (r: ChallengeRanking) =>
+    r.user_id === moi?.user_id ? ptsAvant : visite ? (visite.ptsDe?.[r.user_id] ?? r.pts) : r.pts - (r.ptsThisWeek ?? 0)
+  const devantAvant = moi && maPlaceAvant > 1 ? (race.find((r) => rangAvant[r.user_id] === maPlaceAvant - 1) ?? null) : null
   const ecart = notStarted
     ? `départ le ${formatLongDate(challenge.starts_at)}`
-    : devant
-      ? `à ${devant.pts - mesPts} pt${devant.pts - mesPts > 1 ? 's' : ''} de ${nomDe(devant.profile)}`
-      : 'en tête'
+    : sens && !jouee
+      ? ecartTexte(devantAvant, devantAvant ? Math.max(0, ptsVisiteDe(devantAvant) - ptsAvant) : 0)
+      : ecartTexte(devant, devant ? devant.pts - mesPts : 0)
 
   return (
     <div className="relative w-full max-w-[402px] mx-auto pb-[112px]">
@@ -117,7 +228,7 @@ export default function WinterChallengeView({ challenge, progress, me, friendIds
 
       <h2 className={`mx-[16px] mt-[28px] mb-[12px] ${titre}`}>La course</h2>
       <div className="mx-[16px]">
-        <WinterRace lignes={lignes} summit={summit} />
+        <WinterRace ref={course} lignes={lignes} summit={summit} jouee={jouee} descend={sens === 'descend'} onVue={onVue} />
       </div>
 
       {moi && (
@@ -147,10 +258,13 @@ export default function WinterChallengeView({ challenge, progress, me, friendIds
           daysToStart={daysToStart}
           place={maPlace}
           pts={ptsAffiches}
-          deltaPlace={maintenant ? rangAvant[moi.user_id] - rang[moi.user_id] : 0}
+          deltaPlace={jouee ? maPlaceAvant - maPlaceMaint : 0}
           gain={maintenant ? mesPts - ptsAvant : 0}
           ecart={ecart}
-          onClick={() => document.getElementById('winter-ma-ligne')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+          appel={sens && !jouee && !touchee ? sens : null}
+          fete={jouee && sens === 'monte'}
+          onClick={toucherCarte}
+          ref={barre}
         />
       )}
     </div>

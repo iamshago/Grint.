@@ -12,7 +12,7 @@ interface WinterRaceRowProps {
   pts: number
   summit: number
   moi: boolean
-  /** Places gagnées (+) ou perdues (−) depuis lundi ; null = pas de flèche. */
+  /** Places gagnées (+) ou perdues (−) depuis lundi ; null ou 0 = pas de flèche. */
   evol: number | null
   /** Délai d'apparition de la flèche (ms), pour qu'elles sautent de haut en bas. */
   delai: number
@@ -78,7 +78,8 @@ export default function WinterRaceRow({ rang, tete, nom, avatar, pts, summit, mo
             <path d="M4 22V4l12 5-12 5" />
           </svg>
         )}
-        {evol !== null && <Fleche evol={evol} delai={delai} />}
+        {/* la clé fait ressauter la flèche quand son chiffre change (ta ligne a dépassé ou a été doublée) */}
+        {evol !== null && <Fleche key={evol} evol={evol} delai={delai} />}
       </p>
 
       <div
@@ -104,10 +105,10 @@ export default function WinterRaceRow({ rang, tete, nom, avatar, pts, summit, mo
   )
 }
 
-/** ▲ n vert = places gagnées depuis lundi, ▼ n rouge = perdues, = gris si rien ne bouge. */
+/** ▲ n vert = places gagnées depuis lundi, ▼ n rouge = perdues ; rien si la place n'a pas bougé (jamais de « = »). */
 function Fleche({ evol, delai }: { evol: number; delai: number }) {
   const style = { animationDelay: `${delai}ms` }
   if (evol > 0) return <span className="winter-evol" style={{ ...style, color: '#2fb36b' }}>▲ {evol}</span>
   if (evol < 0) return <span className="winter-evol" style={{ ...style, color: '#e8413a' }}>▼ {-evol}</span>
-  return <span className="winter-evol" style={{ ...style, color: '#989da6' }}>=</span>
+  return null
 }

@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { CATEGORY_ACCENT } from '@/lib/categoryColors'
-import type { DraftExercise } from '@/lib/myPrograms'
-import ExercisePickerSheet, { TENSION_SHORT } from '@/components/features/ExercisePickerSheet'
+import ExercisePickerSheet from '@/components/features/ExercisePickerSheet'
 import ImagePickerSheet from '@/components/features/ImagePickerSheet'
 import HeroSeance from './HeroSeance'
-import LigneEmplacement from './LigneEmplacement'
 import ListeModification from './ListeModification'
 import { useEditeurSeance, type CiblePlacement } from './useEditeurSeance'
 import { IconeCoche, IconeHaltere, IconeImagePlus, IconeRetour } from './icones'
@@ -20,7 +18,6 @@ const CATEGORY_OPTIONS: { value: WorkoutCategory; label: string }[] = [
 ]
 
 const SERIF = "'PT Serif', Georgia, serif"
-const sousTitre = (d: DraftExercise) => `${d.sets} séries • ${d.reps} réps`
 
 interface WorkoutEditorProps {
   /** Programme parent (la nouvelle séance y est liée). Absent = séance orpheline. */
@@ -39,14 +36,15 @@ interface WorkoutEditorProps {
 }
 
 /**
- * Création / édition d'une séance perso — planches F3 (vide) et F4 (remplie) du canevas :
- * on crée la séance dans la page qu'elle deviendra (aperçu d'une séance). 4 emplacements
- * guides ; chacun ouvre la feuille d'exercices, le type de l'emplacement en premier.
+ * Création / édition d'une séance perso — planches F3 (vide), F4 (remplie) et F5 (modifier) du canevas :
+ * on crée la séance dans la page qu'elle deviendra (aperçu d'une séance). 4 emplacements guides
+ * (recommandés, pas obligatoires) ; chacun ouvre la feuille d'exercices, le type de l'emplacement en
+ * premier. Chaque exercice se règle (séries, réps, repos) dès la création, comme en modification.
  */
 export default function WorkoutEditor({ programId, workoutId, embedded = false, onExit, onSaved }: WorkoutEditorProps) {
   // Toute la logique (état, réglages, ajout / retrait / ordre, enregistrement) : useEditeurSeance.
   const ed = useEditeurSeance({ programId, workoutId, onExit, onSaved })
-  const { name, category, imageUrl, slots, freeExos, catalog, loading, saving, blockError, toast, filledSlots, totalExos } = ed
+  const { name, category, imageUrl, slots, catalog, loading, saving, blockError, toast, filledSlots, totalExos } = ed
 
   const [imagePickerOpen, setImagePickerOpen] = useState(false)
   const [picker, setPicker] = useState<CiblePlacement | null>(null)
@@ -78,35 +76,6 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
       setDernier((d) => ({ cle, tick: (d?.tick ?? 0) + 1 }))
     }, 220)
   }
-
-  // Création (planches F3 / F4) : les 4 emplacements guides ; chacun ouvre la feuille d'exercices.
-  // (En modification, la liste est celle de la planche F5 : ListeModification.)
-  let numero = 0
-  const lignes = [
-    ...SLOT_ORDER.map((slot) => {
-      const draft = slots[slot]
-      if (draft) numero += 1
-      return {
-        cle: slot,
-        numero: draft ? numero : undefined,
-        titre: draft ? draft.exercise?.name ?? 'Exercice' : TENSION_SHORT[slot],
-        sous: draft ? sousTitre(draft) : 'Recommandé',
-        slot: draft ? TENSION_SHORT[slot] : undefined,
-        ouvrir: () => setPicker({ kind: 'slot', slot }),
-      }
-    }),
-    ...freeExos.map((draft) => {
-      numero += 1
-      return {
-        cle: draft.uid,
-        numero,
-        titre: draft.exercise?.name ?? 'Exercice',
-        sous: sousTitre(draft),
-        slot: undefined,
-        ouvrir: () => setPicker({ kind: 'free-replace', uid: draft.uid }),
-      }
-    }),
-  ]
 
   // Racine : page plein écran, ou dans la feuille de Programmer décalée de 46 px vers le haut (F1).
   const racine: CSSProperties = embedded
@@ -213,26 +182,9 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <h3 style={{ margin: 0, fontFamily: SERIF, fontWeight: 700, fontSize: 24, lineHeight: '32px', letterSpacing: '-0.72px', color: '#1b1d1f' }}>Exercices</h3>
-                {ed.isEdit ? (
-                  <ListeModification ed={ed} onChoisir={setPicker} dernier={dernier} />
-                ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {lignes.map((l) => {
-                    const pop = dernier?.cle === l.cle
-                    return (
-                      <LigneEmplacement
-                        key={pop ? `${l.cle}-${dernier.tick}` : l.cle}
-                        numero={l.numero}
-                        titre={l.titre}
-                        sous={l.sous}
-                        slot={l.slot}
-                        pop={pop}
-                        onClick={l.ouvrir}
-                      />
-                    )
-                  })}
-                </div>
-                )}
+                {/* Création comme modification : la liste de la planche F5 (séries, réps, repos réglables,
+                    exercices ajoutés, retirés, remis en ordre) ; les 4 emplacements restent des recommandations. */}
+                <ListeModification ed={ed} onChoisir={setPicker} dernier={dernier} />
               </div>
             </div>
           )}

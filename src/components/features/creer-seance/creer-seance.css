@@ -12,10 +12,16 @@
 .f1-voile.f1-vu{opacity:1;pointer-events:auto}
 .f1-fab{transition:transform .45s cubic-bezier(.34,1.56,.64,1),background .3s,opacity .2s}
 .f1-fab svg{transition:transform .45s cubic-bezier(.34,1.56,.64,1)}
-.f1-fab.f1-ouvert{transform:translateY(-224px) scale(.86);background:#2c2e31!important}
+/* Ouvert, le × se pose juste au-dessus de la feuille (232 px de haut, sans marge basse) : 12 px au-dessus de
+   son bord, comme l'écart entre ses choix, et aligné sur leur bord droit (feuille de 402 px max, centrée).
+   Le + repose à 24 px au-dessus de la zone basse de l'iPhone : on la retire de la montée, sinon le × montait
+   de 34 px de trop sur iPhone. */
+.f1-fab{--f1-monte:translate(calc(8px - max(0px, (100vw - 402px) / 2)), calc(env(safe-area-inset-bottom, 0px) - 216px))}
+.f1-fab.f1-ouvert{transform:var(--f1-monte) scale(.86);background:#2c2e31!important}
 .f1-fab.f1-ouvert svg{transform:rotate(135deg)}
 .f1-fab.f1-cache{opacity:0;pointer-events:none}
 .f1-fab:active{transform:scale(.92)}
+.f1-fab.f1-ouvert:active{transform:var(--f1-monte) scale(.8)}
 .f1-feuille{transform:translateY(105%);transition:transform .5s cubic-bezier(.32,.72,0,1)}
 .f1-feuille.f1-vu{transform:none}
 .f1-action{opacity:0;transform:translateY(18px);transition:transform .45s cubic-bezier(.22,1,.36,1),opacity .3s,background .15s}

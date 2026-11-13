@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Exercise, SlotType } from '@/types'
+import { musclesCherches, normaliser, travaille } from '@/lib/muscles'
 import { IconePlus, IconeRecherche, IconeX } from '@/components/features/creer-seance/icones'
 import '@/components/features/creer-seance/creer-seance.css'
 
@@ -37,6 +38,13 @@ export default function ExercisePickerSheet({
 }: ExercisePickerSheetProps) {
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const listeRef = useRef<HTMLDivElement>(null)
+
+  // Chaque recherche (et chaque ouverture) repart du haut de la liste : sinon les résultats
+  // s'affichaient là où la liste avait été laissée.
+  useEffect(() => {
+    if (listeRef.current) listeRef.current.scrollTop = 0
+  }, [query, open])
 
   useEffect(() => {
     if (!open) {
@@ -57,10 +65,12 @@ export default function ExercisePickerSheet({
     }
   }, [open, onClose])
 
+  // Recherche par nom, ou par muscle : « quadriceps » sort tous les exercices qui les travaillent.
   const results = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = normaliser(query)
     if (!q) return catalog
-    return catalog.filter((e) => e.name.toLowerCase().includes(q))
+    const muscles = musclesCherches(query)
+    return catalog.filter((e) => normaliser(e.name).includes(q) || travaille(e, muscles))
   }, [catalog, query])
 
   // Slot ciblé : exos du bon type de tension d'abord (« Recommandés »), reste ensuite.
@@ -146,7 +156,7 @@ export default function ExercisePickerSheet({
             )}
           </label>
         </div>
-        <div className="fe-liste" style={{ boxSizing: 'border-box', overflowY: 'auto', padding: '0 20px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div ref={listeRef} className="fe-liste" style={{ boxSizing: 'border-box', overflowY: 'auto', padding: '0 20px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {results.length === 0 ? (
             <p style={{ margin: 0, padding: '40px 0', textAlign: 'center', fontSize: 14, lineHeight: '20px', color: '#989da6' }}>Aucun exercice ne correspond.</p>
           ) : slot ? (

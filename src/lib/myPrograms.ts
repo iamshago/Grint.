@@ -383,6 +383,13 @@ export async function replaceWorkoutExercises(
 
 /** Catalogue d'exercices (lecture seule) pour la modale de sélection. */
 export async function fetchExerciseCatalog(): Promise<Exercise[]> {
+  const avecMuscles = await supabase
+    .from('exercises')
+    .select('id, name, video_url, tension_type, muscles')
+    .order('name', { ascending: true })
+  if (!avecMuscles.error) return (avecMuscles.data ?? []) as Exercise[]
+  // Colonne `muscles` pas encore créée (migration 20261113_exercises_muscles.sql) : catalogue sans
+  // muscles, la recherche se fait alors sur le nom seul.
   const { data, error } = await supabase
     .from('exercises')
     .select('id, name, video_url, tension_type')

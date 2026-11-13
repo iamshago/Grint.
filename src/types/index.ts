@@ -6,6 +6,9 @@ export interface Exercise {
   video_url: string | null
   /** Type de tension dominant — aligne l'exo sur un slot recommandé (cf. SLOT_LABELS). */
   tension_type?: SlotType | null
+  /** Muscles travaillés, principal d'abord (noms de `MUSCLES`, src/lib/muscles.ts) : recherche par muscle,
+   *  recommandations haut / bas du corps. Absent tant que la migration 20261113_exercises_muscles n'est pas passée. */
+  muscles?: string[] | null
 }
 
 export interface WorkoutExercise {

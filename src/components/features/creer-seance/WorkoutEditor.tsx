@@ -5,6 +5,7 @@ import ImagePickerSheet from '@/components/features/ImagePickerSheet'
 import HeroSeance from './HeroSeance'
 import ListeModification from './ListeModification'
 import { useEditeurSeance, type CiblePlacement } from './useEditeurSeance'
+import type { Brouillon } from './brouillonSeance'
 import { IconeCoche, IconeHaltere, IconeImagePlus, IconeRetour } from './icones'
 import { SLOT_ORDER, SLOT_LABELS } from '@/types'
 import type { Exercise, WorkoutCategory } from '@/types'
@@ -33,6 +34,11 @@ interface WorkoutEditorProps {
   onExit: () => void
   /** Après l'enregistrement. */
   onSaved: () => void
+  /** Création : séance gardée pour plus tard, reprise telle quelle (planche F7). */
+  depart?: Brouillon | null
+  /** Création : l'état de la séance à chaque changement (null une fois l'enregistrement lancé), pour
+   *  proposer de la garder si on ferme sans enregistrer (planche F6). */
+  onBrouillon?: (b: Brouillon | null) => void
 }
 
 /**
@@ -41,10 +47,17 @@ interface WorkoutEditorProps {
  * (recommandés, pas obligatoires) ; chacun ouvre la feuille d'exercices, le type de l'emplacement en
  * premier. Chaque exercice se règle (séries, réps, repos) dès la création, comme en modification.
  */
-export default function WorkoutEditor({ programId, workoutId, embedded = false, onExit, onSaved }: WorkoutEditorProps) {
+export default function WorkoutEditor({ programId, workoutId, embedded = false, onExit, onSaved, depart, onBrouillon }: WorkoutEditorProps) {
   // Toute la logique (état, réglages, ajout / retrait / ordre, enregistrement) : useEditeurSeance.
-  const ed = useEditeurSeance({ programId, workoutId, onExit, onSaved })
-  const { name, category, imageUrl, slots, catalog, loading, saving, blockError, toast, filledSlots, totalExos } = ed
+  const ed = useEditeurSeance({ programId, workoutId, onExit, onSaved, depart })
+  const { name, category, imageUrl, slots, catalog, loading, saving, blockError, toast, filledSlots, totalExos, brouillon, isEdit } = ed
+
+  // La feuille du + suit la séance : elle propose de la garder si on ferme sans enregistrer.
+  const onBrouillonRef = useRef(onBrouillon)
+  onBrouillonRef.current = onBrouillon
+  useEffect(() => {
+    onBrouillonRef.current?.(isEdit || saving ? null : brouillon)
+  }, [brouillon, saving, isEdit])
 
   const [imagePickerOpen, setImagePickerOpen] = useState(false)
   const [picker, setPicker] = useState<CiblePlacement | null>(null)
@@ -219,7 +232,7 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
         onErreur={ed.montrerToast}
       />
 
-      {/* Feuille d'exercices : ouverte par chaque emplacement, son type en premier */}
+      {/* Feuille d'exercices (F8) : la bonne moitié du corps en premier, et le type de l'emplacement */}
       <ExercisePickerSheet
         open={Boolean(picker)}
         onClose={() => setPicker(null)}
@@ -227,6 +240,7 @@ export default function WorkoutEditor({ programId, workoutId, embedded = false, 
         onSelect={choisirExercice}
         title={pickerTitle}
         slot={feuille?.kind === 'slot' ? feuille.slot : undefined}
+        category={category}
       />
 
     </div>

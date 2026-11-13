@@ -18,6 +18,8 @@
    de 34 px de trop sur iPhone. */
 .f1-fab{--f1-monte:translate(calc(8px - max(0px, (100vw - 402px) / 2)), calc(env(safe-area-inset-bottom, 0px) - 216px))}
 .f1-fab.f1-ouvert{transform:var(--f1-monte) scale(.86);background:#2c2e31!important}
+/* F7 : la feuille de reprise a 16 px de plus (« Terminer ma séance » sur deux lignes) : le × monte d'autant. */
+.f1-fab.f1-haute{--f1-monte:translate(calc(8px - max(0px, (100vw - 402px) / 2)), calc(env(safe-area-inset-bottom, 0px) - 232px))}
 .f1-fab.f1-ouvert svg{transform:rotate(135deg)}
 .f1-fab.f1-cache{opacity:0;pointer-events:none}
 .f1-fab:active{transform:scale(.92)}
@@ -29,6 +31,11 @@
 .f1-vu .f1-action:nth-child(2){transition-delay:.08s}
 .f1-vu .f1-action:nth-child(3){transition-delay:.13s}
 .f1-action:active{transform:scale(.97)!important;background:#e2e6ef!important}
+/* F7 : « Créer une séance » avec une séance gardée — les choix se remplacent, même cascade qu'à l'ouverture */
+.f1-entre{animation:f1-entre .45s cubic-bezier(.22,1,.36,1) backwards}
+.f1-entre:nth-child(2){animation-delay:.08s}
+.f1-entre:nth-child(3){animation-delay:.13s}
+@keyframes f1-entre{from{opacity:0;transform:translateY(18px)}}
 .f1-editeur{transform:translateY(102%);transition:transform .55s cubic-bezier(.32,.72,0,1)}
 .f1-editeur.f1-vu{transform:none}
 
@@ -89,5 +96,5 @@
   .f1-page,.f1-voile,.f1-fab,.f1-fab svg,.f1-feuille,.f1-action,.f1-editeur,
   .f3-hero,.f3-ajout,.f3-touche,.f5-touche,.f5-tiroir,.f5-reglages,.f5-chevron,.f5-rond,.ip-voile,.ip-picker,.ip-tuile,.ip-touche,
   .fe-voile,.fe-feuille,.fe-touche{transition:none!important}
-  .f3-pop,.ip-pop,.f5-vA,.f5-vB{animation:none!important}
+  .f3-pop,.ip-pop,.f5-vA,.f5-vB,.f1-entre{animation:none!important}
 }

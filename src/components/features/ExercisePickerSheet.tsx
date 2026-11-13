@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Exercise, SlotType } from '@/types'
-import { musclesCherches, normaliser, travaille } from '@/lib/muscles'
+import type { Exercise, SlotType, WorkoutCategory } from '@/types'
+import { musclesCherches, normaliser, recommandePour, travaille } from '@/lib/muscles'
 import { IconePlus, IconeRecherche, IconeX } from '@/components/features/creer-seance/icones'
 import '@/components/features/creer-seance/creer-seance.css'
 
@@ -21,12 +21,15 @@ interface ExercisePickerSheetProps {
   title?: string
   /** Slot ciblé : les exos de ce type de tension sont mis en avant (« Recommandés »). */
   slot?: SlotType | null
+  /** Catégorie de la séance : les exos de la bonne moitié du corps passent en tête (planche F8). */
+  category?: WorkoutCategory
 }
 
 /**
- * Feuille de sélection d'un exercice dans le catalogue (`exercises`, read-only) — planche G-FeuilleExercices.
+ * Feuille de sélection d'un exercice dans le catalogue (`exercises`, read-only) — planches G-FeuilleExercices et F8.
  * Posée dans la page (absolute, plein cadre) : le voile s'éclaircit, la feuille monte du bas.
- * Recherche en haut + liste scrollable (« Recommandés » = type de l'emplacement en premier).
+ * Recherche en haut (nom ou muscle) + liste scrollable en deux parties : « Exercices recommandés pour le
+ * haut / bas du corps » (bonne moitié du corps, et type de l'emplacement s'il y en a un), puis « Autres exercices ».
  */
 export default function ExercisePickerSheet({
   open,
@@ -35,6 +38,7 @@ export default function ExercisePickerSheet({
   onSelect,
   title = 'Ajouter un exercice',
   slot,
+  category,
 }: ExercisePickerSheetProps) {
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -73,9 +77,21 @@ export default function ExercisePickerSheet({
     return catalog.filter((e) => normaliser(e.name).includes(q) || travaille(e, muscles))
   }, [catalog, query])
 
-  // Slot ciblé : exos du bon type de tension d'abord (« Recommandés »), reste ensuite.
-  const recommended = slot ? results.filter((e) => e.tension_type === slot) : []
-  const others = slot ? results.filter((e) => e.tension_type !== slot) : results
+  // Recommandés (planche F8) : la bonne moitié du corps (le tronc compte pour les deux) et, pour un
+  // emplacement, son type de tension. Tant que les muscles ne sont pas en base, on retombe sur l'ancien
+  // tri : le type de l'emplacement seul, sous « Recommandés ».
+  const aMuscles = useMemo(() => catalog.some((e) => (e.muscles?.length ?? 0) > 0), [catalog])
+  const parMoitie = Boolean(category) && aMuscles
+  const estRecommande = (e: Exercise) =>
+    parMoitie
+      ? recommandePour(e, category as WorkoutCategory) && (!slot || e.tension_type === slot)
+      : Boolean(slot) && e.tension_type === slot
+  const enDeux = parMoitie || Boolean(slot)
+  const recommended = enDeux ? results.filter(estRecommande) : []
+  const others = enDeux ? results.filter((e) => !estRecommande(e)) : results
+  const titreRecommandes = parMoitie
+    ? `Exercices recommandés pour le ${category === 'upper' ? 'haut' : 'bas'} du corps`
+    : 'Recommandés'
 
   const cls = open ? 'fe-ouvert' : ''
 
@@ -159,16 +175,16 @@ export default function ExercisePickerSheet({
         <div ref={listeRef} className="fe-liste" style={{ boxSizing: 'border-box', overflowY: 'auto', padding: '0 20px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {results.length === 0 ? (
             <p style={{ margin: 0, padding: '40px 0', textAlign: 'center', fontSize: 14, lineHeight: '20px', color: '#989da6' }}>Aucun exercice ne correspond.</p>
-          ) : slot ? (
+          ) : enDeux ? (
             <>
               {recommended.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {titreSection('Recommandés')}
+                  {titreSection(titreRecommandes)}
                   {recommended.map(renderRow)}
                 </div>
               )}
               {others.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: recommended.length > 0 ? 8 : 0 }}>
                   {titreSection('Autres exercices')}
                   {others.map(renderRow)}
                 </div>

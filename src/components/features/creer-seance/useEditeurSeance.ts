@@ -12,6 +12,7 @@ import {
 } from '@/lib/myPrograms'
 import { SLOT_ORDER } from '@/types'
 import type { Exercise, SlotType, WorkoutCategory } from '@/types'
+import type { Brouillon } from './brouillonSeance'
 
 /**
  * Logique de l'éditeur de séance perso, sans interface : l'état de la séance (nom, catégorie,
@@ -68,16 +69,19 @@ interface Options {
   onExit: () => void
   /** Après l'enregistrement. */
   onSaved: () => void
+  /** Création : la séance gardée pour plus tard à reprendre (planche F7). */
+  depart?: Brouillon | null
 }
 
-export function useEditeurSeance({ programId, workoutId, onExit, onSaved }: Options) {
+export function useEditeurSeance({ programId, workoutId, onExit, onSaved, depart }: Options) {
   const isEdit = Boolean(workoutId)
+  const reprise = isEdit ? null : depart ?? null
 
-  const [name, setNameState] = useState('')
-  const [category, setCategory] = useState<WorkoutCategory>('upper')
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const [slots, setSlots] = useState<SlotMap>(EMPTY_SLOTS)
-  const [freeExos, setFreeExos] = useState<DraftExercise[]>([])
+  const [name, setNameState] = useState(reprise?.name ?? '')
+  const [category, setCategory] = useState<WorkoutCategory>(reprise?.category ?? 'upper')
+  const [imageUrl, setImageUrl] = useState<string | null>(reprise?.imageUrl ?? null)
+  const [slots, setSlots] = useState<SlotMap>(reprise ? { ...EMPTY_SLOTS, ...reprise.slots } : EMPTY_SLOTS)
+  const [freeExos, setFreeExos] = useState<DraftExercise[]>(reprise?.freeExos ?? [])
   const [catalog, setCatalog] = useState<Exercise[]>([])
 
   const [loading, setLoading] = useState(isEdit)
@@ -155,6 +159,12 @@ export function useEditeurSeance({ programId, workoutId, onExit, onSaved }: Opti
       ...freeExos.map((d) => ({ ...d, slot_type: null })),
     ],
     [slots, freeExos],
+  )
+
+  /** La séance telle qu'elle est, pour la garder sur le téléphone si on ferme sans enregistrer (F6). */
+  const brouillon: Brouillon = useMemo(
+    () => ({ name, category, imageUrl, slots, freeExos }),
+    [name, category, imageUrl, slots, freeExos],
   )
 
   const clearError = useCallback(() => setBlockError(''), [])
@@ -316,7 +326,7 @@ export function useEditeurSeance({ programId, workoutId, onExit, onSaved }: Opti
     isEdit,
     // état
     name, category, imageUrl, slots, freeExos, catalog, loading, saving, blockError, toast,
-    filledSlots, totalExos, ordered,
+    filledSlots, totalExos, ordered, brouillon,
     // champs
     setName, setCategory, setImageUrl, clearError,
     // exercices

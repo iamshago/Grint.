@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '@/lib/supabaseClient'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Search, Clock, Dumbbell, ArrowLeft, X, Play, Check, Calendar, Target, MoreVertical } from 'lucide-react'
 
 import LightLayout from '@/components/layout/LightLayout'
@@ -11,6 +11,7 @@ import ProgramCard from '@/components/features/ProgramCard'
 import WorkoutCard from '@/components/features/WorkoutCard'
 import ExerciseRow from '@/components/features/ExerciseRow'
 import UserProgramPreview from '@/components/features/UserProgramPreview'
+import JoursPlanifier from '@/components/features/JoursPlanifier'
 import SwipeableDeleteRow from '@/components/features/SwipeableDeleteRow'
 import Button from '@/components/ui/Button'
 import IconButton from '@/components/ui/IconButton'
@@ -22,18 +23,11 @@ import PlusFeuille, { type EtapeCreer } from '@/components/features/creer-seance
 import HeroSeance from '@/components/features/creer-seance/HeroSeance'
 import ImagePickerSheet from '@/components/features/ImagePickerSheet'
 
-const WEEKDAYS = [
-  { label: 'Lundi', value: 1 },
-  { label: 'Mardi', value: 2 },
-  { label: 'Mercredi', value: 3 },
-  { label: 'Jeudi', value: 4 },
-  { label: 'Vendredi', value: 5 },
-  { label: 'Samedi', value: 6 },
-  { label: 'Dimanche', value: 0 },
-]
-
 export default function Program() {
   const navigate = useNavigate()
+  // Venu du « Rien de prévu » de l'Accueil : ce jour-là est déjà choisi dans « Planifier ».
+  const etatArrivee = useLocation().state
+  const jourVise = typeof etatArrivee?.jourVise === 'number' ? etatArrivee.jourVise : null
   const [workouts, setWorkouts] = useState([])
   const [userWorkouts, setUserWorkouts] = useState([])
   const [programs, setPrograms] = useState([])
@@ -264,6 +258,7 @@ export default function Program() {
 
   const openScheduleModal = (workout) => {
     setSelectedWorkout(workout)
+    setSelectedDays(jourVise !== null ? [jourVise] : [])
     setIsModalOpen(true)
   }
 
@@ -539,6 +534,7 @@ export default function Program() {
           programId={previewUserProgramId}
           onClose={() => setPreviewUserProgramId(null)}
           onToast={showToast}
+          jourVise={jourVise}
         />
       )}
 
@@ -827,27 +823,13 @@ export default function Program() {
               Sélectionne un ou plusieurs jours pour{' '}
               <span className="font-bold text-tx-1">{selectedWorkout.title}</span> :
             </p>
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {WEEKDAYS.map((day) => {
-                const isSelected = selectedDays.includes(day.value)
-                return (
-                  <button
-                    key={day.value}
-                    onClick={() => {
-                      if (isSelected) setSelectedDays(selectedDays.filter((d) => d !== day.value))
-                      else setSelectedDays([...selectedDays, day.value])
-                    }}
-                    className={`py-3 rounded-12 text-xs font-sans font-bold uppercase transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-tx-1 text-pr-1'
-                        : 'bg-surface text-[#3d4149]'
-                    } ${day.label === 'Dimanche' ? 'col-span-2' : ''}`}
-                  >
-                    {day.label}
-                  </button>
-                )
-              })}
-            </div>
+            <JoursPlanifier
+              selection={selectedDays}
+              onBasculer={(jour) =>
+                setSelectedDays(selectedDays.includes(jour) ? selectedDays.filter((d) => d !== jour) : [...selectedDays, jour])
+              }
+              texteInactif="text-[#3d4149]"
+            />
             <Button
               variant="primary"
               className="w-full"

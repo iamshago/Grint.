@@ -493,7 +493,7 @@ export default function Home() {
             {/* État vide — pas de séance */}
             <div
               className="bg-bg-2 rounded-[24px] min-h-[140px] flex flex-col items-center justify-center gap-2 text-center cursor-pointer"
-              onClick={() => navigate('/programs')}
+              onClick={() => navigate('/programs', { state: { jourVise: supabaseDayIndex } })}
             >
               <p className="font-sans font-semibold text-base text-tx-2">
                 Rien de prévu pour ce jour.

@@ -8,6 +8,7 @@ import StickyPageHeader from '@/components/layout/StickyPageHeader'
 import ExerciseRow from '@/components/features/ExerciseRow'
 import WorkoutCard from '@/components/features/WorkoutCard'
 import type { UserProgram } from '@/types'
+import JoursPlanifier from '@/components/features/JoursPlanifier'
 
 const CATEGORY_LABEL: Record<string, string> = {
   upper: 'Haut du corps',
@@ -15,15 +16,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   bbl: 'BBL',
 }
 
-const WEEKDAYS = [
-  { label: 'Lundi', value: 1 },
-  { label: 'Mardi', value: 2 },
-  { label: 'Mercredi', value: 3 },
-  { label: 'Jeudi', value: 4 },
-  { label: 'Vendredi', value: 5 },
-  { label: 'Samedi', value: 6 },
-  { label: 'Dimanche', value: 0 },
-]
 
 interface PreviewExo {
   name: string
@@ -36,6 +28,8 @@ interface UserProgramPreviewProps {
   programId: string
   onClose: () => void
   onToast: (message: string, type?: 'success' | 'error' | 'info') => void
+  /** Venu du « Rien de prévu » de l'Accueil : ce jour (0 = dimanche) est déjà choisi dans « Planifier ». */
+  jourVise?: number | null
 }
 
 /**
@@ -43,7 +37,7 @@ interface UserProgramPreviewProps {
  * miroir du détail catalogue (light) : liste des séances (catalogue + perso) →
  * exos → « Planifier cette séance ». L'exécution se lance depuis l'Accueil.
  */
-export default function UserProgramPreview({ programId, onClose, onToast }: UserProgramPreviewProps) {
+export default function UserProgramPreview({ programId, onClose, onToast, jourVise = null }: UserProgramPreviewProps) {
   const [program, setProgram] = useState<(UserProgram & { items: ProgramItem[] }) | null>(null)
   const [loading, setLoading] = useState(true)
   const [detail, setDetail] = useState<{ item: ProgramItem; exos: PreviewExo[] } | null>(null)
@@ -172,6 +166,7 @@ export default function UserProgramPreview({ programId, onClose, onToast }: User
       {planItem && (
         <PlanModal
           item={planItem}
+          jourVise={jourVise}
           onClose={() => setPlanItem(null)}
           onDone={() => {
             setPlanItem(null)
@@ -327,14 +322,16 @@ function WorkoutDetail({
 /** Sélecteur de jours — planifie la séance (catalogue ou perso) dans workout_plan. */
 function PlanModal({
   item,
+  jourVise,
   onClose,
   onDone,
 }: {
   item: ProgramItem
+  jourVise: number | null
   onClose: () => void
   onDone: () => void
 }) {
-  const [selectedDays, setSelectedDays] = useState<number[]>([])
+  const [selectedDays, setSelectedDays] = useState<number[]>(jourVise !== null ? [jourVise] : [])
   const [saving, setSaving] = useState(false)
 
   async function handleSave() {
@@ -382,27 +379,12 @@ function PlanModal({
           Sélectionne un ou plusieurs jours pour{' '}
           <span className="font-bold text-tx-1">{item.name}</span> :
         </p>
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {WEEKDAYS.map((day) => {
-            const isSelected = selectedDays.includes(day.value)
-            return (
-              <button
-                key={day.value}
-                type="button"
-                onClick={() =>
-                  setSelectedDays((prev) =>
-                    isSelected ? prev.filter((d) => d !== day.value) : [...prev, day.value],
-                  )
-                }
-                className={`py-3 rounded-12 text-xs font-sans font-bold uppercase transition-colors cursor-pointer ${
-                  isSelected ? 'bg-tx-1 text-pr-1' : 'bg-surface text-tx-2'
-                } ${day.label === 'Dimanche' ? 'col-span-2' : ''}`}
-              >
-                {day.label}
-              </button>
-            )
-          })}
-        </div>
+        <JoursPlanifier
+          selection={selectedDays}
+          onBasculer={(jour) =>
+            setSelectedDays((prev) => (prev.includes(jour) ? prev.filter((d) => d !== jour) : [...prev, jour]))
+          }
+        />
         <button
           type="button"
           onClick={handleSave}

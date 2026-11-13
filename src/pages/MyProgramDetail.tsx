@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Reorder, useDragControls } from 'framer-motion'
 import { Plus, GripVertical, ChevronRight, X, Dumbbell } from 'lucide-react'
 import { createPortal } from 'react-dom'
+import JoursPlanifier from '@/components/features/JoursPlanifier'
 import { supabase } from '@/lib/supabaseClient'
 import {
   addProgramItem,
@@ -26,15 +27,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   bbl: 'BBL',
 }
 
-const WEEKDAYS = [
-  { label: 'Lundi', value: 1 },
-  { label: 'Mardi', value: 2 },
-  { label: 'Mercredi', value: 3 },
-  { label: 'Jeudi', value: 4 },
-  { label: 'Vendredi', value: 5 },
-  { label: 'Samedi', value: 6 },
-  { label: 'Dimanche', value: 0 },
-]
 
 /** Détail d'un programme perso — séances liées (catalogue + perso), réordonnables, planification. */
 export default function MyProgramDetail() {
@@ -420,27 +412,12 @@ function PlanModal({
           Sélectionne un ou plusieurs jours pour{' '}
           <span className="font-bold text-tx-1">{item.name}</span> :
         </p>
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {WEEKDAYS.map((day) => {
-            const isSelected = selectedDays.includes(day.value)
-            return (
-              <button
-                key={day.value}
-                type="button"
-                onClick={() =>
-                  setSelectedDays((prev) =>
-                    isSelected ? prev.filter((d) => d !== day.value) : [...prev, day.value],
-                  )
-                }
-                className={`py-3 rounded-12 text-xs font-sans font-bold uppercase transition-colors cursor-pointer ${
-                  isSelected ? 'bg-tx-1 text-pr-1' : 'bg-surface text-tx-2'
-                } ${day.label === 'Dimanche' ? 'col-span-2' : ''}`}
-              >
-                {day.label}
-              </button>
-            )
-          })}
-        </div>
+        <JoursPlanifier
+          selection={selectedDays}
+          onBasculer={(jour) =>
+            setSelectedDays((prev) => (prev.includes(jour) ? prev.filter((d) => d !== jour) : [...prev, jour]))
+          }
+        />
         <Button
           variant="primary"
           className="w-full"

@@ -1,4 +1,4 @@
-import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react'
+import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import { useNavigate } from 'react-router-dom'
 import WinterRaceRow from './WinterRaceRow'
 
@@ -11,11 +11,9 @@ export interface LigneCourse {
   /** Place maintenant, et place à ta dernière visite (d'où la ligne part en glissant). */
   rang: number
   rangAvant: number
-  /** Place de lundi, pour la flèche de la semaine ; null = pas de flèche (avant le départ). */
-  rangLundi: number | null
-  /** Ta ligne, quand ta place a bougé depuis ta dernière visite : sa flèche est celle du dépassement
-   *  (places gagnées ou perdues depuis cette visite), posée quand la ligne arrive, comme sur « ta place ». */
-  depuisVisite?: number
+  /** Places gagnées (+) ou perdues (−) depuis ta dernière visite (de lundi la première fois) ;
+   *  null = pas de flèche (place inchangée, ou avant le départ). Posée quand la ligne arrive. */
+  evol: number | null
 }
 
 /** Ta ligne, en coordonnées de la page : de sa place d'avant à sa place maintenant. */
@@ -49,15 +47,14 @@ const hauteurDe = (r: number, avecTete: boolean) => (r === 1 && avecTete ? 88 : 
 const teteDe = (lignes: LigneCourse[], cle: 'rang' | 'rangAvant') => (lignes.find((l) => l[cle] === 1)?.pts ?? 0) > 0
 
 /**
- * La course : tout le monde, du premier au dernier (C5). Elle est sous la montagne : les flèches
- * de la semaine sautent de haut en bas quand elle arrive à l'écran. Le glissement de chaque ligne,
- * de sa place à ta dernière visite vers sa place maintenant, est commandé par la page (`jouee`) :
- * il part tout seul quand la course arrive à l'écran, ou après le défilement si tu touches « ta place ».
+ * La course : tout le monde, du premier au dernier (C5). Le glissement de chaque ligne, de sa place
+ * à ta dernière visite vers sa place maintenant, est commandé par la page (`jouee`) : il part tout
+ * seul quand la course arrive à l'écran, ou après le défilement si tu touches « ta place ». Les
+ * flèches (places gagnées ou perdues depuis ta visite) se posent quand les lignes arrivent.
  */
 export default function WinterRace({ lignes, summit, jouee, descend = false, onVue, ref }: WinterRaceProps) {
   const navigate = useNavigate()
   const boite = useRef<HTMLDivElement>(null)
-  const [vue, setVue] = useState(false)
   const onVueRef = useRef(onVue)
   useEffect(() => {
     onVueRef.current = onVue
@@ -69,7 +66,6 @@ export default function WinterRace({ lignes, summit, jouee, descend = false, onV
     const io = new IntersectionObserver(
       ([e]) => {
         if (e.isIntersecting) {
-          setVue(true)
           onVueRef.current()
           io.disconnect()
         }
@@ -128,9 +124,9 @@ export default function WinterRace({ lignes, summit, jouee, descend = false, onV
               pts={l.pts}
               summit={summit}
               moi={l.moi}
-              evol={!vue ? null : l.depuisVisite !== undefined ? (jouee ? l.depuisVisite : null) : l.rangLundi !== null ? l.rangLundi - r : null}
-              // à l'arrivée elles sautent de haut en bas ; une flèche qui change ressaute quand sa ligne s'est posée
-              delai={jouee ? 1150 : 400 + (l.rangAvant - 1) * 80}
+              evol={jouee ? l.evol : null}
+              // la flèche se pose quand la ligne a fini de glisser (0,8 s après 0,35 s)
+              delai={1150}
               onClick={l.moi ? undefined : () => navigate(`/profile/friends/${l.id}`)}
             />
           </div>

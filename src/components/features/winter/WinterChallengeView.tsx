@@ -172,8 +172,8 @@ export default function WinterChallengeView({ challenge, progress, me, friendIds
     moi: r.user_id === me?.id,
     rang: rang[r.user_id],
     rangAvant: rangAvant[r.user_id],
-    rangLundi: notStarted ? null : (lundi[r.user_id] ?? rang[r.user_id]),
-    depuisVisite: sens && r.user_id === me?.id ? maPlaceAvant - maPlaceMaint : undefined,
+    // Toutes les flèches comptent depuis ta dernière visite (choix de Florian, 13/11) ; rien si la place n'a pas bougé
+    evol: notStarted ? null : rangAvant[r.user_id] - rang[r.user_id] || null,
   }))
 
   const maintenant = phase === 'maintenant'

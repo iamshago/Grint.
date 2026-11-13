@@ -105,7 +105,7 @@ export default function WinterRaceRow({ rang, tete, nom, avatar, pts, summit, mo
   )
 }
 
-/** ▲ n vert = places gagnées depuis lundi, ▼ n rouge = perdues ; rien si la place n'a pas bougé (jamais de « = »). */
+/** ▲ n vert = places gagnées depuis ta dernière visite, ▼ n rouge = perdues ; rien si la place n'a pas bougé (jamais de « = »). */
 function Fleche({ evol, delai }: { evol: number; delai: number }) {
   const style = { animationDelay: `${delai}ms` }
   if (evol > 0) return <span className="winter-evol" style={{ ...style, color: '#2fb36b' }}>▲ {evol}</span>
